@@ -37,10 +37,33 @@ Un esempio di file *reactions* completo:
 - il numero di linee di reazione deve essere uguale ad `r`.
 - ogni linea di reazione deve contenere `s` reagenti, un
 simbolo `->`, ed `s` prodotti.
-- ogni `r_n` può  valere `0` oppure `1`.
+- ogni `r_n` può  valere `0` oppure `1` oppure `2`.
 - la somma degli `r_n` e la somma dei `p_n` devono valere
 `0` oppure `1` oppure `2` (ovvero, in ogni reazione, sono
 permessi zero, uno o due reagenti e zero, uno o due prodotti).
 
 
+#### Rappresentazione in memoria
+
+Tutte le reazioni del sistema sono memorizzate in due zone
+di memoria contigue (i.e. due array mono-dimensionale), una
+per i reagenti e l'altra per i prodotti.
+
+Dato un sistema avente `r` reazioni e `s` specie, l'array dei
+reagenti contiene i coeff. stechiometrici dei reagenti ordinati
+per *specie*. Le celle di memoria dalla `0` alla `r-1` contengono
+gli `r` coeff. stechiometrici della specie `0`; le celle di memoria
+dalla `r` alla `2r-1` contengono gli `r` coeff. stechiometrici della
+specie `1`, e così via. La stessa cosa vale per il secondo array
+(quello dei prodotti).
+
+Ad esempio, il sistema di reazioni
+
+    0 0 1 -> 1 0 0
+    2 0 0 -> 0 1 1
+
+sarà rappresentato in memoria come
+
+    []reagenti = {0 2 0 0 1 0}
+	[]prodotti = {1 0 0 1 0 1}
 
