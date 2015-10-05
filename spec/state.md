@@ -39,8 +39,6 @@ Un esempio di file *state* completo:
 - il numero di linee di sottovolume deve essere uguale ad `N`.
 - ogni linea di sottovolume deve contenere `s` valori interi.
 - ogni `s_n` deve essere un numero intero positivo.
-- il file deve concludersi con al piu' 1 *whitespace*, che
-segue le linee di reazione.
 
 
 

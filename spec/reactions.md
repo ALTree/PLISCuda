@@ -37,12 +37,10 @@ Un esempio di file *reactions* completo:
 - il numero di linee di reazione deve essere uguale ad `r`.
 - ogni linea di reazione deve contenere `s` reagenti, un
 simbolo `->`, ed `s` prodotti.
-- ogni `r_n` puo' valere `0` oppure `1`.
+- ogni `r_n` può  valere `0` oppure `1`.
 - la somma degli `r_n` e la somma dei `p_n` devono valere
 `0` oppure `1` oppure `2` (ovvero, in ogni reazione, sono
 permessi zero, uno o due reagenti e zero, uno o due prodotti).
-- il file deve concludersi con al piu' 1 *whitespace*, che
-segue le linee di reazione.
 
 
 
