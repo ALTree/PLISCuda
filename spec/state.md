@@ -41,4 +41,26 @@ Un esempio di file *state* completo:
 - ogni `s_n` deve essere un numero intero positivo.
 
 
+#### Rappresentazione in memoria
+
+Lo stato del sistema è memorizzato in una zona di memoria
+contigua (i.e. un array mono-dimensionale).
+
+Dato un sistema avente `n` sottovolumi ed `s` specie, l'array dello
+stato contiene il numero di molecole presenti in ogni sottovolume,
+ordinato per *specie*. Le celle di memoria dalla `0` alla `n-1` contengono
+le `n` quantità presenti della specie `0`; le celle di memoria
+dalla `n` alla `2n-1` contengono le `n` quantità presenti della
+specie `1`, e così via.
+
+Ad esempio, il sistema a `3` sottovolumi avente stato
+
+    0: 0 0 5
+    1: 0 5 0
+	2: 5 0 4
+
+sarà rappresentato in memoria come
+
+    []state = {0 0 5 0 5 0 5 0 4}
+
 

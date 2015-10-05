@@ -46,10 +46,10 @@ permessi zero, uno o due reagenti e zero, uno o due prodotti).
 #### Rappresentazione in memoria
 
 Tutte le reazioni del sistema sono memorizzate in due zone
-di memoria contigue (i.e. due array mono-dimensionale), una
+di memoria contigue (i.e. due array mono-dimensionali), una
 per i reagenti e l'altra per i prodotti.
 
-Dato un sistema avente `r` reazioni e `s` specie, l'array dei
+Dato un sistema avente `r` reazioni ed `s` specie, l'array dei
 reagenti contiene i coeff. stechiometrici dei reagenti ordinati
 per *specie*. Le celle di memoria dalla `0` alla `r-1` contengono
 gli `r` coeff. stechiometrici della specie `0`; le celle di memoria
