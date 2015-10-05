@@ -7,7 +7,7 @@ chimiche associate al sistema.
 
 Il file testuale inizia con due righe che specificano
 il numero di reazioni chimiche ed il numero di specie
-coinvolte nel sistema.
+presenti nel sistema.
 
 
     reactions: <numero di reazioni>
