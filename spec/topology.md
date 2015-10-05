@@ -1,4 +1,4 @@
-### State file specification
+### Topology file specification
 
 #### Specifica 
 
