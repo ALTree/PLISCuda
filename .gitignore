@@ -4,3 +4,9 @@
 *.ptx
 *.cubin
 *.fatbin
+
+# ignore build dirs
+
+nsm/Debug/*
+nsm/Test/*
+nsm/Release/*
