@@ -46,6 +46,27 @@ Che corrisponde a
 - ogni linea di sottovolume deve contenere al più `6` valori
 compresi tra `0` ed `N-1`.
 
+#### Rappresentazione in memoria
 
+La topologia del sistema è memorizzata in due zone di memoria
+contigue (i.e. due array mono-dimensionali).
 
+Dato un sistema avente `n` sottovolumi, il primo array contiene,
+in sequenza, i sottovolumi adiacenti al primo sottovolumi, quelli
+adiacenti al secondo, e così via.
+
+In un secondo array sono memorizzati gli indici ai quali, nel primo
+array, inizia la lista dei vicini di ogni sottovolume.
+
+Ad esempio, un sistema avente topologia
+
+    0: 1
+    1: 0 2
+    2: 1 3
+    3: 2
+
+sarà rappresentato in memoria come
+
+    []neighbours = {1 0 2 1 3 2}
+    []offsets = {0 1 3 5}
 

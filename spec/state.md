@@ -1,3 +1,4 @@
+
 ### State file specification
 
 #### Specifica 
@@ -57,10 +58,9 @@ Ad esempio, il sistema a `3` sottovolumi avente stato
 
     0: 0 0 5
     1: 0 5 0
-	2: 5 0 4
+    2: 5 0 4
 
 sarà rappresentato in memoria come
 
     []state = {0 0 5 0 5 0 5 0 4}
-
 
