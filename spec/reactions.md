@@ -22,6 +22,18 @@ i reagenti ed i prodotti della reazione.
 Gli `s = <numero di specie>` reagenti e gli `s = <numero di specie>`
 prodotti sono separati da un `->`.
 
+Le reazioni possono essere di tre tipi:
+
+1. A singolo reagente (`uni`)
+2. A due reagenti della stessa specie (`bi_same`)
+3. A due reagenti di specie diverse (`bi_diff`)
+
+Non vi sono limitazioni sui prodotti. Tre esempi:
+
+1. `1 0 0 -> 0 0 1` (`uni`)
+2. `0 2 0 -> 0 0 1` (`bi_same`)
+3. `1 0 1 -> 0 0 1` (`bi_diff`)
+
 #### Esempio
 
 Un esempio di file *reactions* completo:
