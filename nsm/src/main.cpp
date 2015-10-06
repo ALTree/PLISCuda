@@ -66,6 +66,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
+	std::cout << "Success!" << "\n";
 
 	// TODO: implement sanity checks on topology, initial_state and reactions
 
