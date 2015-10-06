@@ -28,7 +28,7 @@
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.1542884131" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.963241039" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="com.nvidia.cuda.ide.build.option1.34455340" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="gcc-4.9" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.1119917086" superClass="nvcc.compiler.compileroptions" valueType="stringList">
+								<option id="nvcc.compiler.compileroptions.1119917086" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList">
 									<listOptionValue builtIn="false" value="-std=c++11"/>
 								</option>
 								<inputType id="nvcc.compiler.input.cu.1599515732" superClass="nvcc.compiler.input.cu"/>
@@ -48,7 +48,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="test" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -88,7 +88,7 @@
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.1043141154" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1918949688" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="com.nvidia.cuda.ide.build.option1.1130104040" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="gcc-4.9" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.970057699" superClass="nvcc.compiler.compileroptions" valueType="stringList">
+								<option id="nvcc.compiler.compileroptions.970057699" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList">
 									<listOptionValue builtIn="false" value="-std=c++11"/>
 								</option>
 								<inputType id="nvcc.compiler.input.cu.373437907" superClass="nvcc.compiler.input.cu"/>
@@ -108,7 +108,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="test" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
