@@ -70,15 +70,19 @@ memorizzata nella seconda colonna della *rate matrix*.
 
 #### Esempio
 
+Dato un sistema con 3 reazioni e 4 specie e 3 sottovolumi:
+
     float r_rates_constants[] = {0.1, 0.1, 0.2}
-    float d_rates_constants[] = {0.5, 0.5, 0.6}
+    float d_rates_constants[] = {0.5, 0.5, 0.5, 0.6}
 
        | R | S | R+S |
-    s0 |   |   |     |
-    s1 |   |   |     |
-    s2 |...|...| ... |
+    s0 | . | . |  .  |
+    s1 | . | . |  .  |
+    s2 | . | . |  .  |
 
-La *rate matrix* contiene una riga per ogni sottovolume di cui il
+I rate di reazioni sono in numero pari al numero di reazioni, i
+rate di diffusione sono in numero pari a quello delle specie,
+la *rate matrix* contiene una riga per ogni sottovolume di cui il
 sistema è composto.
 
 #### Limitazioni
