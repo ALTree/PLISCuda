@@ -8,5 +8,5 @@
 # ignore build dirs
 
 nsm/Debug/*
-nsm/Test/*
+nsm/Testing/*
 nsm/Release/*
