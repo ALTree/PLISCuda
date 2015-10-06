@@ -20,6 +20,7 @@ contenuta nel sistema.
 dove `x = <numero di sottovolumi> - 1`
 
 **TODO:** lettura di `{reaction, diffusion}_rates_constants` da file(?)
+
 **TODO:** *rates constants* differenti per ogni sottovolume(?)
 
 La matrice dei tassi di reazione contiene la somma dei
@@ -55,10 +56,10 @@ della prima e della seconda specie coinvolte, il *reaction rate* èè uguale a
 
 #### Limitazioni
 
-*reaction rates constants* e *diffusion rates constants*
+- *reaction rates constants* e *diffusion rates constants*
 devono essere nulli o positivi.
 
-*TODO:* strettamente positivi(?)
+**TODO:** strettamente positivi(?)
 
 #### Rappresentazione in memoria
 
