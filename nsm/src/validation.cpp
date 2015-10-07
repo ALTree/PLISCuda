@@ -2,7 +2,6 @@
 
 namespace NSMCuda {
 
-
 void is_consistent(NSMCuda::Topology t, NSMCuda::State s, NSMCuda::Reactions r)
 {
 	// checks on subvolumes number
