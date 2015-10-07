@@ -6,8 +6,9 @@
 #include "../include/Topology.hpp"
 
 #include "../include/validation.hpp"
+#include "../include/nsm_driver.hpp"
 
-int main(int argc, char ** argv)
+int main(int argc, char * argv[])
 {
 	if (argc < 4) {
 		std::cout << "Usage: ./nsm topology_file state_file reactions_file\n";
@@ -15,6 +16,8 @@ int main(int argc, char ** argv)
 	}
 
 	// ---------- open and parse topology_file ----------
+
+	std::cout << "--- Parsing input files ...";
 
 	std::ifstream topology_file(argv[1]);
 	if (topology_file.bad()) {
@@ -67,10 +70,14 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
+	std::cout << " done!\n";
+
 	NSMCuda::is_consistent(topology, initial_state, reactions);
 
-	std::cout << "Success!" << "\n";
+	std::cout << "--- Consistency check: success!" << "\n";
+	std::cout << "--- Starting nsm setup\n";
 
+	NSMCuda::nsm(topology, initial_state, reactions);
 
 }
 

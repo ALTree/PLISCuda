@@ -5,11 +5,24 @@
 #include <sstream>
 #include <vector>
 
+#include <cuda_runtime.h>
+
 namespace NSMCuda {
 
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 std::vector<std::string> split(const std::string &s, char delim);
+
+// TODO: refactor. (move to cuda_utils.hpp ?)
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 }
 
