@@ -5,6 +5,7 @@
 #include "../include/Reactions.hpp"
 #include "../include/Topology.hpp"
 
+#include "../include/validation.hpp"
 
 int main(int argc, char ** argv)
 {
@@ -66,9 +67,10 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
+	NSMCuda::is_consistent(topology, initial_state, reactions);
+
 	std::cout << "Success!" << "\n";
 
-	// TODO: implement sanity checks on topology, initial_state and reactions
 
 }
 

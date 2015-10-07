@@ -1,18 +1,22 @@
-#include <cassert>
-
-#include "../include/State.hpp"
-#include "../include/Reactions.hpp"
-#include "../include/Topology.hpp"
+#include "../include/utils.hpp"
 
 namespace NSMCuda {
 
-bool are_consistent(Topology t, State s, Reactions r)
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
 {
-	// checks on subvolumes number
-	assert(t.getN() == s.getN());
-	return true;
-
+	std::stringstream ss(s);
+	std::string item;
+	while (std::getline(ss, item, delim)) {
+		elems.push_back(item);
+	}
+	return elems;
 }
 
+std::vector<std::string> split(const std::string &s, char delim)
+{
+	std::vector<std::string> elems;
+	split(s, delim, elems);
+	return elems;
+}
 
 }
