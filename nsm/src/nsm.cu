@@ -21,12 +21,12 @@ __device__ float react_rate(int * reactants, int reactions_count, int * state, i
 	// search for a possibile other specie with positive coefficient
 	int index2 = index1 + reactions_count;
 	int specie_index2 = specie_index + 1;
-	while( reactants[index2] == 0 && index2 < species_count * reactions_count) {
+	while (reactants[index2] == 0 && index2 < species_count * reactions_count) {
 		index2 += reactions_count;
 		specie_index2++;
 	}
 
-	if(reactants[index2] != 0) {   // bi_diff reaction type
+	if (reactants[index2] != 0) {    // bi_diff reaction type
 		int specie1_count = state[specie_index * subvolumes_count + subvolume_index];
 		int specie2_count = state[specie_index2 * subvolumes_count + subvolume_index];
 		return specie1_count * specie2_count * reaction_rate_constants[reaction_number];
@@ -35,6 +35,20 @@ __device__ float react_rate(int * reactants, int reactions_count, int * state, i
 	// uni reaction type
 	int specie_count = state[specie_index * subvolumes_count + subvolume_index];
 	return specie_count * reaction_rate_constants[reaction_number];
+}
+
+__device__ float * react_rates(int * reactants, int reactions_count, int * state, int subvolumes_count,
+		int species_count, int subvolume_index, double * reaction_rate_constants)
+{
+	__shared__ extern float react_rates_array[];    // we need extern because the size is not a compile-time constant
+													// we'll need to allocate during the kernel invocation
+
+	for (int i = 0; i < reactions_count; i++) {
+		react_rates_array[i] = react_rate(reactants, reactions_count, state, species_count, subvolumes_count,
+				subvolume_index, reaction_rate_constants, i);
+	}
+
+	return react_rates_array;
 }
 
 __global__ void test()
