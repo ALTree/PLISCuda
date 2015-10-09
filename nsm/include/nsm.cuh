@@ -4,6 +4,8 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
+// #define DEBUG
+
 // computes the react_rate of a single reaction
 __device__ float react_rate(    //
 		int * reactants,          // reactants array

@@ -53,10 +53,29 @@ __device__ float * react_rates(int * reactants, int reactions_count, int * state
 
 __global__ void test()
 {
-	printf("hello!\n");
+	// 0 0 1 ->
+	// 0 2 0 ->
+	int reactants[] =
+		{ 0, 0, 0, 2, 1, 0 };
+	int reaction_count = 2;
+	// 2 4 8
+	int state[] =
+		{ 0, 16, 16 };
+	int subvolumes_count = 1;
+	int species_count = 3;
+	int subvolume_index = 0;
+	double reaction_rate_constants[] =
+		{ 1.0, 1.0 };
+
+	float * r = react_rates(reactants, reaction_count, state, subvolumes_count, species_count, subvolume_index,
+			reaction_rate_constants);
+
+	for(int i = 0; i < reaction_count; i++) {
+		printf("%d: %f\n", i, r[i]);
+	}
 }
 
 void foo()
 {
-	test<<<10, 1>>>();
+	test<<<1, 1, 2 * sizeof(float)>>>();
 }
