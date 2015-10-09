@@ -13,15 +13,18 @@ std::vector<std::string> &split(const std::string &s, char delim, std::vector<st
 
 std::vector<std::string> split(const std::string &s, char delim);
 
+bool read_rates_constants(std::istream& is, float * reaction_rates_constants, float * diffusion_rates_constants,
+		int reactions_count, int species_count);
+
 // TODO: refactor. (move to cuda_utils.hpp ?)
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
 {
-   if (code != cudaSuccess)
-   {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
+	if (code != cudaSuccess) {
+		fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+		if (abort)
+			exit(code);
+	}
 }
 
 }

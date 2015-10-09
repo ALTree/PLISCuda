@@ -9,7 +9,7 @@
 
 namespace NSMCuda {
 
-void nsm(Topology t, State s, Reactions r);
+void nsm(Topology, State, Reactions, float *, float *);
 
 }
 

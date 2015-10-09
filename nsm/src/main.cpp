@@ -10,8 +10,8 @@
 
 int main(int argc, char * argv[])
 {
-	if (argc < 4) {
-		std::cout << "Usage: ./nsm topology_file state_file reactions_file\n";
+	if (argc < 5) {
+		std::cout << "Usage: ./nsm topology_file state_file reactions_file constants_file\n";
 		return 1;
 	}
 
@@ -28,12 +28,11 @@ int main(int argc, char * argv[])
 	NSMCuda::Topology topology = NSMCuda::Topology();
 	try {
 		topology_file >> topology;
-	} catch(std::invalid_argument &e) {
+	} catch (std::invalid_argument &e) {
 		std::cerr << "Parsing of topology_file failed with\n";
 		std::cerr << e.what() << "\n";
 		return 1;
 	}
-
 
 	// ---------- open and parse state_file ----------
 
@@ -46,12 +45,11 @@ int main(int argc, char * argv[])
 	NSMCuda::State initial_state = NSMCuda::State();
 	try {
 		state_file >> initial_state;
-	} catch(std::invalid_argument &e) {
+	} catch (std::invalid_argument &e) {
 		std::cerr << "Parsing of state_file failed with\n";
 		std::cerr << e.what() << "\n";
 		return 1;
 	}
-
 
 	// ---------- open and parse reactions_file ----------
 
@@ -64,11 +62,28 @@ int main(int argc, char * argv[])
 	NSMCuda::Reactions reactions = NSMCuda::Reactions();
 	try {
 		reactions_file >> reactions;
-	} catch(std::invalid_argument &e) {
+	} catch (std::invalid_argument &e) {
 		std::cerr << "Parsing of reactions_file failed with\n";
 		std::cerr << e.what() << "\n";
 		return 1;
 	}
+
+	// ---------- open and parse rate constants file ----------
+	std::ifstream constants_file(argv[4]);
+	float * reaction_rates_constants = new float[reactions.getR()];
+	float * diffusion_rates_constants = new float[reactions.getS()];
+
+	NSMCuda::read_rates_constants(constants_file, reaction_rates_constants, diffusion_rates_constants, reactions.getR(),
+			reactions.getS());
+
+	for(int i = 0; i < reactions.getR(); i++) {
+		printf("%f ", reaction_rates_constants[i]);
+	}
+	printf("\n");
+	for(int i = 0; i < reactions.getS(); i++) {
+		printf("%f ", diffusion_rates_constants[i]);
+	}
+	printf("\n");
 
 	std::cout << " done!\n";
 
@@ -77,7 +92,7 @@ int main(int argc, char * argv[])
 	std::cout << "--- Consistency check: success!" << "\n";
 	std::cout << "--- Starting nsm setup\n";
 
-	NSMCuda::nsm(topology, initial_state, reactions);
+	NSMCuda::nsm(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants);
 
 }
 

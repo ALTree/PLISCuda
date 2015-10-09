@@ -5,7 +5,7 @@
 
 namespace NSMCuda {
 
-void nsm(Topology t, State s, Reactions r)
+void nsm(Topology t, State s, Reactions r, float * reaction_rates_constants, float * diffusion_rates_constants)
 {
 
 	int reactions_count = r.getR();
@@ -44,15 +44,19 @@ void nsm(Topology t, State s, Reactions r)
 	float * d_rate_matrix;
 	gpuErrchk(cudaMalloc(&d_rate_matrix, 3 * t.getN()));
 
+	// ----- allocate rates_constants arrays -----
+	float * d_reaction_rates_constants;
+	float * d_diffusion_rates_constants;
+	gpuErrchk( cudaMalloc(&d_reaction_rates_constants, r.getR()) );
+	gpuErrchk( cudaMalloc(&d_diffusion_rates_constants, r.getS()) );
+
 	std::cout << " done!\n";
 
 	foo();
 
 	// TODO: implementare update_rate_matrix su GPU
 
-	gpuErrchk( cudaDeviceSynchronize() );
-
-
+	gpuErrchk(cudaDeviceSynchronize());
 
 }
 
