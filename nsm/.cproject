@@ -28,7 +28,7 @@
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.1542884131" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.963241039" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="com.nvidia.cuda.ide.build.option1.34455340" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.1119917086" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
+								<option id="nvcc.compiler.compileroptions.1119917086" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
 								<inputType id="nvcc.compiler.input.cu.1599515732" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1996190369" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.724818652" superClass="nvcc.compiler.input.c"/>
@@ -85,10 +85,8 @@
 								<option id="nvcc.compiler.option.level.390204391" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.1043141154" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1918949688" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="com.nvidia.cuda.ide.build.option1.1130104040" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="gcc-4.8" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.970057699" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList">
-									<listOptionValue builtIn="false" value="-std=c++11"/>
-								</option>
+								<option id="com.nvidia.cuda.ide.build.option1.1130104040" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
+								<option id="nvcc.compiler.compileroptions.970057699" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
 								<inputType id="nvcc.compiler.input.cu.373437907" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1197564541" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.91939519" superClass="nvcc.compiler.input.c"/>
@@ -145,10 +143,8 @@
 								<option id="nvcc.compiler.option.level.881483118" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.435536699" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.734179666" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="com.nvidia.cuda.ide.build.option1.1225520705" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="gcc-4.8" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.1786433933" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList">
-									<listOptionValue builtIn="false" value="-std=c++11"/>
-								</option>
+								<option id="com.nvidia.cuda.ide.build.option1.1225520705" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
+								<option id="nvcc.compiler.compileroptions.1786433933" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
 								<inputType id="nvcc.compiler.input.cu.607109379" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1244332743" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.999236335" superClass="nvcc.compiler.input.c"/>
@@ -165,6 +161,9 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<sourceEntries>
+						<entry excluding="src/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="com.nvidia.cuda.ide.build.project.ICudaProjectConfiguration">

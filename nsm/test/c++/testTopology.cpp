@@ -1,12 +1,12 @@
 #include <fstream>
 
-#include "../lib/catch.hpp"
-#include "../include/Topology.hpp"
+#include "catch.hpp"
+#include "../../include/Topology.hpp"
 
 TEST_CASE("Parse small Topology from file")
 {
 	NSMCuda::Topology t = NSMCuda::Topology();
-	std::ifstream topology_file("../test/test_data/topology.txt");
+	std::ifstream topology_file("test_data/topology.txt");
 
 	REQUIRE( topology_file.good() );
 

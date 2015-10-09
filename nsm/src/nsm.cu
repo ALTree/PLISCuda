@@ -70,7 +70,7 @@ __global__ void test()
 	float * r = react_rates(reactants, reaction_count, state, subvolumes_count, species_count, subvolume_index,
 			reaction_rate_constants);
 
-	for(int i = 0; i < reaction_count; i++) {
+	for (int i = 0; i < reaction_count; i++) {
 		printf("%d: %f\n", i, r[i]);
 	}
 }

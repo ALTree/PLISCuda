@@ -1,12 +1,12 @@
 #include <fstream>
 
-#include "../lib/catch.hpp"
-#include "../include/Reactions.hpp"
+#include "catch.hpp"
+#include "../../include/Reactions.hpp"
 
 TEST_CASE("Parse small Reactions system from file")
 {
 	NSMCuda::Reactions rs = NSMCuda::Reactions();
-	std::ifstream reactions_file("../test/test_data/reactions.txt");
+	std::ifstream reactions_file("test_data/reactions.txt");
 
 	REQUIRE( reactions_file.good() );
 

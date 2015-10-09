@@ -1,12 +1,12 @@
 #include <fstream>
 
-#include "../lib/catch.hpp"
-#include "../include/State.hpp"
+#include "catch.hpp"
+#include "../../include/State.hpp"
 
 TEST_CASE("Parse small System State from file")
 {
 	NSMCuda::State s = NSMCuda::State();
-	std::ifstream state_file("../test/test_data/state.txt");
+	std::ifstream state_file("test_data/state.txt");
 
 	REQUIRE( state_file.good() );
 
