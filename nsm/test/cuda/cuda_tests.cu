@@ -2,7 +2,7 @@
 
 void run_all()
 {
-	driver<<<1, 1, 10>>>();
+	driver<<<1, 1, 3 * sizeof(float)>>>();
 	cudaDeviceSynchronize();
 }
 
@@ -13,6 +13,7 @@ __global__ void driver()
 
 __device__ void test_react_rates()
 {
+	printf("--- test_react_rates ...\n");
 	// 0 0 1 ->
 	// 0 2 0 ->
 	// 1 0 1 ->
@@ -30,7 +31,7 @@ __device__ void test_react_rates()
 	double rrc[] = { 0.2, 0.4, 0.5 };
 
 	float * got = react_rates(reactants, rc, state, sc, spc, 0, rrc);
-	float want[3] = {1.0, 11.200, 32.0};
+	float want[3] = {3.2, 11.2, 32.0};
 	for(int i = 0; i < rc; i++) {
 		if(abs(got[i] - want[i]) > 1e-6) {
 			printf("----- Failure in test_react_rates() -----\n");
