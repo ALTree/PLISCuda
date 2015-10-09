@@ -1,5 +1,42 @@
 #include "../include/nsm.cuh"
 
+__device__ float react_rate(int * reactants, int reactions_count, int * state, int species_count, int subvolumes_count,
+		int subvolume_index, double * reaction_rate_constants, int reaction_number)
+{
+	// search for the first specie in the reactions array that
+	// does have a positive coefficent
+	int index1 = reaction_number;
+	int specie_index = 0;
+	while (reactants[index1] == 0) {
+		index1 += reactions_count;
+		specie_index++;
+	}
+
+	if (reactants[index1] == 2) {    // bi_same reaction type
+		// get specie count for that specie in the current subvolume
+		int specie_count = state[specie_index * subvolumes_count + subvolume_index];
+		return 0.5 * specie_count * (specie_count - 1) * reaction_rate_constants[reaction_number];
+	}
+
+	// search for a possibile other specie with positive coefficient
+	int index2 = index1 + reactions_count;
+	int specie_index2 = specie_index + 1;
+	while( reactants[index2] == 0 && index2 < species_count * reactions_count) {
+		index2 += reactions_count;
+		specie_index2++;
+	}
+
+	if(reactants[index2] != 0) {   // bi_diff reaction type
+		int specie1_count = state[specie_index * subvolumes_count + subvolume_index];
+		int specie2_count = state[specie_index2 * subvolumes_count + subvolume_index];
+		return specie1_count * specie2_count * reaction_rate_constants[reaction_number];
+	}
+
+	// uni reaction type
+	int specie_count = state[specie_index * subvolumes_count + subvolume_index];
+	return specie_count * reaction_rate_constants[reaction_number];
+}
+
 __global__ void test()
 {
 	printf("hello!\n");
@@ -7,5 +44,5 @@ __global__ void test()
 
 void foo()
 {
-	test<<<10,1>>>();
+	test<<<10, 1>>>();
 }

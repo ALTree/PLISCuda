@@ -56,11 +56,11 @@ specie `1`, e così via.
 
 Ad esempio, il sistema a `3` sottovolumi avente stato
 
-    0: 0 0 5
-    1: 0 5 0
-    2: 5 0 4
+    0: 1 2 3
+    1: 4 5 6
+    2: 7 8 9
 
 sarà rappresentato in memoria come
 
-    []state = {0 0 5 0 5 0 5 0 4}
+    []state = {1 4 7 2 5 8 3 6 9}
 

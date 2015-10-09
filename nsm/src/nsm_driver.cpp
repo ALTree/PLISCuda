@@ -8,6 +8,10 @@ namespace NSMCuda {
 void nsm(Topology t, State s, Reactions r)
 {
 
+	int reactions_count = r.getR();
+	int subvolumes_count = t.getN();
+	int species_count = s.getS();
+
 	std::cout << "----- Allocating GPU memory ...";
 
 	// ----- allocate state array -----
@@ -43,6 +47,8 @@ void nsm(Topology t, State s, Reactions r)
 	std::cout << " done!\n";
 
 	foo();
+
+	// TODO: implementare update_rate_matrix su GPU
 
 	gpuErrchk( cudaDeviceSynchronize() );
 
