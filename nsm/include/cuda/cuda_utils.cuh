@@ -3,7 +3,7 @@
 
 // get specie_count index from specie_index, subvolume_index and subvolume_count
 // use like
-//     state[CUDA_GET_SPI(sp, sb, sbc)];
+//     state[CUDA_GET_SPI(sp_index, sb_index, sbc)];
 #define CUDA_GET_SPI(sp_index, sb_index, sbc) ((sp_index) * (sbc) + (sb_index))
 
 #endif /* CUDA_UTILS_CUH_ */

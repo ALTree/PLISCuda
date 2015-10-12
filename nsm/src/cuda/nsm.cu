@@ -68,6 +68,7 @@ __device__ float * react_rates(int * reactants, int reactions_count, int * state
 {
 	__shared__ extern float react_rates_array[];    // we need extern because the size is not a compile-time constant
 													// we'll need to allocate during the kernel invocation
+													// TODO: rethink about this
 
 	for (int i = 0; i < reactions_count; i++) {
 		react_rates_array[i] = react_rate(reactants, reactions_count, state, species_count, subvolumes_count,
@@ -89,11 +90,34 @@ __device__ float * diff_rates(int * state, int subvolumes_count, int species_cou
 	return diffusion_rates_array;
 }
 
+__device__ void rate_matrix_row(int * state, int * reactants, int subvolumes_count, int species_count,
+		int reactions_count, float * reaction_rate_constants, float * diffusion_rate_constants, float * rate_matrix,
+		int subvolume_index)
+{
+	// compute new reaction rates
+	float * react_rates_array = react_rates(reactants, reactions_count, state, subvolumes_count, species_count,
+			subvolume_index, reaction_rate_constants);
+	float reactions_rates_sum = sum_fp_array(react_rates_array, reactions_count);
+
+	// compute new diffusion rates
+	float * diff_rates_array = diff_rates(state, subvolumes_count, species_count, subvolume_index,
+			diffusion_rate_constants);
+	float diffusion_rates_sum = sum_fp_array(diff_rates_array, species_count);
+
+	// update rate matrix
+	rate_matrix[subvolume_index] = reactions_rates_sum;
+	rate_matrix[subvolume_index * 2] = diffusion_rates_sum;
+	rate_matrix[subvolume_index * 3] = reactions_rates_sum + diffusion_rates_sum;
+}
+
+// TODO: move in cuda_utils.cuh
 template<typename T>
 __device__ T sum_fp_array(T * array, int len)
 {
 	T sum = 0.0;
 	for (int i = 0; i < len; i++)
 		sum += array[i];
+
+	return sum;
 }
 

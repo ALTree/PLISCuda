@@ -6,7 +6,9 @@
 
 #include "cuda_utils.cuh"
 
-// computes the react_rate of a single reaction
+// TODO: decide a parameters order and stick to it
+
+// computes the react_rate of a single reaction (in one subvolume)
 __device__ float react_rate(    //
 		int * reactants,          // reactants array
 		int reactions_count,       //
@@ -18,6 +20,7 @@ __device__ float react_rate(    //
 		int reaction_number       // the reaction we are processing
 		);
 
+// len(reactions) array with the reactions_rates of all the reactions (in one subvolume)
 __device__ float * react_rates(    //
 		int * reactants,    //
 		int reactions_count,    //
@@ -28,16 +31,27 @@ __device__ float * react_rates(    //
 		float * reaction_rate_constants    //
 		);
 
-__device__ float sum_react_rates(float * react_rates, int reactions_count);
-
+// len(species) array with the diffusion_rates of all the species (in one subvolume)
 __device__ float * diff_rates(    //
 		int * state,              //
 		int subvolumes_count,     //
 		int species_count,        //
 		int subvolume_index,      //
-		float * diffusion_rates_constants  //
-);
+		float * diffusion_rates_constants    //
+		);
 
-__device__ float sum_diff_rates(float * diff_rates, int species_count);
+__device__ void rate_matrix_row(    //
+		int * state,              //
+		int * reactants,          //
+		int subvolumes_count,     //
+		int species_count,        //
+		int reactions_count,      //
+		float * reaction_rate_constants,     //
+		float * diffusion_rate_constants,     //
+		float * rate_matrix,       //
+		int subvolume_index        //
+		);
+
+template<typename T> __device__ T sum_fp_array(T * array, int len);
 
 #endif /* NSM_CUH_ */
