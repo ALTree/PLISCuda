@@ -53,13 +53,13 @@ __global__ void test_diff_rates()
 	// 2: 0 0 100 0
 	int state[] =
 		{ 4, 1, 0, 8, 10, 0, 16, 10, 100, 32, 1, 0 };
-	int sc = 3;
+	int sbc = 3;
 	int spc = 4;
-
+	int sbi = 0;
 	float drc[] =
 		{ 0.1, 0.5, 0.5, 1.5 };
 
-	float * got = diff_rates(state, sc, spc, 0, drc);
+	float * got = diff_rates(state, sbc, spc, sbi, drc);
 	float want[4] =
 		{ 0.4, 4.0, 8.0, 48 };
 
@@ -71,7 +71,8 @@ __global__ void test_diff_rates()
 		}
 	}
 
-	got = diff_rates(state, sc, spc, 2, drc);
+	sbi = 2;
+	got = diff_rates(state, sbc, spc, sbi, drc);
 	float want2[4] =
 		{ 0, 0, 50.0, 0 };
 

@@ -75,36 +75,30 @@ __device__ float * react_rates(int * state, int * reactants, int sbc, int spc, i
 	return react_rates_array;
 }
 
-__device__ float * diff_rates(int * state, int subvolumes_count, int species_count, int subvolume_index,
-		float * diffusion_rates_constants)
+__device__ float * diff_rates(int * state, int sbc, int spc, int sbi, float * drc)
 {
 	__shared__ extern float diffusion_rates_array[];
-	for (int i = 0; i < species_count; i++) {
-		diffusion_rates_array[i] = diffusion_rates_constants[i]
-				* state[CUDA_GET_SPI(i, subvolume_index, subvolumes_count)];
+	for (int i = 0; i < spc; i++) {
+		diffusion_rates_array[i] = drc[i] * state[CUDA_GET_SPI(i, sbi, sbc)];
 	}
 
 	return diffusion_rates_array;
 }
 
-/*
-__device__ void rate_matrix_row(int * state, int * reactants, int subvolumes_count, int species_count,
-		int reactions_count, float * reaction_rate_constants, float * diffusion_rate_constants, float * rate_matrix,
-		int subvolume_index)
+__device__ void rate_matrix_row(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rate_matrix,
+		float * rrc, float * drc)
 {
 	// compute new reaction rates
-	float * react_rates_array = react_rates(reactants, reactions_count, state, subvolumes_count, species_count,
-			subvolume_index, reaction_rate_constants);
-	float reactions_rates_sum = sum_fp_array(react_rates_array, reactions_count);
+	float * react_rates_array = react_rates(state, reactants, sbc, spc, rc, sbi, rrc);
+	float reactions_rates_sum = sum_fp_array(react_rates_array, rc);
 
 	// compute new diffusion rates
-	float * diff_rates_array = diff_rates(state, subvolumes_count, species_count, subvolume_index,
-			diffusion_rate_constants);
-	float diffusion_rates_sum = sum_fp_array(diff_rates_array, species_count);
+	float * diff_rates_array = diff_rates(state, sbc, spc, sbi, drc);
+	float diffusion_rates_sum = sum_fp_array(diff_rates_array, spc);
 
 	// update rate matrix
-	rate_matrix[subvolume_index] = reactions_rates_sum;
-	rate_matrix[subvolume_index * 2] = diffusion_rates_sum;
-	rate_matrix[subvolume_index * 3] = reactions_rates_sum + diffusion_rates_sum;
+	rate_matrix[sbi] = reactions_rates_sum;
+	rate_matrix[sbi * 2] = diffusion_rates_sum;
+	rate_matrix[sbi * 3] = reactions_rates_sum + diffusion_rates_sum;
 }
-*/
+
