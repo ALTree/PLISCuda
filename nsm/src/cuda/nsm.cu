@@ -102,3 +102,6 @@ __device__ void rate_matrix_row(int * state, int * reactants, int sbc, int spc, 
 	rate_matrix[sbi * 3] = reactions_rates_sum + diffusion_rates_sum;
 }
 
+// TODO: test rate_matrix_row
+// TODO: implement rate_matrix
+
