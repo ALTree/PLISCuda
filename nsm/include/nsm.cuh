@@ -14,7 +14,7 @@ __device__ float react_rate(    //
 		int species_count,         // the number of species
 		int subvolumes_count,       // the number of subvolumes
 		int subvolume_index,      // the subvolume we are operating in
-		double * reaction_rate_constants,     // reaction rate constants array
+		float * reaction_rate_constants,     // reaction rate constants array
 		int reaction_number       // the reaction we are processing
 		);
 
@@ -25,12 +25,19 @@ __device__ float * react_rates(    //
 		int subvolumes_count,    //
 		int species_count,    //
 		int subvolume_index,    //
-		double * reaction_rate_constants    //
+		float * reaction_rate_constants    //
 		);
 
+__device__ float sum_react_rates(float * react_rates, int reactions_count);
 
+__device__ float * diff_rates(    //
+		int * state,              //
+		int subvolumes_count,     //
+		int species_count,        //
+		int subvolume_index,      //
+		float * diffusion_rates_constants  //
+);
 
-__global__ void test();
-void foo();
+__device__ float sum_diff_rates(float * diff_rates, int species_count);
 
 #endif /* NSM_CUH_ */

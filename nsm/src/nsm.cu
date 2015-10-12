@@ -3,7 +3,7 @@
 // #define DEBUG
 
 __device__ float react_rate(int * reactants, int reactions_count, int * state, int species_count, int subvolumes_count,
-		int subvolume_index, double * reaction_rate_constants, int reaction_number)
+		int subvolume_index, float * reaction_rate_constants, int reaction_number)
 {
 #ifdef DEBUG
 	printf("---------- begin react_rate( ) ---------- \n");
@@ -63,7 +63,7 @@ __device__ float react_rate(int * reactants, int reactions_count, int * state, i
 }
 
 __device__ float * react_rates(int * reactants, int reactions_count, int * state, int subvolumes_count,
-		int species_count, int subvolume_index, double * reaction_rate_constants)
+		int species_count, int subvolume_index, float * reaction_rate_constants)
 {
 	__shared__ extern float react_rates_array[];    // we need extern because the size is not a compile-time constant
 													// we'll need to allocate during the kernel invocation
@@ -76,31 +76,35 @@ __device__ float * react_rates(int * reactants, int reactions_count, int * state
 	return react_rates_array;
 }
 
-__global__ void test()
+// TODO: generi sum function
+__device__ float sum_react_rates(float * react_rates, int reactions_count)
 {
-	// 0 0 1 ->
-	// 0 2 0 ->
-	int reactants[] =
-		{ 0, 0, 0, 2, 1, 0 };
-	int reaction_count = 2;
-	// 2 4 8
-	int state[] =
-		{ 0, 16, 16 };
-	int subvolumes_count = 1;
-	int species_count = 3;
-	int subvolume_index = 0;
-	double reaction_rate_constants[] =
-		{ 1.0, 1.0 };
+	float sum = 0.0;
+	for (int i = 0; i < reactions_count; i++)
+		sum += react_rates[i];
 
-	float * r = react_rates(reactants, reaction_count, state, subvolumes_count, species_count, subvolume_index,
-			reaction_rate_constants);
+	return sum;
+}
 
-	for (int i = 0; i < reaction_count; i++) {
-		printf("%d: %f\n", i, r[i]);
+__device__ float * diff_rates(int * state, int subvolumes_count, int species_count, int subvolume_index,
+		float * diffusion_rates_constants)
+{
+	__shared__ extern float diffusion_rates_array[];
+	for (int i = 0; i < species_count; i++) {
+		diffusion_rates_array[i] = diffusion_rates_constants[i] * state[i * subvolumes_count + subvolume_index];
 	}
+
+	return diffusion_rates_array;
 }
 
-void foo()
+// TODO: generi sum function
+__device__ float sum_diff_rates(float * diff_rates, int species_count)
 {
-	test<<<1, 1, 2 * sizeof(float)>>>();
+	float sum = 0.0;
+	for (int i = 0; i < species_count; i++)
+		sum += diff_rates[i];
+
+	return sum;
 }
+
+

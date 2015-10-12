@@ -52,8 +52,6 @@ void nsm(Topology t, State s, Reactions r, float * reaction_rates_constants, flo
 
 	std::cout << " done!\n";
 
-	foo();
-
 	// TODO: implementare update_rate_matrix su GPU
 
 	gpuErrchk(cudaDeviceSynchronize());
