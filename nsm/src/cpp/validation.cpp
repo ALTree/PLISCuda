@@ -1,4 +1,4 @@
-#include "../include/validation.hpp"
+#include "../../include/cpp/validation.hpp"
 
 namespace NSMCuda {
 

@@ -1,4 +1,4 @@
-#include "../include/Reactions.hpp"
+#include "../../include/cpp/Reactions.hpp"
 
 namespace NSMCuda {
 

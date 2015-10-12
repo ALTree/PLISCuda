@@ -1,4 +1,4 @@
-#include "../include/State.hpp"
+#include "../../include/cpp/State.hpp"
 
 namespace NSMCuda {
 

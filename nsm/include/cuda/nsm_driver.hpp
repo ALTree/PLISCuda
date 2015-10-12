@@ -1,11 +1,11 @@
 #ifndef NSM_DRIVER_HPP_
 #define NSM_DRIVER_HPP_
 
-#include "State.hpp"
-#include "Reactions.hpp"
-#include "Topology.hpp"
+#include "../cpp/State.hpp"
+#include "../cpp/Reactions.hpp"
+#include "../cpp/Topology.hpp"
 
-#include "utils.hpp"
+#include "../cpp/cpp_utils.hpp"
 
 namespace NSMCuda {
 

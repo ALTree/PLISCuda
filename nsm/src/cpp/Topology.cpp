@@ -1,4 +1,4 @@
-#include "../include/Topology.hpp"
+#include "../../include/cpp/Topology.hpp"
 
 namespace NSMCuda {
 

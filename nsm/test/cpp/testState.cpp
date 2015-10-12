@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "catch.hpp"
-#include "../../include/State.hpp"
+#include "../../include/cpp/State.hpp"
 
 TEST_CASE("Parse small System State from file")
 {

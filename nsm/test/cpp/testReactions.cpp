@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "catch.hpp"
-#include "../../include/Reactions.hpp"
+#include "../../include/cpp/Reactions.hpp"
 
 TEST_CASE("Parse small Reactions system from file")
 {

@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <iostream>
 
-#include "utils.hpp"
+#include "cpp_utils.hpp"
 
 namespace NSMCuda {
 

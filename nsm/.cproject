@@ -88,7 +88,7 @@
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.1043141154" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1918949688" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="com.nvidia.cuda.ide.build.option1.1130104040" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.970057699" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
+								<option id="nvcc.compiler.compileroptions.970057699" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
 								<inputType id="nvcc.compiler.input.cu.373437907" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1197564541" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.91939519" superClass="nvcc.compiler.input.c"/>
@@ -147,7 +147,7 @@
 								<option id="nvcc.compiler.pic.734179666" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="com.nvidia.cuda.ide.build.option1.1225520705" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
 								<option id="nvcc.compiler.compileroptions.1786433933" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
-								<option id="nvcc.compiler.option.lineinfo.1052561435" superClass="nvcc.compiler.option.lineinfo" value="true" valueType="boolean"/>
+								<option id="nvcc.compiler.option.lineinfo.1052561435" name="Generate line-number information for device code (-lineinfo)" superClass="nvcc.compiler.option.lineinfo" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.607109379" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1244332743" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.999236335" superClass="nvcc.compiler.input.c"/>
@@ -165,7 +165,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="test/cuda|src/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/main.cpp|test/cuda" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -206,7 +206,7 @@
 								<option id="nvcc.compiler.pic.1144438511" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="com.nvidia.cuda.ide.build.option1.1268099961" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
 								<option id="nvcc.compiler.compileroptions.1840660387" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
-								<option id="nvcc.compiler.option.lineinfo.1970805234" superClass="nvcc.compiler.option.lineinfo" value="true" valueType="boolean"/>
+								<option id="nvcc.compiler.option.lineinfo.1970805234" name="Generate line-number information for device code (-lineinfo)" superClass="nvcc.compiler.option.lineinfo" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.1098496920" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1775269115" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.845001288" superClass="nvcc.compiler.input.c"/>
@@ -224,7 +224,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="test/c++|src/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/main.cpp|test/c++" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "catch.hpp"
-#include "../../include/Topology.hpp"
+#include "../../include/cpp/Topology.hpp"
 
 TEST_CASE("Parse small Topology from file")
 {

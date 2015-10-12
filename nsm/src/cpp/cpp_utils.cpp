@@ -1,4 +1,4 @@
-#include "../include/utils.hpp"
+#include "../../include/cpp/cpp_utils.hpp"
 
 namespace NSMCuda {
 

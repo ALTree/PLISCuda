@@ -1,12 +1,12 @@
 #include <fstream>
 #include <iostream>
 
-#include "../include/State.hpp"
-#include "../include/Reactions.hpp"
-#include "../include/Topology.hpp"
+#include "../include/cpp/State.hpp"
+#include "../include/cpp/Reactions.hpp"
+#include "../include/cpp/Topology.hpp"
 
-#include "../include/validation.hpp"
-#include "../include/nsm_driver.hpp"
+#include "../include/cpp/validation.hpp"
+#include "../include/cuda/nsm_driver.hpp"
 
 int main(int argc, char * argv[])
 {
