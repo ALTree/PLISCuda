@@ -22,7 +22,8 @@ __device__ float react_rate(int * reactants, int reactions_count, int * state, i
 
 	if (reactants[index1] == 2) {    // bi_same reaction type
 		// get specie count for that specie in the current subvolume
-		int specie_count = state[specie_index * subvolumes_count + subvolume_index];
+		// int specie_count = state[specie_index * subvolumes_count + subvolume_index];
+		int specie_count = state[CUDA_GET_SPI(specie_index, subvolume_index, subvolumes_count)];
 #ifdef DEBUG
 		printf("hit bi_same. Specie_index = %d, specie_count = %d\n", specie_index, species_count);
 		printf("----------   end react_rate( ) ---------- \n\n");
@@ -42,8 +43,8 @@ __device__ float react_rate(int * reactants, int reactions_count, int * state, i
 		}
 
 		if (reactants[index2] != 0) {    // bi_diff reaction type
-			int specie1_count = state[specie_index * subvolumes_count + subvolume_index];
-			int specie2_count = state[specie_index2 * subvolumes_count + subvolume_index];
+			int specie1_count = state[CUDA_GET_SPI(specie_index, subvolume_index, subvolumes_count)];
+			int specie2_count = state[CUDA_GET_SPI(specie_index2, subvolume_index, subvolumes_count)];
 #ifdef DEBUG
 			printf("hit bi_diff. Specie_index1 = %d, specie_index2 = %d,\n", specie_index, specie_index2);
 			printf("    specie1_count = %d, specie2_count = %d\n", specie1_count, specie2_count);
@@ -54,7 +55,7 @@ __device__ float react_rate(int * reactants, int reactions_count, int * state, i
 	}
 
 	// uni reaction type
-	int specie_count = state[specie_index * subvolumes_count + subvolume_index];
+	int specie_count = state[CUDA_GET_SPI(specie_index, subvolume_index, subvolumes_count)];
 #ifdef DEBUG
 	printf("hit uni. Specie_index = %d, specie_count = %d, ", specie_index, specie_count);
 	printf("----------   end react_rate( ) ---------- \n\n");
@@ -81,7 +82,8 @@ __device__ float * diff_rates(int * state, int subvolumes_count, int species_cou
 {
 	__shared__ extern float diffusion_rates_array[];
 	for (int i = 0; i < species_count; i++) {
-		diffusion_rates_array[i] = diffusion_rates_constants[i] * state[i * subvolumes_count + subvolume_index];
+		diffusion_rates_array[i] = diffusion_rates_constants[i]
+				* state[CUDA_GET_SPI(i, subvolume_index, subvolumes_count)];
 	}
 
 	return diffusion_rates_array;
@@ -91,8 +93,7 @@ template<typename T>
 __device__ T sum_fp_array(T * array, int len)
 {
 	T sum = 0.0;
-	for(int i = 0; i < len; i++)
+	for (int i = 0; i < len; i++)
 		sum += array[i];
 }
-
 

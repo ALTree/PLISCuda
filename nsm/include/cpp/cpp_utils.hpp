@@ -18,4 +18,15 @@ bool read_rates_constants(std::istream& is, float * reaction_rates_constants, fl
 
 }
 
+// this NEEDS to stay here: it's to be used in host code
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
+{
+	if (code != cudaSuccess) {
+		fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+		if (abort)
+			exit(code);
+	}
+}
+
 #endif /* UTILS_HPP_ */
