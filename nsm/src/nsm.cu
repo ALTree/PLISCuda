@@ -76,16 +76,6 @@ __device__ float * react_rates(int * reactants, int reactions_count, int * state
 	return react_rates_array;
 }
 
-// TODO: generi sum function
-__device__ float sum_react_rates(float * react_rates, int reactions_count)
-{
-	float sum = 0.0;
-	for (int i = 0; i < reactions_count; i++)
-		sum += react_rates[i];
-
-	return sum;
-}
-
 __device__ float * diff_rates(int * state, int subvolumes_count, int species_count, int subvolume_index,
 		float * diffusion_rates_constants)
 {
@@ -97,14 +87,12 @@ __device__ float * diff_rates(int * state, int subvolumes_count, int species_cou
 	return diffusion_rates_array;
 }
 
-// TODO: generi sum function
-__device__ float sum_diff_rates(float * diff_rates, int species_count)
+template<typename T>
+__device__ T sum_fp_array(T * array, int len)
 {
-	float sum = 0.0;
-	for (int i = 0; i < species_count; i++)
-		sum += diff_rates[i];
-
-	return sum;
+	T sum = 0.0;
+	for(int i = 0; i < len; i++)
+		sum += array[i];
 }
 
 
