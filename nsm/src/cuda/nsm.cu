@@ -110,14 +110,4 @@ __device__ void rate_matrix_row(int * state, int * reactants, int subvolumes_cou
 	rate_matrix[subvolume_index * 3] = reactions_rates_sum + diffusion_rates_sum;
 }
 
-// TODO: move in cuda_utils.cuh
-template<typename T>
-__device__ T sum_fp_array(T * array, int len)
-{
-	T sum = 0.0;
-	for (int i = 0; i < len; i++)
-		sum += array[i];
-
-	return sum;
-}
 
