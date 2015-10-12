@@ -14,22 +14,25 @@ void run_all()
 __global__ void test_react_rates()
 {
 	printf("--- test_react_rates ...\n");
+
+	int state[] =
+		{ 4, 8, 16 };
+
 	// 0 0 1 ->
 	// 0 2 0 ->
 	// 1 0 1 ->
 	int reactants[] =
 		{ 0, 0, 1, 0, 2, 0, 1, 0, 1 };
-	int rc = 3;
 
-	int state[] =
-		{ 4, 8, 16 };
-	int sc = 1;
+	int sbc = 1;
 	int spc = 3;
+	int rc = 3;
+	int sbi = 0;
 
 	float rrc[] =
 		{ 0.2, 0.4, 0.5 };
 
-	float * got = react_rates(reactants, rc, state, sc, spc, 0, rrc);
+	float * got = react_rates(state, reactants, sbc, spc, rc, sbi, rrc);
 	float want[3] =
 		{ 3.2, 11.2, 32.0 };
 	for (int i = 0; i < rc; i++) {

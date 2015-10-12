@@ -9,27 +9,36 @@
 // TODO: decide a parameters order and stick to it
 
 // computes the react_rate of a single reaction (in one subvolume)
-__device__ float react_rate(    //
-		int * reactants,          // reactants array
-		int reactions_count,       //
-		int * state,              // state array
-		int species_count,         // the number of species
-		int subvolumes_count,       // the number of subvolumes
-		int subvolume_index,      // the subvolume we are operating in
-		float * reaction_rate_constants,     // reaction rate constants array
-		int reaction_number       // the reaction we are processing
-		);
+__device__ float react_rate(
+		int * state,
+		int * reactants,
+		int sbc, int spc, int rc,
+		int sbi, int ri,
+		float * rrc
+	);
 
-// len(reactions) array with the reactions_rates of all the reactions (in one subvolume)
+
+// returns len(reactions) array with the reactions_rates of all the reactions (in one subvolume)
+
+/*
 __device__ float * react_rates(    //
-		int * reactants,    //
-		int reactions_count,    //
-		int * state,    //
-		int subvolumes_count,    //
-		int species_count,    //
+		int * reactants,
+		int reactions_count,
+		int * state,
+		int subvolumes_count,
+		int species_count,
 		int subvolume_index,    //
 		float * reaction_rate_constants    //
 		);
+*/
+
+__device__ float * react_rates(
+		int * state,
+		int * reactants,
+		int sbc, int spc, int rc,
+		int sbi,
+		float * rrc
+	);
 
 // len(species) array with the diffusion_rates of all the species (in one subvolume)
 __device__ float * diff_rates(    //
