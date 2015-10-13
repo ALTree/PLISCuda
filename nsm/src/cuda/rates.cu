@@ -62,30 +62,24 @@ __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int 
 	return specie_count * rrc[ri];
 }
 
-__device__ float * react_rates(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rrc)
+__device__ void react_rates(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rrc,
+		float * result)
 {
-	__shared__ extern float react_rates_array[];    // we need extern because the size is not a compile-time constant
-													// we'll need to allocate during the kernel invocation
-													// TODO: rethink about this
-
 	for (int i = 0; i < rc; i++) {
-		react_rates_array[i] = react_rate(state, reactants, sbc, spc, rc, sbi, i, rrc);
+		result[i] = react_rate(state, reactants, sbc, spc, rc, sbi, i, rrc);
 	}
-
-	return react_rates_array;
 }
 
-__device__ float * diff_rates(int * state, int sbc, int spc, int sbi, float * drc)
+__device__ void diff_rates(int * state, int sbc, int spc, int sbi, float * drc, float * result)
 {
-	__shared__ extern float diffusion_rates_array[];
 	for (int i = 0; i < spc; i++) {
-		diffusion_rates_array[i] = drc[i] * state[CUDA_GET_SPI(i, sbi, sbc)];
+		result[i] = drc[i] * state[CUDA_GET_SPI(i, sbi, sbc)];
 	}
 
-	return diffusion_rates_array;
 }
 
-__device__ void rate_matrix_row(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rate_matrix,
+/*
+rate_matrix_row(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rate_matrix,
 		float * rrc, float * drc)
 {
 	// compute new reaction rates
@@ -97,11 +91,11 @@ __device__ void rate_matrix_row(int * state, int * reactants, int sbc, int spc, 
 	float diffusion_rates_sum = sum_fp_array(diff_rates_array, spc);
 
 	// update rate matrix
-	rate_matrix[sbi] = reactions_rates_sum;
-	rate_matrix[sbi * 2] = diffusion_rates_sum;
-	rate_matrix[sbi * 3] = reactions_rates_sum + diffusion_rates_sum;
+	rate_matrix[sbc * 0 + sbi] = reactions_rates_sum;
+	rate_matrix[sbc * 1 + sbi] = diffusion_rates_sum;
+	rate_matrix[sbc * 2 + sbi] = reactions_rates_sum + diffusion_rates_sum;
 }
-
+*/
 // TODO: test rate_matrix_row
 // TODO: implement rate_matrix
 
