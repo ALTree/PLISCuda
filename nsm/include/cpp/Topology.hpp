@@ -16,27 +16,21 @@ class Topology {
 	int * neighbours_array;
 	int neighbours_length;
 
-	int * offset_array;    // length = n
-
 public:
 
 	// ---------- Constructor ----------
 	Topology()
-			: n(0), neighbours_array(NULL), neighbours_length(0), offset_array(NULL)
+			: n(0), neighbours_array(NULL), neighbours_length(0)
 	{
 
 	}
 
 	// ---------- Copy Constructor ----------
 	Topology(const Topology& other)
-			: n(other.n), neighbours_array(new int[n * 6]), neighbours_length(6 * n), offset_array(new int[n])
+			: n(other.n), neighbours_array(new int[n * 6]), neighbours_length(6 * n)
 	{
 		for (int i = 0; i < 6 * n; i++) {
 			neighbours_array[i] = other.neighbours_array[i];
-		}
-
-		for (int i = 0; i < n; i++) {
-			offset_array[i] = other.offset_array[i];
 		}
 	}
 
@@ -51,7 +45,6 @@ public:
 	~Topology()
 	{
 		delete[] neighbours_array;
-		delete[] offset_array;
 	}
 
 	friend void swap(Topology& first, Topology& second)
@@ -65,8 +58,6 @@ public:
 		temp = first.neighbours_length;
 		first.neighbours_length = second.neighbours_length;
 		second.neighbours_length = temp;
-
-		std::swap(first.offset_array, second.offset_array);
 	}
 
 	// ---------- Getters ----------
@@ -85,15 +76,11 @@ public:
 		return neighbours_length;
 	}
 
-	int * getOffsetArray() const
-	{
-		return offset_array;
-	}
-
 	// ---------- Setters ----------
 	void setN(int n)
 	{
 		this->n = n;
+		this->neighbours_length = 6*n;
 	}
 
 	void setNeighboursArray(int * neighboursArray)
@@ -101,15 +88,6 @@ public:
 		neighbours_array = neighboursArray;
 	}
 
-	void setNeighboursLength(int neighboursLength)
-	{
-		neighbours_length = neighboursLength;
-	}
-
-	void setOffsetArray(int * offsetArray)
-	{
-		offset_array = offsetArray;
-	}
 };
 
 std::ostream& operator<<(std::ostream& os, NSMCuda::Topology& t);

@@ -33,14 +33,10 @@ void nsm(Topology t, State s, Reactions r, float * reaction_rates_constants, flo
 
 	// ----- allocate topology arrays -----
 	int * h_topology_array = t.getNeighboursArray();
-	int * h_offsets_array = t.getOffsetArray();
-	int topology_len = t.getNeighboursLength();
-	int offsets_len = t.getN();
+	int topology_len = 6 * t.getN();
 
-	int * d_topology_array, *d_offsets_array;
+	int * d_topology_array;
 	gpuErrchk(cudaMalloc(&d_topology_array, topology_len));
-	gpuErrchk(cudaMalloc(&d_offsets_array, offsets_len));
-
 	// ----- allocate rate matrix -----
 	float * d_rate_matrix;
 	gpuErrchk(cudaMalloc(&d_rate_matrix, 3 * t.getN()));

@@ -12,10 +12,6 @@ std::ostream& operator<<(std::ostream& os, Topology& t)
 		os << t.getNeighboursArray()[i] << " ";
 	}
 	os << "\n";
-	os << "\t" << "Offset Indices: " << "\n\t\t";
-	for (int i = 0; i < t.getN(); i++) {
-		os << t.getOffsetArray()[i] << " ";
-	}
 	return os;
 }
 
@@ -44,15 +40,12 @@ std::istream& operator>>(std::istream& is, Topology& t)
 	// allocate Topology arrays
 	t.setN(n);
 	t.setNeighboursArray(new int[6 * n]);
-	t.setNeighboursLength(6 * n);    // for now..
-	t.setOffsetArray(new int[n]);
 
 	// eat newline after first line
 	is.get();
 
 	// loop: parse the "subvolume: {neighbours list}" lines
 	int counter = 0;
-	int neighboursLength = 0;
 	std::string subvolume;
 	std::string neighbours_line;
 
@@ -61,8 +54,6 @@ std::istream& operator>>(std::istream& is, Topology& t)
 		// check if subvolume number is what we expect
 		try {
 			if (counter == std::stoi(subvolume)) {
-				// yes. write current subvolume in offset array and increment counter
-				t.getOffsetArray()[counter] = neighboursLength;
 				counter++;
 			} else {
 				// no. abort parsing.
@@ -83,6 +74,7 @@ std::istream& operator>>(std::istream& is, Topology& t)
 
 		// loop over line elements, convert to int
 		// and add to neighbours array
+		int i = 0;
 		for (auto& subv : neighbours) {
 
 			// first try to parse the number
@@ -101,13 +93,19 @@ std::istream& operator>>(std::istream& is, Topology& t)
 			}
 
 			// add to neighbours array and increment counter
-			t.getNeighboursArray()[neighboursLength] = sub;
-			neighboursLength++;
+			t.getNeighboursArray()[(counter - 1)*6 + i] = sub;
+			i++;
+		}
+
+
+		// fill others with -1
+		while (i < 6) {
+			t.getNeighboursArray()[(counter - 1)*6 + i] = -1;
+			i++;
 		}
 	}
 
-	// no more lines (and no neighbours). Set neighboursLength, we're done.
-	t.setNeighboursLength(neighboursLength);
+	// no more lines (and no neighbours), we're done.
 
 	return is;
 }
