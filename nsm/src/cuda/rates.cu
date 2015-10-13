@@ -2,6 +2,7 @@
 
 // #define DEBUG
 
+// TODO: on multiple threads
 __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int rc, int sbi, int ri, float * rrc)
 {
 #ifdef DEBUG
@@ -62,14 +63,21 @@ __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int 
 	return specie_count * rrc[ri];
 }
 
-__device__ void react_rates(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rrc,
-		float * result)
+__device__ void react_rates(int * state, int * reactants, int sbc, int spc, int rc, float * rrc,
+		float * react_rates_array)
 {
-	for (int i = 0; i < rc; i++) {
-		result[i] = react_rate(state, reactants, sbc, spc, rc, sbi, i, rrc);
+	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbc <= sbi) {
+		return;
 	}
+
+	for (int i = 0; i < rc; i++) {
+		react_rates_array[sbc * i + sbi] = react_rate(state, reactants, sbc, spc, rc, sbi, i, rrc);
+	}
+
 }
 
+// TODO: on multiple threads
 __device__ void diff_rates(int * state, int sbc, int spc, int sbi, float * drc, float * result)
 {
 	for (int i = 0; i < spc; i++) {
@@ -77,25 +85,3 @@ __device__ void diff_rates(int * state, int sbc, int spc, int sbi, float * drc, 
 	}
 
 }
-
-/*
-rate_matrix_row(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rate_matrix,
-		float * rrc, float * drc)
-{
-	// compute new reaction rates
-	float * react_rates_array = react_rates(state, reactants, sbc, spc, rc, sbi, rrc);
-	float reactions_rates_sum = sum_fp_array(react_rates_array, rc);
-
-	// compute new diffusion rates
-	float * diff_rates_array = diff_rates(state, sbc, spc, sbi, drc);
-	float diffusion_rates_sum = sum_fp_array(diff_rates_array, spc);
-
-	// update rate matrix
-	rate_matrix[sbc * 0 + sbi] = reactions_rates_sum;
-	rate_matrix[sbc * 1 + sbi] = diffusion_rates_sum;
-	rate_matrix[sbc * 2 + sbi] = reactions_rates_sum + diffusion_rates_sum;
-}
-*/
-// TODO: test rate_matrix_row
-// TODO: implement rate_matrix
-

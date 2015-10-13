@@ -6,15 +6,13 @@
 
 #include "cuda_utils.cuh"
 
-// TODO: decide a parameters order and stick to it
-
 // computes the react_rate of a single reaction (in one subvolume)
 __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int rc, int sbi, int ri, float * rrc);
 
 // computes the reactions_rates of all the reactions (in one subvolume)
 // writes the results (rc float values) at the address in global memory pointed by result
-__device__ void react_rates(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rrc,
-		float * result);
+__device__ void react_rates(int * state, int * reactants, int sbc, int spc, int rc, float * rrc,
+		float * react_rates_array);
 
 // len(species) array with the diffusion_rates of all the species (in one subvolume)
 __device__ void diff_rates(int * state, int sbc, int spc, int sbi, float * drc, float * result);

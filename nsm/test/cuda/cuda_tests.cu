@@ -4,31 +4,39 @@ void run_all()
 {
 	printf("---------- start CUDA tests ----------\n\n");
 
-	// ----- test_react_rates -----
-	float * react_rates_result;
-	cudaMalloc(&react_rates_result, 3 * sizeof(float));
-	test_react_rates<<<1, 1>>>(react_rates_result);
+	printf("--- test_react_rates ...\n");
+	float * d_react_rates_array;
+	gpuErrchk(cudaMalloc(&d_react_rates_array, 3 * 4 * sizeof(float)));
+	test_react_rates<<<4, 1>>>(d_react_rates_array);
 
-	// ----- test_diff_rates -----
-	float * diff_rates_result;
-	cudaMalloc(&diff_rates_result, 4 * sizeof(float));
-	test_diff_rates<<<1, 1>>>(diff_rates_result);
+	// TODO: we need to zero the memory between runs
 
-	float * rate_matrix;
-	cudaMalloc(&rate_matrix, 3 * 3);
-	test_rate_matrix_row<<<1, 1, 32 * sizeof(float)>>>(rate_matrix);
+	float want[3 * 4] =
+		{ 16.0, 3.0, 2.0, 4.0, 60.0, 3.0, 3.0, 14.0, 128.0, 6.0, 8.0, 32.0 };
+	float * got = new float[3 * 4];
 
-	cudaDeviceSynchronize();
+	gpuErrchk(cudaMemcpy(got, d_react_rates_array, 3 * 4 * sizeof(float), cudaMemcpyDeviceToHost));
 
+	for (int i = 0; i < 3 * 4; i++) {
+		if (abs(got[i] - want[i]) > 1e-6) {
+			printf("----- Failure in test_react_rates() -----\n");
+			printf("position %d: got %.3f, want %.3f\n", i, got[i], want[i]);
+			printf("-----------------------------------------\n\n");
+		}
+	}
+	cudaDeviceReset();
 	printf("\n----------  end  CUDA tests ----------\n");
 }
 
-__global__ void test_react_rates(float * result)
+__global__ void test_react_rates(float * react_rates_array)
 {
-	printf("--- test_react_rates ...\n");
 
+	// 0: 8, 16, 32
+	// 1: 2, 4, 6
+	// 2: 4, 4, 4
+	// 3: 8, 8, 8
 	int state[] =
-		{ 4, 8, 16 };
+		{ 8, 2, 4, 8, 16, 4, 4, 8, 32, 6, 4, 8 };
 
 	// 0 0 1 ->
 	// 0 2 0 ->
@@ -36,24 +44,15 @@ __global__ void test_react_rates(float * result)
 	int reactants[] =
 		{ 0, 0, 1, 0, 2, 0, 1, 0, 1 };
 
-	int sbc = 1;
+	int sbc = 4;
 	int spc = 3;
 	int rc = 3;
-	int sbi = 0;
 
 	float rrc[] =
-		{ 0.2, 0.4, 0.5 };
+		{ 0.5, 0.5, 0.5 };
 
-	react_rates(state, reactants, sbc, spc, rc, sbi, rrc, result);
-	float want[3] =
-		{ 3.2, 11.2, 32.0 };
-	for (int i = 0; i < rc; i++) {
-		if (abs(result[i] - want[i]) > 1e-6) {
-			printf("----- Failure in test_react_rates() -----\n");
-			printf("reaction %d: got %.3f, want %.3f\n", i, result[i], want[i]);
-			printf("-----------------------------------------\n\n");
-		}
-	}
+	react_rates(state, reactants, sbc, spc, rc, rrc, react_rates_array);
+
 }
 
 __global__ void test_diff_rates(float * result)
@@ -95,46 +94,5 @@ __global__ void test_diff_rates(float * result)
 			printf("-----------------------------------------\n\n");
 		}
 	}
-}
-
-__global__ void test_rate_matrix_row(float * rate_matrix)
-{
-	/*
-
-	 // 0: 2 2 2
-	 // 1: 4 4 8
-	 // 2: 8 8 4
-	 int state[9] =
-	 { 2, 4, 8, 2, 4, 8, 2, 8, 4, };
-
-	 // 0 0 1 ->
-	 // 0 2 0 ->
-	 // 1 0 1 ->
-	 int reactants[] =
-	 { 0, 0, 1, 0, 2, 0, 1, 0, 1 };
-
-	 int sbc = 3;
-	 int spc = 3;
-	 int rc = 3;
-
-	 float rrc[3] =
-	 { 1, 2, 3 };
-
-	 float drc[3] =
-	 { 0.5, 0.5, 0.5 };
-
-	 rate_matrix_row(state, reactants, sbc, spc, rc, 0, rate_matrix, rrc, drc);
-
-	 float want[3] =
-	 { 1, 2, 3 };
-
-	 for (int i = 0; i < 3; i++) {
-	 if (abs(rate_matrix[sbc * i] - want[i]) > 1e-6) {
-	 printf("----- Failure in test_rate_matrix_row() -----\n");
-	 printf("column %d: got %.3f, want %.3f\n", i, rate_matrix[sbc * i], want[i]);
-	 printf("-----------------------------------------\n\n");
-	 }
-	 }
-	 */
 }
 
