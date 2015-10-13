@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 
 #include "../../include/cuda/nsm_driver.hpp"
-#include "../../include/cuda/nsm.cuh"
+#include "../../include/cuda/rates.cuh"
 #include "../../include/cuda/cuda_utils.cuh"
 
 namespace NSMCuda {

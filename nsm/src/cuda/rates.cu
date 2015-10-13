@@ -1,4 +1,4 @@
-#include "../../include/cuda/nsm.cuh"
+#include "../../include/cuda/rates.cuh"
 
 // #define DEBUG
 
