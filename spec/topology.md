@@ -48,15 +48,15 @@ compresi tra `0` ed `N-1`.
 
 #### Rappresentazione in memoria
 
-La topologia del sistema è memorizzata in due zone di memoria
-contigue (i.e. due array mono-dimensionali).
+La topologia del sistema è memorizzata in una zona di memoria
+contigua (i.e. un array mono-dimensionale).
 
-Dato un sistema avente `n` sottovolumi, il primo array contiene,
-in sequenza, i sottovolumi adiacenti al primo sottovolumi, quelli
-adiacenti al secondo, e così via.
+Dato un sistema avente `n` sottovolumi, l'array dei vicini ha
+lunghezza `6n` e contiene, in sequenza, `6` numeri per ogni
+sottovolume, che listano gli indici dei suoi vicini.
 
-In un secondo array sono memorizzati gli indici ai quali, nel primo
-array, inizia la lista dei vicini di ogni sottovolume.
+Le posizioni vuote (per i sottovolumi con meno di `6` vicini)
+sono riempite con valori `-1`.
 
 Ad esempio, un sistema avente topologia
 
@@ -67,6 +67,11 @@ Ad esempio, un sistema avente topologia
 
 sarà rappresentato in memoria come
 
-    []neighbours = {1 0 2 1 3 2}
-    []offsets = {0 1 3 5}
+    []neighbours = {
+    	1, -1, -1, -1, -1, -1,
+    	0, 2, -1, -1, -1, -1,
+    	1, 3, -1, -1, -1, -1,
+    	2, -1, -1, -1, -1, -1
+    }
+
 
