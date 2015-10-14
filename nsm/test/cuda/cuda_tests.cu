@@ -1,6 +1,6 @@
 #include "cuda_tests.cuh"
 
-void run_all()
+void run_rates_tests()
 {
 	printf("---------- start CUDA tests ----------\n\n");
 
@@ -44,6 +44,31 @@ void run_all()
 		}
 	}
 
+	printf("--- test_update_rate_matrix ...\n");
+	float * d_rate_matrix;
+
+	gpuErrchk(cudaMalloc(&d_rate_matrix, 3 * 3 * sizeof(float)));
+	gpuErrchk(cudaMalloc(&d_react_rates_array, 3 * 2 * sizeof(float)));
+	gpuErrchk(cudaMalloc(&d_diff_rates_array, 3 * 3 * sizeof(float)));
+
+	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * 3 * sizeof(float)));
+	gpuErrchk(cudaMemset(d_react_rates_array, 0, 3 * 2 * sizeof(float)));
+	gpuErrchk(cudaMemset(d_diff_rates_array, 0, 3 * 3 * sizeof(float)));
+
+	test_update_rate_matrix<<<3, 1>>>(d_rate_matrix, d_react_rates_array, d_diff_rates_array);
+
+	float want3[] =
+		{ 60, 14, 60, 48, 48, 48, 108, 62, 108 };
+
+	gpuErrchk(cudaMemcpy(got, d_rate_matrix, 3 * 3 * sizeof(float), cudaMemcpyDeviceToHost));
+
+	for (int i = 0; i < 3 * 3; i++) {
+		if (abs(got[i] - want3[i]) > 1e-6) {
+			printf("----- Failure in test_update_rate_matrix() -----\n");
+			printf("position %d: got %.3f, want %.3f\n", i, got[i], want3[i]);
+			printf("-----------------------------------------\n\n");
+		}
+	}
 
 	cudaDeviceSynchronize();
 
@@ -91,5 +116,39 @@ __global__ void test_diff_rates(float * diff_rates_array)
 		{ 0.5, 1.5, 2.0 };
 
 	diff_rates(state, sbc, spc, drc, diff_rates_array);
+}
+
+__global__ void test_update_rate_matrix(float * rate_matrix, float * react_rates_array, float * diff_rates_array)
+{
+	// 0: 1
+	// 1: 0 2
+	// 2: 1
+	int topology[] =
+		{ 1, -1, -1, -1, -1, -1, 0, 2, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1 };
+
+	// 0: 8 8 8
+	// 1: 4 4 4
+	// 2: 8 8 8
+	int state[] =
+		{ 8, 4, 8, 8, 4, 8, 8, 4, 8 };
+
+	// 1 0 1 ->
+	// 0 2 0 ->
+	int reactants[] =
+		{ 1, 0, 0, 2, 1, 0 };
+
+	int sbc = 3;
+	int spc = 3;
+	int rc = 2;
+
+	float rrc[] =
+		{ 0.5, 1 };
+
+	float drc[] =
+		{ 2, 2, 2 };
+
+	react_rates(state, reactants, sbc, spc, rc, rrc, react_rates_array);
+	diff_rates(state, sbc, spc, drc, diff_rates_array);
+	update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 }
 

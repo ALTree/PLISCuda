@@ -2,5 +2,5 @@
 
 int main()
 {
-	run_all();
+	run_rates_tests();
 }
