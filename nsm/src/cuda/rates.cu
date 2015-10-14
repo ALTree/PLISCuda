@@ -24,7 +24,7 @@ __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int 
 		// search for a possibile other specie with positive coefficient
 		int index2 = index1 + rc;
 		int specie_index2 = specie_index + 1;
-		while (reactants[index2] == 0 && index2 < spc * rc) {
+		while (reactants[index2] == 0 && index2 < (spc * rc - 1)) {
 			index2 += rc;
 			specie_index2++;
 		}
@@ -84,7 +84,7 @@ __device__ void update_rate_matrix(int * topology, int sbc, int spc, int rc, flo
 	// count subvolume neighbours (since diff_rate = #neighbours x diff_sum)
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
-		neigh_count += (topology[sbi*6 + i] != -1);
+		neigh_count += (topology[sbi * 6 + i] != -1);
 
 	diff_sum *= neigh_count;
 
@@ -102,3 +102,9 @@ __global__ void compute_rates(int * state, int * reactants, int * topology, int 
 	update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 }
 
+void h_compute_rates(int * state, int * reactants, int * topology, int sbc, int spc, int rc, float * rate_matrix,
+		float * rrc, float * drc, float * react_rates_array, float * diff_rates_array)
+{
+	compute_rates<<<1, sbc>>>(state, reactants, topology, sbc, spc, rc, rate_matrix, rrc, drc, react_rates_array,
+			diff_rates_array);
+}

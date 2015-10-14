@@ -28,10 +28,10 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	int * d_reactants;
 	int * d_products;
-	gpuErrchk(cudaMalloc(&d_reactants, rc * sizeof(int)));
-	gpuErrchk(cudaMalloc(&d_products, rc * sizeof(int)));
-	gpuErrchk(cudaMemcpy(d_reactants, h_reactants, rc * sizeof(int), cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(d_products, h_products, rc * sizeof(int), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMalloc(&d_reactants, spc * rc * sizeof(int)));
+	gpuErrchk(cudaMalloc(&d_products, spc * rc * sizeof(int)));
+	gpuErrchk(cudaMemcpy(d_reactants, h_reactants, spc * rc * sizeof(int), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMemcpy(d_products, h_products, spc * rc * sizeof(int), cudaMemcpyHostToDevice));
 
 	// ----- allocate and memcpy topology array -----
 	int * h_topology = t.getNeighboursArray();
@@ -55,18 +55,33 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	// ----- allocate react_rates and diff_rates array
 	float * d_react_rates_array;
 	float * d_diff_rates_array;
-	gpuErrchk(cudaMalloc(&d_react_rates_array, sbc * rc));
-	gpuErrchk(cudaMalloc(&d_diff_rates_array, sbc * spc));
+	gpuErrchk(cudaMalloc(&d_react_rates_array, sbc * rc * sizeof(float)));
+	gpuErrchk(cudaMalloc(&d_diff_rates_array, sbc * spc * sizeof(float)));
 
 	// zero GPU memory, just to be sure
 	// TODO: remove(?)
-	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc));
-	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc));
-	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc));
+	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
+	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
+	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
 
 	std::cout << " done!\n";
 
+	std::cout << "--- Starting nsm \n";
+
+	std::cout << "----- Initializing rate matrix... ";
+	h_compute_rates(d_state, d_reactants, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
+			d_diff_rates_array);
+
+	float * h_rate_matrix = new float[3 * sbc];
+	cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost);
+
+	std::cout << "done!\n\n";
 	gpuErrchk(cudaDeviceSynchronize());
+
+	for (int i = 0; i < sbc; i++) {
+		std::cout << "subvolume " << i << " | " << h_rate_matrix[i] << " " << h_rate_matrix[sbc + i] << " "
+				<< h_rate_matrix[sbc * 2 + i] << "|\n";
+	}
 
 }
 
