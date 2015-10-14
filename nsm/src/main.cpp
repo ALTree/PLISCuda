@@ -76,15 +76,6 @@ int main(int argc, char * argv[])
 	NSMCuda::read_rates_constants(constants_file, reaction_rates_constants, diffusion_rates_constants, reactions.getR(),
 			reactions.getS());
 
-	for(int i = 0; i < reactions.getR(); i++) {
-		printf("%f ", reaction_rates_constants[i]);
-	}
-	printf("\n");
-	for(int i = 0; i < reactions.getS(); i++) {
-		printf("%f ", diffusion_rates_constants[i]);
-	}
-	printf("\n");
-
 	std::cout << " done!\n";
 
 	NSMCuda::is_consistent(topology, initial_state, reactions);
