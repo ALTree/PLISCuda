@@ -18,9 +18,12 @@ __device__ void react_rates(int * state, int * reactants, int sbc, int spc, int 
 // writes the result (rc * spc float values) at the address in global memory pointed by diff_rates_array
 __device__ void diff_rates(int * state, int sbc, int spc, float * drc, float * diff_rates_array);
 
-// updated a single row of the rate matrix
-__device__ void rate_matrix_row(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rate_matrix,
-		float * rrc, float * drc);
+// updates the whole rate matrix
+__device__ void update_rate_matrix(int * topology, int sbc, int spc, int rc, float * rate_matrix,
+		float * react_rates_array, float * diff_rates_array);
+
+__global__ void compute_rates(int * state, int * reactants, int * topology, int sbc, int spc, int rc,
+		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array);
 
 // returns the sum of a floating point array of length len
 template<typename T> __device__ T sum_fp_array(T * array, int len);

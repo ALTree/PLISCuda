@@ -1,16 +1,7 @@
 #include "../../include/cuda/rates.cuh"
 
-// #define DEBUG
-
-// TODO: on multiple threads
 __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int rc, int sbi, int ri, float * rrc)
 {
-#ifdef DEBUG
-	printf("---------- begin react_rate( ) ---------- \n");
-	printf("#reactions = %d, #species = %d, #subs = %d\n", rc, spc, sbc);
-	printf("sub_index = %d, reaction_index = %d\n", sbi, ri);
-#endif
-
 	// search for the first specie in the reactions array that
 	// does have a positive coefficent
 	int index1 = ri;
@@ -23,11 +14,7 @@ __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int 
 	if (reactants[index1] == 2) {    // bi_same reaction type
 		// get specie count for that specie in the current subvolume
 		// int specie_count = state[specie_index * subvolumes_count + subvolume_index];
-		int specie_count = state[CUDA_GET_SPI(specie_index, sbi, sbc)];
-#ifdef DEBUG
-		printf("hit bi_same. Specie_index = %d, specie_count = %d\n", specie_index, species_count);
-		printf("----------   end react_rate( ) ---------- \n\n");
-#endif
+		int specie_count = state[GET_SPI(specie_index, sbi, sbc)];
 		return 0.5 * specie_count * (specie_count - 1) * rrc[ri];
 	}
 
@@ -43,23 +30,14 @@ __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int 
 		}
 
 		if (reactants[index2] != 0) {    // bi_diff reaction type
-			int specie1_count = state[CUDA_GET_SPI(specie_index, sbi, sbc)];
-			int specie2_count = state[CUDA_GET_SPI(specie_index2, sbi, sbc)];
-#ifdef DEBUG
-			printf("hit bi_diff. Specie_index1 = %d, specie_index2 = %d,\n", specie_index, specie_index2);
-			printf("    specie1_count = %d, specie2_count = %d\n", specie1_count, specie2_count);
-			printf("----------   end react_rate( ) ----------\n\n");
-#endif
+			int specie1_count = state[GET_SPI(specie_index, sbi, sbc)];
+			int specie2_count = state[GET_SPI(specie_index2, sbi, sbc)];
 			return specie1_count * specie2_count * rrc[ri];
 		}
 	}
 
 	// uni reaction type
-	int specie_count = state[CUDA_GET_SPI(specie_index, sbi, sbc)];
-#ifdef DEBUG
-	printf("hit uni. Specie_index = %d, specie_count = %d, ", specie_index, specie_count);
-	printf("----------   end react_rate( ) ---------- \n\n");
-#endif
+	int specie_count = state[GET_SPI(specie_index, sbi, sbc)];
 	return specie_count * rrc[ri];
 }
 
@@ -67,25 +45,60 @@ __device__ void react_rates(int * state, int * reactants, int sbc, int spc, int 
 		float * react_rates_array)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= sbc) {
+	if (sbi >= sbc)
 		return;
-	}
 
 	for (int i = 0; i < rc; i++) {
 		react_rates_array[sbc * i + sbi] = react_rate(state, reactants, sbc, spc, rc, sbi, i, rrc);
 	}
-
 }
 
 __device__ void diff_rates(int * state, int sbc, int spc, float * drc, float * diff_rates_array)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if(sbi >= sbc) {
+	if (sbi >= sbc)
 		return;
-	}
 
 	for (int i = 0; i < spc; i++) {
-		diff_rates_array[sbc*i + sbi] = drc[i] * state[CUDA_GET_SPI(i, sbi, sbc)];
+		diff_rates_array[sbc * i + sbi] = drc[i] * state[GET_SPI(i, sbi, sbc)];
 	}
-
 }
+
+__device__ void update_rate_matrix(int * topology, int sbc, int spc, int rc, float * rate_matrix,
+		float * react_rates_array, float * diff_rates_array)
+{
+	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= sbc)
+		return;
+
+	// sum reaction rates
+	float react_sum = 0.0;
+	for (int i = 0; i < rc; i++)
+		react_sum += react_rates_array[sbc * i + sbi];
+
+	// sum diffusion rates
+	float diff_sum = 0.0;
+	for (int i = 0; i < spc; i++)
+		diff_sum += diff_rates_array[sbc * i + sbi];
+
+	// count subvolume neighbours (since diff_rate = #neighbours x diff_sum)
+	int neigh_count = 0;
+	for (int i = 0; i < 6; i++)
+		neigh_count += (topology[sbi + i] > 0);
+
+	diff_sum *= neigh_count;
+
+	// write data into rate matrix
+	rate_matrix[sbc * 0 + sbi] = react_sum;
+	rate_matrix[sbc * 1 + sbi] = diff_sum;
+	rate_matrix[sbc * 2 + sbi] = react_sum + diff_sum;
+}
+
+__global__ void compute_rates(int * state, int * reactants, int * topology, int sbc, int spc, int rc,
+		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array)
+{
+	react_rates(state, reactants, sbc, spc, rc, rrc, react_rates_array);
+	diff_rates(state, sbc, spc, drc, diff_rates_array);
+	update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
+}
+

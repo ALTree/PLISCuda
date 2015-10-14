@@ -8,7 +8,6 @@ function(
     int * reactants,          // reactants array (len = rc * spc)
     int * products,           // products array  (len = rc * spc)
     int * topology,           // topology array  (len = 6 * sbc)
-    int * offsets,            // offsets array   (len = sbc)
     int sbc,                  // subvolumes count
     int spc,                  // species count
     int rc,                   // reactions count
