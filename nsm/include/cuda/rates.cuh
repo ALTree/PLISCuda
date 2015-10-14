@@ -9,13 +9,14 @@
 // computes the react_rate of a single reaction (in one subvolume)
 __device__ float react_rate(int * state, int * reactants, int sbc, int spc, int rc, int sbi, int ri, float * rrc);
 
-// computes the reactions_rates of all the reactions (in one subvolume)
-// writes the results (rc float values) at the address in global memory pointed by result
+// computes the reactions rates of all the reactions (in all the subvolumes)
+// writes the result (rc * sbc float values) at the address in global memory pointed by react_rates_array
 __device__ void react_rates(int * state, int * reactants, int sbc, int spc, int rc, float * rrc,
 		float * react_rates_array);
 
-// len(species) array with the diffusion_rates of all the species (in one subvolume)
-__device__ void diff_rates(int * state, int sbc, int spc, int sbi, float * drc, float * result);
+// computes the diffusion rates of all the reactions (in all the subvolumes)
+// writes the result (rc * spc float values) at the address in global memory pointed by diff_rates_array
+__device__ void diff_rates(int * state, int sbc, int spc, float * drc, float * diff_rates_array);
 
 // updated a single row of the rate matrix
 __device__ void rate_matrix_row(int * state, int * reactants, int sbc, int spc, int rc, int sbi, float * rate_matrix,

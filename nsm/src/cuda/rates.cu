@@ -67,7 +67,7 @@ __device__ void react_rates(int * state, int * reactants, int sbc, int spc, int 
 		float * react_rates_array)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbc <= sbi) {
+	if (sbi >= sbc) {
 		return;
 	}
 
@@ -77,11 +77,15 @@ __device__ void react_rates(int * state, int * reactants, int sbc, int spc, int 
 
 }
 
-// TODO: on multiple threads
-__device__ void diff_rates(int * state, int sbc, int spc, int sbi, float * drc, float * result)
+__device__ void diff_rates(int * state, int sbc, int spc, float * drc, float * diff_rates_array)
 {
+	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if(sbi >= sbc) {
+		return;
+	}
+
 	for (int i = 0; i < spc; i++) {
-		result[i] = drc[i] * state[CUDA_GET_SPI(i, sbi, sbc)];
+		diff_rates_array[sbc*i + sbi] = drc[i] * state[CUDA_GET_SPI(i, sbi, sbc)];
 	}
 
 }
