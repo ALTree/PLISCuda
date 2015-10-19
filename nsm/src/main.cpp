@@ -6,7 +6,7 @@
 #include "../include/cpp/Topology.hpp"
 
 #include "../include/cpp/validation.hpp"
-#include "../include/cuda/nsm_driver.hpp"
+#include "../include/cuda/nsm_driver.cuh"
 
 int main(int argc, char * argv[])
 {

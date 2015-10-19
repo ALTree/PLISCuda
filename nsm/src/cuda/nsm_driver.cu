@@ -1,8 +1,12 @@
 #include <cuda_runtime.h>
 
-#include "../../include/cuda/nsm_driver.hpp"
-#include "../../include/cuda/rates.cuh"
+#include <thrust/device_vector.h>
+
+#include "../../include/cuda/nsm_driver.cuh"
+
 #include "../../include/cuda/cuda_utils.cuh"
+#include "../../include/cuda/rates.cuh"
+#include "../../include/cuda/nsm.cuh"
 
 namespace NSMCuda {
 
@@ -58,6 +62,9 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	gpuErrchk(cudaMalloc(&d_react_rates_array, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMalloc(&d_diff_rates_array, sbc * spc * sizeof(float)));
 
+	// ----- allocate next_event thrust  vector
+	thrust::device_vector<float> tau(sbc);
+
 	// zero GPU memory, just to be sure
 	// TODO: remove(?)
 	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
@@ -72,10 +79,21 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	h_compute_rates(d_state, d_reactants, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
 			d_diff_rates_array);
 
-	float * h_rate_matrix = new float[3 * sbc];
-	cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost);
+	std::cout << "done!\n";
 
-	std::cout << "done!\n\n";
+	std::cout << "----- Fill initial next_event array... ";
+
+	h_fill_tau_array(tau);
+
+    for(int i = 0; i < tau.size(); i++)
+        std::cout << "tau[" << i << "] = " << tau[i] << std::endl;
+
+
+	std::cout << "done!\n";
+
+	std::cout << "----- Starting nsm iterations... ";
+
+	std::cout << "\n";
 	gpuErrchk(cudaDeviceSynchronize());
 
 }

@@ -1,5 +1,5 @@
-#ifndef UTILS_HPP_
-#define UTILS_HPP_
+#ifndef CPP_UTILS_HPP_
+#define CPP_UTILS_HPP_
 
 #include <string>
 #include <sstream>
@@ -29,4 +29,4 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 	}
 }
 
-#endif /* UTILS_HPP_ */
+#endif /* CPP_UTILS_HPP_ */
