@@ -78,11 +78,6 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "done!\n\n";
 	gpuErrchk(cudaDeviceSynchronize());
 
-	for (int i = 0; i < sbc; i++) {
-		std::cout << "subvolume " << i << " | " << h_rate_matrix[i] << " " << h_rate_matrix[sbc + i] << " "
-				<< h_rate_matrix[sbc * 2 + i] << "|\n";
-	}
-
 }
 
 }
