@@ -1,5 +1,24 @@
 #include "../../include/cuda/nsm.cuh"
 
+__device__ int choose_rand_reaction(int sbc, int rc, float * rate_matrix, float * react_rates_array, float rand)
+{
+	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= sbc)
+		return -1;
+
+	float sum = rate_matrix[sbi];
+	float scaled_sum = sum * rand;
+	float partial_sum = 0;
+
+	int ri = 0;
+	while(partial_sum <= scaled_sum) {
+		partial_sum += react_rates_array[ri * sbc + sbi];
+		ri++;
+	}
+
+	return ri;
+}
+
 __global__ void fill_tau_array(float * tau, int sbc)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;

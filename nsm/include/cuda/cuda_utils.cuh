@@ -6,7 +6,7 @@
 //     state[CUDA_GET_SPI(sp_index, sb_index, sbc)];
 #define GET_SPI(sp_index, sb_index, sbc) ((sp_index) * (sbc) + (sb_index))
 
-// TODO: move in cuda_utils.cuh
+// returns the sum of a floating point array of length len
 template<typename T>
 __device__ T sum_fp_array(T * array, int len)
 {
@@ -16,5 +16,6 @@ __device__ T sum_fp_array(T * array, int len)
 
 	return sum;
 }
+
 
 #endif /* CUDA_UTILS_CUH_ */

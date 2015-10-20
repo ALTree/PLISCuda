@@ -29,8 +29,4 @@ __global__ void compute_rates(int * state, int * reactants, int * topology, int 
 void h_compute_rates(int * state, int * reactants, int * topology, int sbc, int spc, int rc, float * rate_matrix,
 		float * rrc, float * drc, float * react_rates_array, float * diff_rates_array);
 
-// returns the sum of a floating point array of length len
-// TODO: move(?)
-template<typename T> __device__ T sum_fp_array(T * array, int len);
-
 #endif /* RATES_CUH_ */
