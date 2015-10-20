@@ -11,10 +11,9 @@ __global__ void fill_tau_array(float * tau, int sbc)
 
 	float x = curand_uniform(&s);
 	tau[sbi] = x;
-	printf("tau[%d] = %f\n", sbi, x);
 }
 
-void h_fill_tau_array(thrust::device_vector<float> tau)
+void h_fill_tau_array(thrust::device_vector<float> &tau)
 {
 	fill_tau_array<<<1, tau.size()>>>(thrust::raw_pointer_cast(tau.data()), tau.size());
 }

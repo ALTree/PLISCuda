@@ -85,10 +85,6 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	h_fill_tau_array(tau);
 
-    for(int i = 0; i < tau.size(); i++)
-        std::cout << "tau[" << i << "] = " << tau[i] << std::endl;
-
-
 	std::cout << "done!\n";
 
 	std::cout << "----- Starting nsm iterations... ";

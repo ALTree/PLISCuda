@@ -8,7 +8,7 @@
 
 __global__ void fill_tau_array(float * tau, int sbc);
 
-void h_fill_tau_array(thrust::device_vector<float> tau);
+void h_fill_tau_array(thrust::device_vector<float> &tau);
 
 
 #endif /* NSM_CUH_ */
