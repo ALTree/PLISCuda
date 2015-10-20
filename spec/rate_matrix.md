@@ -1,27 +1,34 @@
 ### Rate matrix representation 
 
 La parte del sistema concernente tutto ciò che riguarda
-la gestione dei *reaction rates* è composta da tre
+la gestione dei *reaction rates* è composta da cinque
 componenti: una *rate matrix*, che contiene i tassi di
 reazione e diffusione di ogni sottovolume, (e la loro
-somma) e due array *reaction rates constants* e
+somma), due array *reaction rates constants* e
 *diffusion rates constants* che contengono le costanti
 di reazione e diffusione specifiche di ogni reazione e
-di ogni specie considerate nel sistema.
+di ogni specie considerate nel sistema, e due array
+*react_rates_array* e *diff_rates_array* che contengono
+i tassi di reazione e diffusione (rispettivamente per ogni
+reazione ed ogni specie) in ogni sottovolume del sistema.
 
 #### Specifica 
 
-`{reaction, diffusion}_rates_costants` sono, per il momento,
-*hard-coded* nel sorgente, all'interno di due array
+`{reaction, diffusion}_rates_costants` sono letti da file e
+memorizzati all'interno di due array
 
     []float = {r_0, r_1, ... r_x}
     []float = {s_0, s_1, ... s_x}
 
 dove `x = <numero di sottovolumi> - 1`
 
-**TODO:** lettura di `{reaction, diffusion}_rates_constants` da file(?)
-
 **TODO:** *rates constants* differenti per ogni sottovolume(?)
+
+`{react, diff}_rates_array` sono calcolati a run time e memorizzati
+all'interno di due array. `react_rates_array` ha dimensioni pari
+al numero di sottovolumi moltiplicato per il numero di reazioni,
+mentre `diff_rates_array` ha dimensioni pari al numero di sottovolumi
+moltiplicato per il numero di specie.
 
 La *rate matrix* è composta da 3 colonne e un numero di righe pari
 al numero di sottovolumi. Per ogni riga (e quindi per ogni sottovolume),
@@ -96,6 +103,17 @@ devono essere nulli o positivi.
 
 *reaction rates constants* e *diffusion rates constants* sono memorizzati in due
 zone di memoria contigue (due array mono-dimensionali).
+
+`react_rates_array` e `diff_rates_array` sono organizzati rispettivamente per
+reazione e per specie.
+
+I *react rates* della reazione `0` occupano le prime `sbc`
+posizioni nell'array (in ordine di sottovolume), i *rates* della reazione `1`
+occupano le posizioni dalla `sbc` alla `2*sbc-1`, e così via.
+
+I *diff rates* della specie `0` occupano le prime `sbc`
+posizioni nell'array (in ordine di sottovolume), i *rates* della specie `1`
+occupano le posizioni dalla `sbc` alla `2*sbc-1`, e così via.
 
 La *rate matrix* è memorizzata in una zona di memoria contigua
 (i.e. un array mono-dimensionale) di `3n` (con `n = <numero di sottovolumi>`)
