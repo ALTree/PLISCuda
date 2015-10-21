@@ -1,60 +1,75 @@
 import sys
 
+def add_neighs(sub):
+    global topology
 
-def fill_line(neigh, inds):
-    # fill first and last element
-    first, last = inds[0], inds[-1]
-    neigh[first] = neigh[first].union({inds[1]})
-    neigh[last] = neigh[last].union({inds[-2]})
+    for i in [-1, +1]:
+        x, y, z = sub
+        topology[sub].add((x+i, y, z))
+        topology[sub].add((x, y+i, z))
+        topology[sub].add((x, y, z+i))
 
-    # fill the middle ones
-    for i in range(1, len(inds)-1):
-        neigh[inds[i]] = neigh[inds[i]].union({inds[i-1], inds[i+1]})
+def is_valid(neigh):
+    global xdim, ydim, zdim
 
-if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("usage: $ python3 genTopology.py fileName xdim [ydim]")
-        sys.exit(0)
-            
-    dims = [int(n) for n in sys.argv[2:]]
-    if len(dims) == 1: # if we only got one dimension, fill with ydim = 1
-        dims.append(1)
+    if -1 in neigh:
+        return False
+    
+    x, y, z = neigh
+    return (x < xdim and y < ydim and z < zdim)
 
-    xdim, ydim = dims[0:2]
-    # initialize neigh dict so we don't have to put
-    #     if i in neigh:
-    # everywhere when we update it
-    neigh = {i:set() for i in range(0, xdim*ydim)}
+def linearize(sub):
+    global xdim, ydim, zdim
 
-    # fill neigh by lines
-    for y in range(0, ydim):
-        fill_line(neigh, range(xdim*y, xdim*(y+1)))
+    x, y, z = sub
+    return x + y*xdim + z*xdim*ydim
+        
+if len(sys.argv) < 5:
+    print("usage: python3 $genTopology.py x y z filename.txt")
+    sys.exit()
 
-    # fill neigh by colums
-    if ydim > 1:
-        for x in range(0, xdim):
-            fill_line(neigh, range(x, x + (ydim*xdim), ydim))
+xdim, ydim, zdim = [int(n) for n in sys.argv[1:-1]]
 
-    # sanity checks
-    lens = [len(neigh[i]) for i in neigh]
+topology = {(x, y, z):set()
+            for x in range(0,xdim)
+            for y in range(0,ydim)
+            for z in range(0,zdim)}
 
-    if dims[1] == 1:
-        assert lens.count(1) == 2
-        assert lens.count(2) == xdim-2
-        assert lens.count(3) == 0
-        assert lens.count(4) == 0
-    else:
-        assert lens.count(1) == 0
-        assert lens.count(2) == 4
-        assert lens.count(3) == 2*(xdim + ydim - 4)
-        assert lens.count(4) == (xdim*ydim) - (2*(xdim + ydim - 4) + 4)
+for i in topology:
+    add_neighs(i)
 
-    # write the neigh dict to file
-    with open(sys.argv[1], 'w') as f:
-        for k in neigh:
-            f.write(str(k) + ": ")
-            for v in neigh[k]:
-                f.write(str(v) + " ")
-            f.write("\n")
+# filter invalid neighbours
+for i in topology:
+    topology[i] = set(filter(is_valid, topology[i]))
 
+# linearize keys
+for i in topology.copy():
+    topology[linearize(i)] = topology[i]
+    topology.pop(i)
+
+# linearize values
+for i in topology.copy():
+    topology[i] = {linearize(sub) for sub in topology[i]}
+
+# sanity checks
+lens = [len(x) for x in topology.values()]
+
+if xdim > 1 and ydim == 1 and xdim == 1:
+    assert lens.count(1) == 2
+    assert lens.count(2) == xdim-2
+    assert lens.count(3) == 0
+    assert lens.count(4) == 0
+
+if xdim > 1 and ydim > 1 and zdim == 1:
+    assert lens.count(1) == 0
+    assert lens.count(2) == 4
+    assert lens.count(3) == 2*(xdim + ydim - 4)
+    assert lens.count(4) == (xdim*ydim) - (2*(xdim + ydim - 4) + 4)
+
+with open(sys.argv[4], 'w') as f:
+    for i in sorted(topology):
+        f.write(str(i) + ": ")
+        for v in topology[i]:
+            f.write(str(v) + " ")
+        f.write("\n")
 
