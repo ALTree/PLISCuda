@@ -1,6 +1,11 @@
 import sys
 
 def add_neighs(sub):
+    """
+    add_neighs addd neighbours to the subvolume sub. 
+    Ignores borders issues, we'll filter out invalid 
+    neighbours later.
+    """
     global topology
 
     for i in [-1, +1]:
@@ -10,6 +15,10 @@ def add_neighs(sub):
         topology[sub].add((x, y, z+i))
 
 def is_valid(neigh):
+    """
+    is_valid returns True iff neigh is a valid subvolume
+    for the topology we are working in.
+    """
     global xdim, ydim, zdim
 
     if -1 in neigh:
@@ -19,6 +28,9 @@ def is_valid(neigh):
     return (x < xdim and y < ydim and z < zdim)
 
 def linearize(sub):
+    """
+    linearize computes a linear ID from an (x,y,z) subvolume ID
+    """
     global xdim, ydim, zdim
 
     x, y, z = sub
