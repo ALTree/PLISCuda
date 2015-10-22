@@ -22,7 +22,7 @@ __device__ void diff_rates(int * state, int sbc, int spc, float * drc, float * d
 __device__ void update_rate_matrix(int * topology, int sbc, int spc, int rc, float * rate_matrix,
 		float * react_rates_array, float * diff_rates_array);
 
-// call react_rates, diff_rates and updaate_rate_matrix in the correct way
+// call react_rates, diff_rates and update_rate_matrix in the correct way
 __global__ void compute_rates(int * state, int * reactants, int * topology, int sbc, int spc, int rc,
 		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array);
 

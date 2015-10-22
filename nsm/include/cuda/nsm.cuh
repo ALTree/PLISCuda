@@ -6,6 +6,9 @@
 #include <thrust/device_vector.h>
 #include <thrust/extrema.h>
 
+#include "cuda_utils.cuh"
+#include "rates.cuh"
+
 // fill the whole tau array with random times
 __global__ void fill_tau_array(float * tau, int sbc);
 
@@ -21,5 +24,7 @@ __device__ int choose_rand_specie(int sbc, int spc, float * rate_matrix, float *
 
 int h_get_min_tau(thrust::device_vector<float> &tau);
 
+__global__ void nsm_step(int * state, int * reactants, int * products, int * topology, int sbc, int spc, int rc,
+		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi);
 
 #endif /* NSM_CUH_ */

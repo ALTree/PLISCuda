@@ -82,6 +82,8 @@ __device__ void update_rate_matrix(int * topology, int sbc, int spc, int rc, flo
 		diff_sum += diff_rates_array[sbc * i + sbi];
 
 	// count subvolume neighbours (since diff_rate = #neighbours x diff_sum)
+	// TODO: write # of neighbours somewhere and use it so we can remove the
+	//       topology parameter
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
 		neigh_count += (topology[sbi * 6 + i] != -1);

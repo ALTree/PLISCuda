@@ -7,11 +7,11 @@ std::ostream& operator<<(std::ostream& os, State& s)
 	os << "--- State --- " << "\n";
 	os << "\t" << "Subvolumes number: " << s.getN() << "\n";
 	os << "\t" << "Species    number: " << s.getS() << "\n";
-	os << "\t" << "State: " << "\n\t\t";
+	os << "\t" << "State: " << "\n";
 	int size = s.getN() * s.getS();
 	for (int i = 0; i < size; i++) {
 		os << s.getState()[i] << " ";
-		if (i % s.getS() == 0)
+		if ((i+1) % s.getN() == 0)
 			os << "\n";
 	}
 
