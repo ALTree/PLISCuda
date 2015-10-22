@@ -76,14 +76,15 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Starting nsm \n";
 
 	std::cout << "----- Initializing rate matrix... ";
-	h_compute_rates(d_state, d_reactants, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
-			d_diff_rates_array);
+
+	compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc,
+			d_react_rates_array, d_diff_rates_array);
 
 	std::cout << "done!\n";
 
 	std::cout << "----- Fill initial next_event array... ";
 
-	h_fill_tau_array(tau);
+	fill_tau_array<<<1, tau.size()>>>(thrust::raw_pointer_cast(tau.data()), tau.size());
 
 	std::cout << "done!\n";
 

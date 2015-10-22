@@ -101,10 +101,3 @@ __global__ void compute_rates(int * state, int * reactants, int * topology, int 
 	diff_rates(state, sbc, spc, drc, diff_rates_array);
 	update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 }
-
-void h_compute_rates(int * state, int * reactants, int * topology, int sbc, int spc, int rc, float * rate_matrix,
-		float * rrc, float * drc, float * react_rates_array, float * diff_rates_array)
-{
-	compute_rates<<<1, sbc>>>(state, reactants, topology, sbc, spc, rc, rate_matrix, rrc, drc, react_rates_array,
-			diff_rates_array);
-}

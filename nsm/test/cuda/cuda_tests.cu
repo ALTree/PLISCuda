@@ -169,8 +169,6 @@ void run_rand_tests()
 
 	printf("--- test_choose_random ...\n");
 	test_choose_random<<<1, 4>>>();
-
-
 }
 
 __global__ void test_choose_random()
