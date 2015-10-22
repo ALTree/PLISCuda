@@ -19,7 +19,8 @@ __device__ int choose_rand_reaction(int sbc, int rc, float * rate_matrix, float 
 	return ri - 1;
 }
 
-__device__ int choose_rand_specie(int * topology, int sbc, int spc, float * rate_matrix, float * diff_rates_array, float rand)
+__device__ int choose_rand_specie(int * topology, int sbc, int spc, float * rate_matrix, float * diff_rates_array,
+		float rand)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= sbc)
@@ -45,7 +46,7 @@ __device__ int choose_rand_specie(int * topology, int sbc, int spc, float * rate
 	return spi - 1;
 }
 
-__global__ void fill_tau_array(float * tau, int sbc)
+__global__ void fill_tau_array(float * tau, float * rate_matrix, int sbc)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= sbc)
@@ -55,8 +56,8 @@ __global__ void fill_tau_array(float * tau, int sbc)
 	// curandStateMRG32k3a s;
 	curand_init(sbi, 0, 0, &s);
 
-	float x = curand_uniform(&s);
-	tau[sbi] = x;
+	float rand = curand_uniform(&s);
+	tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
 }
 
 int h_get_min_tau(thrust::device_vector<float> &tau)
@@ -66,7 +67,7 @@ int h_get_min_tau(thrust::device_vector<float> &tau)
 }
 
 __global__ void nsm_step(int * state, int * reactants, int * products, int * topology, int sbc, int spc, int rc,
-		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi)
+		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= sbc)
@@ -88,7 +89,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random reaction index = %d\n", sbi, ri);
 		}
 
-		if(sbi == min_sbi) {
+		if (sbi == min_sbi) {
 			printf("---> (%f) [subvolume %d] fire reaction %d\n", tau[sbi], sbi, ri);
 		}
 
@@ -98,13 +99,15 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 				state[GET_SPI(i, sbi, sbc)] += products[i * rc + ri] - reactants[i * rc + ri];
 		}
 
+		// TODO: do we need this?
+		__syncthreads();
+
 		// update rate matrix
 		update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 
 		// compute next event time for this subvolume
 		rand = curand_uniform(&s);
-		tau[sbi] += -logf(rand)/rate_matrix[GET_RATE(2, sbi, sbc)];
-
+		tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
 
 	} else {
 		// diffuse a specie
@@ -120,9 +123,9 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		// TODO: we need to re-use the rand we already have.
 		//       Also find a better way to ensure fairness on
 		//       index 5.
-		int rdi = (int)curand_uniform(&s) * 6;
-		while(rdi > 5)
-			rdi = (int)curand_uniform(&s);
+		int rdi = (int) curand_uniform(&s) * 6;
+		while (rdi > 5)
+			rdi = (int) curand_uniform(&s);
 
 		// get index of neighbour #rdi (overwrite rdi, whatever)
 		rdi = topology[sbi * 6 + rdi];
@@ -131,7 +134,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random neigh index = %d\n", sbi, rdi);
 		}
 
-		if(sbi == min_sbi) {
+		if (sbi == min_sbi) {
 			printf("---> (%f) [subvolume %d] diffuse specie %d in subvolume %d\n", tau[sbi], sbi, spi, rdi);
 		}
 
@@ -142,13 +145,18 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 			state[GET_SPI(spi, rdi, sbc)] += 1;
 		}
 
+		// TODO: do we need this?
+		__syncthreads();
+
 		// update rate matrix
 		// The destination subvolume will update its own rates... right?
+		react_rates(state, reactants, sbc, spc, rc, rrc, react_rates_array);
+		diff_rates(state, sbc, spc, drc, diff_rates_array);
 		update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 
 		// compute next event time for this subvolume
 		// The destination subvolume will update its own tau... right?
 		rand = curand_uniform(&s);
-		tau[sbi] += -logf(rand)/rate_matrix[GET_RATE(2, sbi, sbc)];
+		tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
 	}
 }
