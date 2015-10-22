@@ -26,6 +26,7 @@ __global__ void fill_tau_array(float * tau, int sbc)
 		return;
 
 	curandState s;
+	// curandStateMRG32k3a s;
 	curand_init(sbi, 0, 0, &s);
 
 	float x = curand_uniform(&s);

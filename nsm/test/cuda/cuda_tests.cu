@@ -2,7 +2,6 @@
 
 void run_rates_tests()
 {
-	printf("---------- start CUDA tests ----------\n\n");
 
 	printf("--- test_react_rates ...\n");
 	float * d_react_rates_array;
@@ -71,8 +70,6 @@ void run_rates_tests()
 	}
 
 	cudaDeviceSynchronize();
-
-	printf("\n----------  end  CUDA tests ----------\n");
 }
 
 __global__ void test_react_rates(float * react_rates_array)
@@ -152,3 +149,22 @@ __global__ void test_update_rate_matrix(float * rate_matrix, float * react_rates
 	update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 }
 
+// --------------------------------------------------
+
+void run_rand_tests()
+{
+	printf("--- test_fill_tau_array ...\n");
+
+	int sbc = 32;
+	thrust::device_vector<float> tau(sbc);
+	fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), tau.size());
+
+	for (int i = 0; i < tau.size(); i++) {
+		if (tau[i] == 0) {
+			printf("----- Failure in test_fill_tau_array() -----\n");
+			printf("position %d: found a zero tau\n", i);
+			printf("-----------------------------------------\n\n");
+		}
+	}
+
+}
