@@ -167,16 +167,17 @@ void run_rand_tests()
 		}
 	}
 
-	printf("--- test_choose_random_reaction ...\n");
-	test_choose_random_reaction<<<1, 4>>>();
+	printf("--- test_choose_random ...\n");
+	test_choose_random<<<1, 4>>>();
 
 
 }
 
-__global__ void test_choose_random_reaction()
+__global__ void test_choose_random()
 {
 	int sbc = 4;
 	int rc = 3;
+	int spc = 3;
 
 	float rate_matrix[] = {
 			1.7, 2.3, 3.2, 4.3, // sums of reaction rates (R)
@@ -190,6 +191,12 @@ __global__ void test_choose_random_reaction()
 			0.3, 0.6, 1.0, 1.7        // reaction 3
 	};
 
+	float diff_rates_array[] = {
+			1.0, 1.3, 1.1, 2.7,       // specie 1
+			0.1, 1.1, 1.1, 0.3,       // specie 2
+			0.2, 0.3, 1.6, 1.7        // specie 3
+	};
+
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 
 	curandState s;
@@ -197,8 +204,17 @@ __global__ void test_choose_random_reaction()
 	for(int i = 0; i < 32; i++) {
 		int ri = choose_rand_reaction(sbc, rc, rate_matrix, react_rates_array, curand_uniform(&s));
 		if(ri < 0 || ri >= rc) {
-			printf("----- Failure in test_fill_tau_array() -----\n");
-			printf("sbi = %d, random reaction index is off: %d\n", i, ri);
+			printf("----- Failure in test_choose_rand_reaction() -----\n");
+			printf("sbi = %d, random reaction index is off: %d\n", sbi, ri);
+			printf("-----------------------------------------\n\n");
+		}
+	}
+
+	for(int i = 0; i < 32; i++) {
+		int spi = choose_rand_specie(sbc, spc, rate_matrix, diff_rates_array, curand_uniform(&s));
+		if(spi < 0 || spi >= spc) {
+			printf("----- Failure in test_choose_rand_specie() -----\n");
+			printf("sbi = %d, random specie index is off: %d\n", sbi, spi);
 			printf("-----------------------------------------\n\n");
 		}
 	}

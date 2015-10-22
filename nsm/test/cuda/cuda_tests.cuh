@@ -13,4 +13,4 @@ __global__ void test_update_rate_matrix(float * rate_matrix, float * react_rates
 
 void run_rand_tests();
 __global__ void test_fill_tau_array(thrust::device_vector<float> &tau);
-__global__ void test_choose_random_reaction();
+__global__ void test_choose_random();

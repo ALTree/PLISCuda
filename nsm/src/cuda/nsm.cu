@@ -19,6 +19,25 @@ __device__ int choose_rand_reaction(int sbc, int rc, float * rate_matrix, float 
 	return ri-1;
 }
 
+__device__ int choose_rand_specie(int sbc, int spc, float * rate_matrix, float * diff_rates_array, float rand)
+{
+	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= sbc)
+		return -1;
+
+	float sum = rate_matrix[sbc*1 + sbi];
+	float scaled_sum = sum * rand;
+	float partial_sum = 0;
+
+	int spi = 0;
+	while(partial_sum <= scaled_sum) {
+		partial_sum += diff_rates_array[spi * sbc + sbi];
+		spi++;
+	}
+
+	return spi-1;
+}
+
 __global__ void fill_tau_array(float * tau, int sbc)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
