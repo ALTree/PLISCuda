@@ -16,7 +16,7 @@ __device__ int choose_rand_reaction(int sbc, int rc, float * rate_matrix, float 
 		ri++;
 	}
 
-	return ri;
+	return ri-1;
 }
 
 __global__ void fill_tau_array(float * tau, int sbc)

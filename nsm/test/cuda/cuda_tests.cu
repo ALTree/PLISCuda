@@ -167,4 +167,40 @@ void run_rand_tests()
 		}
 	}
 
+	printf("--- test_choose_random_reaction ...\n");
+	test_choose_random_reaction<<<1, 4>>>();
+
+
+}
+
+__global__ void test_choose_random_reaction()
+{
+	int sbc = 4;
+	int rc = 3;
+
+	float rate_matrix[] = {
+			1.7, 2.3, 3.2, 4.3, // sums of reaction rates (R)
+			1.3, 2.7, 3.8, 4.7, // sums of diffusion rates (D)
+			3.0, 5.0, 7.0, 9.0  // R + D
+	};
+
+	float react_rates_array[] = {
+			1.0, 1.3, 1.1, 0.3,       // reaction 1
+			0.4, 0.4, 1.1, 2.3,       // reaction 2
+			0.3, 0.6, 1.0, 1.7        // reaction 3
+	};
+
+	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+
+	curandState s;
+	curand_init(sbi, 0, 0, &s);
+	for(int i = 0; i < 32; i++) {
+		int ri = choose_rand_reaction(sbc, rc, rate_matrix, react_rates_array, curand_uniform(&s));
+		if(ri < 0 || ri >= rc) {
+			printf("----- Failure in test_fill_tau_array() -----\n");
+			printf("sbi = %d, random reaction index is off: %d\n", i, ri);
+			printf("-----------------------------------------\n\n");
+		}
+	}
+
 }
