@@ -95,22 +95,23 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Starting nsm iterations... \n";
 
-	for (int step = 0; step < 16; step++) {
+	for (int step = 0; step < 32; step++) {
 		std::cout << "----- step " << step << " -----\n\n";
 
 		// print state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 		std::cout << "--- state ---\n";
-		for(int i = 0; i < sbc; i++){
+		for (int i = 0; i < sbc; i++) {
 			std::cout << "sub " << i << ": ";
-			for(int j = 0; j < spc; j++)
-				std::cout << h_state[j*sbc + i] << " ";
+			for (int j = 0; j < spc; j++)
+				std::cout << h_state[j * sbc + i] << " ";
 			std::cout << "\n";
 		}
 
 		int next = h_get_min_tau(tau);
-		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, sbc, spc, rc, d_rate_matrix, d_react_rates_array,
-				d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next);
+
+		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, sbc, spc, rc, d_rate_matrix,
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next);
 		gpuErrchk(cudaDeviceSynchronize());
 	}
 

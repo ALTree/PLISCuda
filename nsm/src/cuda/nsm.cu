@@ -19,13 +19,20 @@ __device__ int choose_rand_reaction(int sbc, int rc, float * rate_matrix, float 
 	return ri - 1;
 }
 
-__device__ int choose_rand_specie(int sbc, int spc, float * rate_matrix, float * diff_rates_array, float rand)
+__device__ int choose_rand_specie(int * topology, int sbc, int spc, float * rate_matrix, float * diff_rates_array, float rand)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= sbc)
 		return -1;
 
-	float sum = rate_matrix[sbc * 1 + sbi];
+	int neigh_count = 0;
+	for (int i = 0; i < 6; i++)
+		neigh_count += (topology[sbi * 6 + i] != -1);
+
+	// we need to scale back rate_matrix[2][sbi] before performing
+	// the linear scaling
+
+	float sum = rate_matrix[sbc * 1 + sbi] / neigh_count;
 	float scaled_sum = sum * rand;
 	float partial_sum = 0;
 
@@ -81,6 +88,10 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random reaction index = %d\n", sbi, ri);
 		}
 
+		if(sbi == min_sbi) {
+			printf("---> (%f) [subvolume %d] fire reaction %d\n", tau[sbi], sbi, ri);
+		}
+
 		// fire reaction and update the state of the system
 		if (sbi == min_sbi) {    // (but only if you are the choosen one)
 			for (int i = 0; i < spc; i++)
@@ -97,7 +108,46 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 	} else {
 		// diffuse a specie
-		printf("(%f) [subvolume %d] diffuse random specie (not implemented)\n", tau[sbi], sbi);
+		printf("(%f) [subvolume %d] diffuse random specie\n", tau[sbi], sbi);
+
+		// choose a random specie to diffuse
+		int spi = choose_rand_specie(topology, sbc, spc, rate_matrix, diff_rates_array, rand);
+		if (spi < 0 || spi >= spc) {
+			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random specie index = %d\n", sbi, spi);
+		}
+
+		// choose a random destination
+		// TODO: we need to re-use the rand we already have.
+		//       Also find a better way to ensure fairness on
+		//       index 5.
+		int rdi = (int)curand_uniform(&s) * 6;
+		while(rdi > 5)
+			rdi = (int)curand_uniform(&s);
+
+		// get index of neighbour #rdi (overwrite rdi, whatever)
+		rdi = topology[sbi * 6 + rdi];
+
+		if (rdi < 0 || rdi >= sbc) {
+			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random neigh index = %d\n", sbi, rdi);
+		}
+
+		if(sbi == min_sbi) {
+			printf("---> (%f) [subvolume %d] diffuse specie %d in subvolume %d\n", tau[sbi], sbi, spi, rdi);
+		}
+
+		// Update state iff we are the choosen one.
+		// Also if we hit a -1, don't do anything
+		if (sbi == min_sbi && rdi != -1) {
+			state[GET_SPI(spi, sbi, sbc)] -= 1;
+			state[GET_SPI(spi, rdi, sbc)] += 1;
+		}
+
+		// update rate matrix
+		// The destination subvolume will update its own rates... right?
+		update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
+
+		// compute next event time for this subvolume
+		// The destination subvolume will update its own tau... right?
 		rand = curand_uniform(&s);
 		tau[sbi] += -logf(rand)/rate_matrix[GET_RATE(2, sbi, sbc)];
 	}
