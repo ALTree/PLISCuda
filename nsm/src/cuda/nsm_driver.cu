@@ -95,7 +95,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Starting nsm iterations... \n";
 
-	int steps = 2048;
+	int steps = 1024;
 
 	for (int step = 0; step < steps; step++) {
 		std::cout << "\n----- step " << step << " -----\n";

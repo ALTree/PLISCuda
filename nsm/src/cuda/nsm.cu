@@ -103,7 +103,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		int ri = choose_rand_reaction(sbc, rc, rate_matrix, react_rates_array, rand);
 
 		if (ri == -1)    // we can't fire any reaction in this subvolume
-			return;
+			goto UPDATE_TAU;
 
 		if (ri >= rc) {
 			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d]: random reaction index = %d\n", sbi, ri);
@@ -126,12 +126,6 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		react_rates(state, reactants, sbc, spc, rc, rrc, react_rates_array);
 		diff_rates(state, sbc, spc, drc, diff_rates_array);
 		update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
-
-		// compute next event time for this subvolume
-		if (sbi == min_sbi) {
-			rand = curand_uniform(&s);
-			tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
-		}
 	} else {
 		// diffuse a specie
 
@@ -139,7 +133,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		int spi = choose_rand_specie(topology, sbc, spc, rate_matrix, diff_rates_array, rand);
 
 		if (spi == -1)    // we can't diffuse any specie in this subvolume
-			return;
+			goto UPDATE_TAU;
 
 		if (spi >= spc) {
 			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d: random specie index = %d\n", sbi, spi);
@@ -179,12 +173,9 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		react_rates(state, reactants, sbc, spc, rc, rrc, react_rates_array);
 		diff_rates(state, sbc, spc, drc, diff_rates_array);
 		update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
-
-		// compute next event time for this subvolume
-		// The destination subvolume will update its own tau... right?
-		if (sbi == min_sbi) {
-			rand = curand_uniform(&s);
-			tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
-		}
 	}
+
+	// compute next event time for this subvolume
+	UPDATE_TAU: rand = curand_uniform(&s);
+	tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)] + tau[min_sbi];
 }
