@@ -4,6 +4,7 @@
 
 extern __constant__ int SBC;
 extern __constant__ int SPC;
+extern __constant__ int RC;
 
 
 
