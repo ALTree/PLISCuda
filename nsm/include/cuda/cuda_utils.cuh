@@ -1,15 +1,17 @@
+#include "constants.cuh"
+
 #ifndef CUDA_UTILS_CUH_
 #define CUDA_UTILS_CUH_
 
 // get specie_count index from state using specie index, subvolume index and subvolume count
 // use like
-//     state[CUDA_GET_SPI(spi, sbi, sbc)];
-#define GET_SPI(spi, sbi, sbc) ((spi) * (sbc) + (sbi))
+//     state[CUDA_GET_SPI(spi, sbi)];
+#define GET_SPI(spi, sbi) ((spi) * (SBC) + (sbi))
 
 // get R or D or R+D index from rate matrix using subvolume index and 0, 1, 2 (resp. R, D, R+D)
 // use like
-//     rate_matrix[GET_RATE(i, sbi, sbc)]
-#define GET_RATE(i, sbi, sbc) ((i) * (sbc) + (sbi))
+//     rate_matrix[GET_RATE(i, sbi)]
+#define GET_RATE(i, sbi) ((i) * (SBC) + (sbi))
 
 // returns the sum of a floating point array of length len
 template<typename T>

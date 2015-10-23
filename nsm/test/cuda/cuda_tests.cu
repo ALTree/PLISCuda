@@ -153,20 +153,6 @@ __global__ void test_update_rate_matrix(float * rate_matrix, float * react_rates
 
 void run_rand_tests()
 {
-	printf("--- test_fill_tau_array ...\n");
-
-	int sbc = 32;
-	thrust::device_vector<float> tau(sbc);
-	fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), tau.size());
-
-	for (int i = 0; i < tau.size(); i++) {
-		if (tau[i] == 0) {
-			printf("----- Failure in test_fill_tau_array() -----\n");
-			printf("position %d: found a zero tau\n", i);
-			printf("-----------------------------------------\n\n");
-		}
-	}
-
 	printf("--- test_choose_random ...\n");
 	test_choose_random<<<1, 4>>>();
 }
@@ -176,6 +162,13 @@ __global__ void test_choose_random()
 	int sbc = 4;
 	int rc = 3;
 	int spc = 3;
+
+	int topology[] = {
+			1, -1, -1, -1, -1, -1,
+			0, 2, -1, -1, -1, -1,
+			1, 3, -1, -1, -1, -1,
+			2, -1, -1, -1, -1, -1
+	};
 
 	float rate_matrix[] = {
 			1.7, 2.3, 3.2, 4.3, // sums of reaction rates (R)
@@ -209,7 +202,7 @@ __global__ void test_choose_random()
 	}
 
 	for(int i = 0; i < 32; i++) {
-		int spi = choose_rand_specie(sbc, spc, rate_matrix, diff_rates_array, curand_uniform(&s));
+		int spi = choose_rand_specie(topology, sbc, spc, rate_matrix, diff_rates_array, curand_uniform(&s));
 		if(spi < 0 || spi >= spc) {
 			printf("----- Failure in test_choose_rand_specie() -----\n");
 			printf("sbi = %d, random specie index is off: %d\n", sbi, spi);

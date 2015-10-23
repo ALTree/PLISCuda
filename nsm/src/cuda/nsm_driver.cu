@@ -7,6 +7,9 @@
 #include "../../include/cuda/cuda_utils.cuh"
 #include "../../include/cuda/rates.cuh"
 #include "../../include/cuda/nsm.cuh"
+#include "../../include/cuda/constants.cuh"
+
+__constant__  int SBC;
 
 #define DEBUG
 
@@ -17,6 +20,8 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	int sbc = t.getN();
 	int spc = s.getS();
 	int rc = r.getR();
+
+	cudaMemcpyToSymbol(SBC, &sbc, sizeof(int));
 
 	std::cout << "----- Allocating GPU memory ...";
 
@@ -78,14 +83,14 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Initializing rate matrix... ";
 
-	compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc,
+	compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, spc, rc, d_rate_matrix, d_rrc, d_drc,
 			d_react_rates_array, d_diff_rates_array);
 
 	std::cout << "done!\n";
 
 	std::cout << "----- Fill initial next_event array... ";
 
-	fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix, tau.size());
+	fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
 
 	std::cout << "done!\n";
 
@@ -127,7 +132,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 		int next = h_get_min_tau(tau);
 
-		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc,
+		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, spc, rc, d_rate_matrix, d_rrc, d_drc,
 				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next, step);
 	}
 	gpuErrchk(cudaDeviceSynchronize());
