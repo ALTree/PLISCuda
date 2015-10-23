@@ -26,7 +26,7 @@ __device__ int choose_rand_reaction(int rc, float * rate_matrix, float * react_r
 	return ri - 1;
 }
 
-__device__ int choose_rand_specie(int * topology, int spc, float * rate_matrix, float * diff_rates_array,
+__device__ int choose_rand_specie(int * topology, float * rate_matrix, float * diff_rates_array,
 		float rand)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -78,7 +78,7 @@ int h_get_min_tau(thrust::device_vector<float> &tau)
 	return iter - tau.begin();
 }
 
-__global__ void nsm_step(int * state, int * reactants, int * products, int * topology, int spc, int rc,
+__global__ void nsm_step(int * state, int * reactants, int * products, int * topology, int rc,
 		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau,
 		int min_sbi, int step)
 {
@@ -118,7 +118,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 		// fire reaction and update the state of the system
 		if (sbi == min_sbi) {    // (but only if you are the choosen one)
-			for (int i = 0; i < spc; i++)
+			for (int i = 0; i < SPC; i++)
 				state[GET_SPI(i, sbi)] += products[i * rc + ri] - reactants[i * rc + ri];
 		}
 
@@ -126,17 +126,17 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		__syncthreads();
 
 		// update rate matrix
-		react_rates(state, reactants, spc, rc, rrc, react_rates_array);
-		diff_rates(state, spc, drc, diff_rates_array);
-		update_rate_matrix(topology, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
+		react_rates(state, reactants, rc, rrc, react_rates_array);
+		diff_rates(state, drc, diff_rates_array);
+		update_rate_matrix(topology, rc, rate_matrix, react_rates_array, diff_rates_array);
 	} else {
 		// diffuse a specie
 
 		// choose a random specie to diffuse
-		int spi = choose_rand_specie(topology, spc, rate_matrix, diff_rates_array, rand);
+		int spi = choose_rand_specie(topology, rate_matrix, diff_rates_array, rand);
 
 #ifdef DEBUG
-		if (spi >= spc) {
+		if (spi >= SPC) {
 			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d] random specie index = %d\n", sbi, spi);
 		}
 #endif
@@ -174,9 +174,9 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 		// update rate matrix
 		// The destination subvolume will update its own rates... right?
-		react_rates(state, reactants, spc, rc, rrc, react_rates_array);
-		diff_rates(state, spc, drc, diff_rates_array);
-		update_rate_matrix(topology, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
+		react_rates(state, reactants,rc, rrc, react_rates_array);
+		diff_rates(state, drc, diff_rates_array);
+		update_rate_matrix(topology, rc, rate_matrix, react_rates_array, diff_rates_array);
 	}
 
 	// compute next event time for this subvolume

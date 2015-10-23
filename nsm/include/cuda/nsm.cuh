@@ -21,12 +21,12 @@ __device__ int choose_rand_reaction(int rc, float * rate_matrix, float * react_r
 // returns the index of a random specie to diffuse in the associated subvolume.
 // The chance that we choose specie S is given by the diffusion rate of S over
 // the sum of the diffusion rates of all the species.
-__device__ int choose_rand_specie(int * topology, int spc, float * rate_matrix, float * diff_rates_array,
+__device__ int choose_rand_specie(int * topology, float * rate_matrix, float * diff_rates_array,
 		float rand);
 
 int h_get_min_tau(thrust::device_vector<float> &tau);
 
-__global__ void nsm_step(int * state, int * reactants, int * products, int * topology, int spc, int rc,
+__global__ void nsm_step(int * state, int * reactants, int * products, int * topology, int rc,
 		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau,
 		int min_sbi, int step);
 

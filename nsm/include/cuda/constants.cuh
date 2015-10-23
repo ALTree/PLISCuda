@@ -3,6 +3,7 @@
 #define CONSTANTS_CUH_
 
 extern __constant__ int SBC;
+extern __constant__ int SPC;
 
 
 
