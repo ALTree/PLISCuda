@@ -96,7 +96,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "----- Starting nsm iterations... \n";
 
 	for (int step = 0; step < 32; step++) {
-		std::cout << "----- step " << step << " -----\n\n";
+		std::cout << "\n----- step " << step << " -----\n";
 
 		// print state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
@@ -128,7 +128,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		int next = h_get_min_tau(tau);
 
 		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc,
-				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next);
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next, step);
 		gpuErrchk(cudaDeviceSynchronize());
 	}
 

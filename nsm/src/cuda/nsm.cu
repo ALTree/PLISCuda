@@ -1,5 +1,7 @@
 #include "../../include/cuda/nsm.cuh"
 
+#define DEBUG
+
 __device__ int choose_rand_reaction(int sbc, int rc, float * rate_matrix, float * react_rates_array, float rand)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -52,8 +54,7 @@ __global__ void fill_tau_array(float * tau, float * rate_matrix, int sbc)
 	if (sbi >= sbc)
 		return;
 
-	curandState s;
-	// curandStateMRG32k3a s;
+	curandStateMRG32k3a s;
 	curand_init(sbi, 0, 0, &s);
 
 	float rand = curand_uniform(&s);
@@ -67,7 +68,8 @@ int h_get_min_tau(thrust::device_vector<float> &tau)
 }
 
 __global__ void nsm_step(int * state, int * reactants, int * products, int * topology, int sbc, int spc, int rc,
-		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi)
+		float * rate_matrix, float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau,
+		int min_sbi, int step)
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= sbc)
@@ -75,13 +77,16 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 	// create and initialize thread's prng
 	curandStateMRG32k3a s;
-	curand_init(sbi, 0, 0, &s);
+	curand_init(sbi, 0, step, &s);
 
 	float rand = curand_uniform(&s);
 
+#ifdef DEBUG
+	printf("[sbv %d] tau = %f, rand = %f\n", sbi, tau[sbi], rand);
+#endif
+
 	if (rand < rate_matrix[GET_RATE(0, sbi, sbc)] / rate_matrix[GET_RATE(2, sbi, sbc)]) {
 		// fire a reaction
-		printf("(%f) [subvolume %d] fire random reaction\n", tau[sbi], sbi);
 
 		// choose a random reaction to fire
 		int ri = choose_rand_reaction(sbc, rc, rate_matrix, react_rates_array, rand);
@@ -90,7 +95,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		}
 
 		if (sbi == min_sbi) {
-			printf("---> (%f) [subvolume %d] fire reaction %d\n", tau[sbi], sbi, ri);
+			printf("(%f) [subv %d] fire reaction %d\n", tau[sbi], sbi, ri);
 		}
 
 		// fire reaction and update the state of the system
@@ -103,6 +108,8 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		__syncthreads();
 
 		// update rate matrix
+		react_rates(state, reactants, sbc, spc, rc, rrc, react_rates_array);
+		diff_rates(state, sbc, spc, drc, diff_rates_array);
 		update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 
 		// compute next event time for this subvolume
@@ -111,7 +118,6 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 	} else {
 		// diffuse a specie
-		printf("(%f) [subvolume %d] diffuse random specie\n", tau[sbi], sbi);
 
 		// choose a random specie to diffuse
 		int spi = choose_rand_specie(topology, sbc, spc, rate_matrix, diff_rates_array, rand);
@@ -135,7 +141,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		}
 
 		if (sbi == min_sbi) {
-			printf("---> (%f) [subvolume %d] diffuse specie %d in subvolume %d\n", tau[sbi], sbi, spi, rdi);
+			printf("(%f) [subv %d] diffuse specie %d in subvolume %d\n", tau[sbi], sbi, spi, rdi);
 		}
 
 		// Update state iff we are the choosen one.
