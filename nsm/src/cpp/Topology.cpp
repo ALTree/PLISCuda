@@ -6,7 +6,6 @@ std::ostream& operator<<(std::ostream& os, Topology& t)
 {
 	os << "--- Topology --- " << "\n";
 	os << "\t" << "Subvolumes number: " << t.getN() << "\n";
-	os << "\t" << "Neighbours number: " << t.getNeighboursLength() << "\n";
 	os << "\t" << "Neighbours: " << "\n\t\t";
 	for (int i = 0; i < t.getNeighboursLength(); i++) {
 		os << t.getNeighboursArray()[i] << " ";
