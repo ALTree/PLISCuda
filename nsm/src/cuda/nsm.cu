@@ -8,6 +8,11 @@ __device__ int choose_rand_reaction(int sbc, int rc, float * rate_matrix, float 
 	if (sbi >= sbc)
 		return -1;
 
+	// if R (the sum of the reaction rates) is zero,
+	// we can't fire any reaction
+	if (rate_matrix[GET_RATE(0, sbi, sbc)] == 0)
+		return -1;
+
 	float sum = rate_matrix[sbi];
 	float scaled_sum = sum * rand;
 	float partial_sum = 0;
@@ -26,6 +31,11 @@ __device__ int choose_rand_specie(int * topology, int sbc, int spc, float * rate
 {
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= sbc)
+		return -1;
+
+	// if D (the sum of the diffusion rates) is zero,
+	// we can't diffuse any specie
+	if (rate_matrix[GET_RATE(1, sbi, sbc)] == 0)
 		return -1;
 
 	int neigh_count = 0;
@@ -55,7 +65,8 @@ __global__ void fill_tau_array(float * tau, float * rate_matrix, int sbc)
 		return;
 
 	curandStateMRG32k3a s;
-	curand_init(sbi, 0, 0, &s);
+	curand_init(2 * sbi, 0, 0, &s);    // initialize with *2sbi to avoid getting the same first value
+									   // later when we use curand_init(sbi, ..)
 
 	float rand = curand_uniform(&s);
 	tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
@@ -90,8 +101,12 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 		// choose a random reaction to fire
 		int ri = choose_rand_reaction(sbc, rc, rate_matrix, react_rates_array, rand);
-		if (ri < 0 || ri >= rc) {
-			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random reaction index = %d\n", sbi, ri);
+
+		if (ri == -1)    // we can't fire any reaction in this subvolume
+			return;
+
+		if (ri >= rc) {
+			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d]: random reaction index = %d\n", sbi, ri);
 		}
 
 		if (sbi == min_sbi) {
@@ -113,16 +128,21 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		update_rate_matrix(topology, sbc, spc, rc, rate_matrix, react_rates_array, diff_rates_array);
 
 		// compute next event time for this subvolume
-		rand = curand_uniform(&s);
-		tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
-
+		if (sbi == min_sbi) {
+			rand = curand_uniform(&s);
+			tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
+		}
 	} else {
 		// diffuse a specie
 
 		// choose a random specie to diffuse
 		int spi = choose_rand_specie(topology, sbc, spc, rate_matrix, diff_rates_array, rand);
-		if (spi < 0 || spi >= spc) {
-			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random specie index = %d\n", sbi, spi);
+
+		if (spi == -1)    // we can't diffuse any specie in this subvolume
+			return;
+
+		if (spi >= spc) {
+			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d: random specie index = %d\n", sbi, spi);
 		}
 
 		// choose a random destination
@@ -145,7 +165,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		}
 
 		// Update state iff we are the choosen one.
-		// Also if we hit a -1, don't do anything
+		// Also if we hit a -1 (i.e. diffuse to myself) don't do anything
 		if (sbi == min_sbi && rdi != -1) {
 			state[GET_SPI(spi, sbi, sbc)] -= 1;
 			state[GET_SPI(spi, rdi, sbc)] += 1;
@@ -162,7 +182,9 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 		// compute next event time for this subvolume
 		// The destination subvolume will update its own tau... right?
-		rand = curand_uniform(&s);
-		tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
+		if (sbi == min_sbi) {
+			rand = curand_uniform(&s);
+			tau[sbi] += -logf(rand) / rate_matrix[GET_RATE(2, sbi, sbc)];
+		}
 	}
 }

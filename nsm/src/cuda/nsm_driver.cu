@@ -95,7 +95,9 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Starting nsm iterations... \n";
 
-	for (int step = 0; step < 32; step++) {
+	int steps = 2048;
+
+	for (int step = 0; step < steps; step++) {
 		std::cout << "\n----- step " << step << " -----\n";
 
 		// print state
@@ -111,19 +113,18 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		std::cout << "\n";
 
 		// print rate matrix
-		float * h_rate_matrix = new float[3*sbc];
+		float * h_rate_matrix = new float[3 * sbc];
 		gpuErrchk(cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost));
 		std::cout << "--- rate matrix ---\n";
-		for(int i = 0; i < sbc; i++) {
+		for (int i = 0; i < sbc; i++) {
 			std::cout << "sub " << i << ": ";
 			std::cout << h_rate_matrix[i] << " ";
 			std::cout << h_rate_matrix[i + sbc] << " ";
-			std::cout << h_rate_matrix[i + sbc*2] << " ";
+			std::cout << h_rate_matrix[i + sbc * 2] << " ";
 			std::cout << "\n";
 		}
 
 		std::cout << "\n";
-
 
 		int next = h_get_min_tau(tau);
 
