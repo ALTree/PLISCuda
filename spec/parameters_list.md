@@ -4,19 +4,16 @@
 
 ```
 function(
-    int * state,              // state array (len = sbc * spc)
-    int * reactants,          // reactants array (len = rc * spc)
-    int * products,           // products array  (len = rc * spc)
-    int * topology,           // topology array  (len = 6 * sbc)
-    int sbc,                  // subvolumes count
-    int spc,                  // species count
-    int rc,                   // reactions count
+    int * state,              // state array (len = SBC * SPC)
+    int * reactants,          // reactants array (len = RC * SPC)
+    int * products,           // products array  (len = RC * SPC)
+    int * topology,           // topology array  (len = 6 * SBC)
     int sbi,                  // subvolume index
     int spi,                  // specie index
     int ri,                   // reaction index
-    float * rate_matrix,      // rate matrix     (len = 3 * sbc)
-    float * rrc,              // reactions rates constants  (len = rc)
-    float * drc,              // diffusion rates constants  (len = spc)
+    float * rate_matrix,      // rate matrix     (len = 3 * SBC)
+    float * rrc,              // reactions rates constants  (len = RC)
+    float * drc,              // diffusion rates constants  (len = SPC)
 )
 ```
 
