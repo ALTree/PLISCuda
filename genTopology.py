@@ -79,6 +79,8 @@ if xdim > 1 and ydim > 1 and zdim == 1:
     assert lens.count(4) == (xdim*ydim) - (2*(xdim + ydim - 4) + 4)
 
 with open(sys.argv[4], 'w') as f:
+    f.write("subvolumes: " + str(xdim*ydim*zdim) + "\n\n")
+    
     for i in sorted(topology):
         f.write(str(i) + ": ")
         for v in topology[i]:

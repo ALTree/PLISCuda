@@ -27,7 +27,7 @@ std::istream& operator>>(std::istream& is, Topology& t)
 		n = std::stoi(subvolumes);
 	} catch (std::invalid_argument &) {
 		is.setstate(std::ios::failbit);
-		throw std::invalid_argument("Invalid subvolumes number : " + subvolumes);
+		throw std::invalid_argument("Invalid subvolumes number: " + subvolumes);
 	}
 
 	// check if n > 0
@@ -92,14 +92,13 @@ std::istream& operator>>(std::istream& is, Topology& t)
 			}
 
 			// add to neighbours array and increment counter
-			t.getNeighboursArray()[(counter - 1)*6 + i] = sub;
+			t.getNeighboursArray()[(counter - 1) * 6 + i] = sub;
 			i++;
 		}
 
-
 		// fill others with -1
 		while (i < 6) {
-			t.getNeighboursArray()[(counter - 1)*6 + i] = -1;
+			t.getNeighboursArray()[(counter - 1) * 6 + i] = -1;
 			i++;
 		}
 	}

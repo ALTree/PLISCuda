@@ -61,7 +61,7 @@ std::istream& operator>>(std::istream& is, State& state)
 	state.setS(s);
 
 	// allocate arrays
-	state.setState(new int[n * s]);
+	state.setState(new int[n * s]());
 
 	// eat newline
 	is.get();

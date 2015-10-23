@@ -8,16 +8,12 @@
 #include "../../include/cuda/rates.cuh"
 #include "../../include/cuda/nsm.cuh"
 
+#define DEBUG
+
 namespace NSMCuda {
 
 void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 {
-
-	std::cout << "----- System -----\n";
-	std::cout << t << "\n";
-	std::cout << s << "\n";
-	std::cout << r << "\n\n";
-
 	int sbc = t.getN();
 	int spc = s.getS();
 	int rc = r.getR();
@@ -89,7 +85,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Fill initial next_event array... ";
 
-	fill_tau_array<<<1, tau.size()>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix, tau.size());
+	fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix, tau.size());
 
 	std::cout << "done!\n";
 
@@ -98,15 +94,17 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	int steps = 1024;
 
 	for (int step = 0; step < steps; step++) {
-		std::cout << "\n----- step " << step << " -----\n";
+
+#ifdef DEBUG
+		std::cout << "\n---------- step " << step << " ----------\n";
 
 		// print state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
-		std::cout << "--- state ---\n";
+		std::cout << "-- state\n";
 		for (int i = 0; i < sbc; i++) {
 			std::cout << "sub " << i << ": ";
 			for (int j = 0; j < spc; j++)
-				std::cout << h_state[j * sbc + i] << " ";
+			std::cout << h_state[j * sbc + i] << " ";
 			std::cout << "\n";
 		}
 
@@ -115,7 +113,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		// print rate matrix
 		float * h_rate_matrix = new float[3 * sbc];
 		gpuErrchk(cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost));
-		std::cout << "--- rate matrix ---\n";
+		std::cout << "-- rate matrix\n";
 		for (int i = 0; i < sbc; i++) {
 			std::cout << "sub " << i << ": ";
 			std::cout << h_rate_matrix[i] << " ";
@@ -125,17 +123,14 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		}
 
 		std::cout << "\n";
+#endif
 
 		int next = h_get_min_tau(tau);
 
 		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, sbc, spc, rc, d_rate_matrix, d_rrc, d_drc,
 				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next, step);
-		gpuErrchk(cudaDeviceSynchronize());
 	}
-
-	std::cout << "\n";
 	gpuErrchk(cudaDeviceSynchronize());
-
 }
 
 }

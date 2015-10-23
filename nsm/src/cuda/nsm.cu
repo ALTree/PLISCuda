@@ -105,9 +105,11 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		if (ri == -1)    // we can't fire any reaction in this subvolume
 			goto UPDATE_TAU;
 
+#ifdef DEBUG
 		if (ri >= rc) {
 			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d]: random reaction index = %d\n", sbi, ri);
 		}
+#endif
 
 		if (sbi == min_sbi) {
 			printf("(%f) [subv %d] fire reaction %d\n", tau[sbi], sbi, ri);
@@ -132,27 +134,28 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		// choose a random specie to diffuse
 		int spi = choose_rand_specie(topology, sbc, spc, rate_matrix, diff_rates_array, rand);
 
-		if (spi == -1)    // we can't diffuse any specie in this subvolume
-			goto UPDATE_TAU;
-
+#ifdef DEBUG
 		if (spi >= spc) {
-			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d: random specie index = %d\n", sbi, spi);
+			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d] random specie index = %d\n", sbi, spi);
 		}
+#endif
 
 		// choose a random destination
 		// TODO: we need to re-use the rand we already have.
 		//       Also find a better way to ensure fairness on
 		//       index 5.
-		int rdi = (int) curand_uniform(&s) * 6;
+		int rdi = (int) (curand_uniform(&s) * 6);
 		while (rdi > 5)
 			rdi = (int) curand_uniform(&s);
 
 		// get index of neighbour #rdi (overwrite rdi, whatever)
 		rdi = topology[sbi * 6 + rdi];
 
-		if (rdi < 0 || rdi >= sbc) {
-			printf(">>>>>>>>>>>>>>>> ARGH! @ sbi: random neigh index = %d\n", sbi, rdi);
+#ifdef DEBUG
+		if (rdi >= sbc) {
+			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d] random neigh = %d\n", sbi, rdi);
 		}
+#endif
 
 		if (sbi == min_sbi) {
 			printf("(%f) [subv %d] diffuse specie %d in subvolume %d\n", tau[sbi], sbi, spi, rdi);
