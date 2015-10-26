@@ -1,6 +1,6 @@
 #include "../../include/cuda/nsm.cuh"
 
-#define DEBUG
+// #define DEBUG
 
 __device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_array, float rand)
 {
@@ -71,6 +71,16 @@ __global__ void fill_tau_array(float * tau, float * rate_matrix)
 	tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi)];
 }
 
+// TODO: remove fill_tau_array and use this for everything
+__global__ void fill_prngstate_array(curandStateMRG32k3a * prngstate)
+{
+	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= SBC)
+		return;
+
+	curand_init(sbi, 0, 0, &prngstate[sbi]);
+}
+
 int h_get_min_tau(thrust::device_vector<float> &tau)
 {
 	thrust::device_vector<float>::iterator iter = thrust::min_element(tau.begin(), tau.end());
@@ -78,18 +88,14 @@ int h_get_min_tau(thrust::device_vector<float> &tau)
 }
 
 __global__ void nsm_step(int * state, int * reactants, int * products, int * topology, float * rate_matrix, float * rrc,
-		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi, int step)
+		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
+		curandStateMRG32k3a * s)
 {
-
 	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
-	// create and initialize thread's prng
-	curandStateMRG32k3a s;
-	curand_init(sbi, 0, step, &s);
-
-	float rand = curand_uniform(&s);
+	float rand = curand_uniform(&s[sbi]);
 
 #ifdef DEBUG
 	printf("[sbv %d] tau = %f, rand = %f\n", sbi, tau[sbi], rand);
@@ -101,20 +107,20 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		// choose a random reaction to fire
 		int ri = choose_rand_reaction(rate_matrix, react_rates_array, rand);
 
-		if (ri == -1)    // we can't fire any reaction in this subvolume
-			goto UPDATE_TAU;
-
 #ifdef DEBUG
 		if (ri >= RC) {
-			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d]: random reaction index = %d\n", sbi, ri);
+			printf(">>>>> ARGH! @ [subv %d]: random reaction index = %d\n", sbi, ri);
 		}
 #endif
 
-		if (sbi == min_sbi) {
+		// ri = -1 means we can't fire any reaction in this subvolume
+		if (sbi == min_sbi && ri != -1) {
 			printf("(%f) [subv %d] fire reaction %d\n", tau[sbi], sbi, ri);
 		}
 
 		// fire reaction and update the state of the system
+		// if sbi = min_sbi then it should be guaranteed that ri != -1
+		// TODO: check(?)
 		if (sbi == min_sbi) {    // (but only if you are the choosen one)
 			for (int i = 0; i < SPC; i++)
 				state[GET_SPI(i, sbi)] += products[i * RC + ri] - reactants[i * RC + ri];
@@ -135,24 +141,23 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 #ifdef DEBUG
 		if (spi >= SPC) {
-			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d] random specie index = %d\n", sbi, spi);
+			printf(">>>>> ARGH! @ [subv %d] random specie index = %d\n", sbi, spi);
 		}
 #endif
 
 		// choose a random destination
 		// TODO: we need to re-use the rand we already have.
-		//       Also find a better way to ensure fairness on
-		//       index 5.
-		int rdi = (int) (curand_uniform(&s) * 6);
-		while (rdi > 5)
-			rdi = (int) curand_uniform(&s);
+		int rdi;
+		do {
+			rdi = (int) (curand_uniform(&s[sbi]) * 6);
+		} while (rdi > 5);
 
 		// get index of neighbour #rdi (overwrite rdi, whatever)
 		rdi = topology[sbi * 6 + rdi];
 
 #ifdef DEBUG
 		if (rdi >= SBC) {
-			printf(">>>>>>>>>>>>>>>> ARGH! @ [subv %d] random neigh = %d\n", sbi, rdi);
+			printf(">>>>> ARGH! @ [subv %d] random neigh = %d\n", sbi, rdi);
 		}
 #endif
 
@@ -178,6 +183,6 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 	}
 
 	// compute next event time for this subvolume
-	UPDATE_TAU: rand = curand_uniform(&s);
+	rand = curand_uniform(&s[sbi]);
 	tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi)] + tau[min_sbi];
 }

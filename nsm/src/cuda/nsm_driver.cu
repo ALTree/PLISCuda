@@ -1,6 +1,8 @@
 #include <cuda_runtime.h>
 
+// TODO: move includes into header
 #include <thrust/device_vector.h>
+#include <curand_kernel.h>
 
 #include "../../include/cuda/nsm_driver.cuh"
 
@@ -13,7 +15,7 @@ __constant__ int SBC;
 __constant__ int SPC;
 __constant__ int RC;
 
-#define DEBUG
+// #define DEBUG
 
 namespace NSMCuda {
 
@@ -75,6 +77,11 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	// ----- allocate next_event thrust  vector
 	thrust::device_vector<float> tau(sbc);
 
+	// ----- allocate and initialize prng array
+	curandStateMRG32k3a* d_prngstate;
+	gpuErrchk(cudaMalloc(&d_prngstate, sbc * sizeof(curandStateMRG32k3a)));
+	fill_prngstate_array<<<1, sbc>>>(d_prngstate);
+
 	// zero GPU memory, just to be sure
 	// TODO: remove(?)
 	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
@@ -100,7 +107,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Starting nsm iterations... \n";
 
-	int steps = 1024;
+	int steps = 256;
 
 	for (int step = 0; step < steps; step++) {
 
@@ -113,7 +120,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		for (int i = 0; i < sbc; i++) {
 			std::cout << "sub " << i << ": ";
 			for (int j = 0; j < spc; j++)
-				std::cout << h_state[j * sbc + i] << " ";
+			std::cout << h_state[j * sbc + i] << " ";
 			std::cout << "\n";
 		}
 
@@ -137,9 +144,19 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		int next = h_get_min_tau(tau);
 
 		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_rrc, d_drc,
-				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next, step);
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next, d_prngstate);
 	}
 	gpuErrchk(cudaDeviceSynchronize());
+
+	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+	std::cout << "-- state\n";
+	for (int i = 0; i < sbc; i++) {
+		std::cout << "sub " << i << ": ";
+		for (int j = 0; j < spc; j++)
+			std::cout << h_state[j * sbc + i] << " ";
+		std::cout << "\n";
+	}
+
 }
 
 }
