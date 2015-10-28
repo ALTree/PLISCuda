@@ -27,7 +27,7 @@
 								<option id="nvcc.compiler.option.level.453338466" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.1542884131" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.963241039" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="com.nvidia.cuda.ide.build.option1.34455340" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
+								<option id="com.nvidia.cuda.ide.build.option1.34455340" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="../g++.hack" valueType="string"/>
 								<option id="nvcc.compiler.compileroptions.1119917086" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
 								<option id="nvcc.compiler.option.lineinfo.607136120" name="Generate line-number information for device code (-lineinfo)" superClass="nvcc.compiler.option.lineinfo" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.verbose.744436448" name="Verbose (-v)" superClass="nvcc.compiler.verbose" value="false" valueType="boolean"/>
@@ -87,7 +87,7 @@
 								<option id="nvcc.compiler.option.level.390204391" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.1043141154" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1918949688" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="com.nvidia.cuda.ide.build.option1.1130104040" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
+								<option id="com.nvidia.cuda.ide.build.option1.1130104040" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="../g++.hack" valueType="string"/>
 								<option id="nvcc.compiler.compileroptions.970057699" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
 								<inputType id="nvcc.compiler.input.cu.373437907" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1197564541" superClass="nvcc.compiler.input.cpp"/>
@@ -145,7 +145,7 @@
 								<option id="nvcc.compiler.option.level.881483118" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.435536699" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.734179666" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="com.nvidia.cuda.ide.build.option1.1225520705" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
+								<option id="com.nvidia.cuda.ide.build.option1.1225520705" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="../g++.hack" valueType="string"/>
 								<option id="nvcc.compiler.compileroptions.1786433933" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
 								<option id="nvcc.compiler.option.lineinfo.1052561435" name="Generate line-number information for device code (-lineinfo)" superClass="nvcc.compiler.option.lineinfo" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.607109379" superClass="nvcc.compiler.input.cu"/>
@@ -204,7 +204,7 @@
 								<option id="nvcc.compiler.option.level.1264073610" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.1346089902" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1144438511" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="com.nvidia.cuda.ide.build.option1.1268099961" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/home/alberto/g++.hack" valueType="string"/>
+								<option id="com.nvidia.cuda.ide.build.option1.1268099961" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="../g++.hack" valueType="string"/>
 								<option id="nvcc.compiler.compileroptions.1840660387" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
 								<option id="nvcc.compiler.option.lineinfo.1970805234" name="Generate line-number information for device code (-lineinfo)" superClass="nvcc.compiler.option.lineinfo" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.1098496920" superClass="nvcc.compiler.input.cu"/>
