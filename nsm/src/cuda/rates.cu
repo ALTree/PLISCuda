@@ -43,7 +43,7 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 
 __device__ void react_rates(int * state, int * reactants, float * rrc, float * react_rates_array)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
@@ -54,7 +54,7 @@ __device__ void react_rates(int * state, int * reactants, float * rrc, float * r
 
 __device__ void diff_rates(int * state, float * drc, float * diff_rates_array)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
@@ -66,7 +66,7 @@ __device__ void diff_rates(int * state, float * drc, float * diff_rates_array)
 __device__ void update_rate_matrix(int * topology, float * rate_matrix, float * react_rates_array,
 		float * diff_rates_array)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 

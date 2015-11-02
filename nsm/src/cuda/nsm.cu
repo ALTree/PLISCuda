@@ -4,7 +4,7 @@
 
 __device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_array, float rand)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return -1;
 
@@ -28,7 +28,7 @@ __device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_arr
 
 __device__ int choose_rand_specie(int * topology, float * rate_matrix, float * diff_rates_array, float rand)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return -1;
 
@@ -59,7 +59,7 @@ __device__ int choose_rand_specie(int * topology, float * rate_matrix, float * d
 
 __global__ void fill_tau_array(float * tau, float * rate_matrix)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
@@ -74,7 +74,7 @@ __global__ void fill_tau_array(float * tau, float * rate_matrix)
 // TODO: remove fill_tau_array and use this for everything
 __global__ void fill_prngstate_array(curandStateMRG32k3a * prngstate)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
@@ -91,7 +91,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
 		curandStateMRG32k3a * s)
 {
-	int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
