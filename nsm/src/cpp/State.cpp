@@ -20,7 +20,7 @@ std::ostream& operator<<(std::ostream& os, State& s)
 
 std::istream& operator>>(std::istream& is, State& state)
 {
-	// parse the first line (reactions: r)
+	// parse the first line (subvolumes: s)
 	std::string subvolumes;
 	std::getline(is, subvolumes, ':');
 	std::getline(is, subvolumes);
@@ -67,7 +67,7 @@ std::istream& operator>>(std::istream& is, State& state)
 	is.get();
 
 	// loop: parse the sub-volumes lines
-	int counter = 0;
+	unsigned int counter = 0;
 	std::string subvolume;
 	std::string subvolume_line;
 	int current_subvolume = 0;

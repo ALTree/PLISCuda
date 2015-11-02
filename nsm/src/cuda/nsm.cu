@@ -39,7 +39,7 @@ __device__ int choose_rand_specie(int * topology, float * rate_matrix, float * d
 
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
-		neigh_count += (topology[sbi * 6 + i] != -1);
+		neigh_count += (topology[sbi * 6 + i] != sbi);
 
 	// we need to scale back rate_matrix[2][sbi] before performing
 	// the linear scaling
@@ -167,7 +167,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 
 		// Update state iff we are the choosen one.
 		// Also if we hit a -1 (i.e. diffuse to myself) don't do anything
-		if (sbi == min_sbi && rdi != -1) {
+		if (sbi == min_sbi && rdi != sbi) {
 			state[GET_SPI(spi, sbi)] -= 1;
 			state[GET_SPI(spi, rdi)] += 1;
 		}

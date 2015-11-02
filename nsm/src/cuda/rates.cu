@@ -85,7 +85,7 @@ __device__ void update_rate_matrix(int * topology, float * rate_matrix, float * 
 	//       topology parameter
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
-		neigh_count += (topology[sbi * 6 + i] != -1);
+		neigh_count += (topology[sbi * 6 + i] != sbi);
 
 	diff_sum *= neigh_count;
 

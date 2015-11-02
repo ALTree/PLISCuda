@@ -11,23 +11,22 @@ namespace NSMCuda {
 
 class Topology {
 
-	int n;    // number of sub-volumes
+	unsigned int n;    // number of sub-volumes
 
 	int * neighbours_array;
-	int neighbours_length;
 
 public:
 
 	// ---------- Constructor ----------
 	Topology()
-			: n(0), neighbours_array(NULL), neighbours_length(0)
+			: n(0), neighbours_array(NULL)
 	{
 
 	}
 
 	// ---------- Copy Constructor ----------
 	Topology(const Topology& other)
-			: n(other.n), neighbours_array(new int[n * 6]), neighbours_length(6 * n)
+			: n(other.n), neighbours_array(new int[n * 6])
 	{
 		for (int i = 0; i < 6 * n; i++) {
 			neighbours_array[i] = other.neighbours_array[i];
@@ -49,19 +48,15 @@ public:
 
 	friend void swap(Topology& first, Topology& second)
 	{
-		int temp = first.n;
+		unsigned int temp = first.n;
 		first.n = second.n;
 		second.n = temp;
 
 		std::swap(first.neighbours_array, second.neighbours_array);
-
-		temp = first.neighbours_length;
-		first.neighbours_length = second.neighbours_length;
-		second.neighbours_length = temp;
 	}
 
 	// ---------- Getters ----------
-	int getN() const
+	unsigned int getN() const
 	{
 		return n;
 	}
@@ -73,14 +68,13 @@ public:
 
 	int getNeighboursLength() const
 	{
-		return neighbours_length;
+		return 6 * n;
 	}
 
 	// ---------- Setters ----------
 	void setN(int n)
 	{
 		this->n = n;
-		this->neighbours_length = 6*n;
 	}
 
 	void setNeighboursArray(int * neighboursArray)

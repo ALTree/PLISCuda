@@ -11,7 +11,7 @@
 #include "../../include/cuda/nsm.cuh"
 #include "../../include/cuda/constants.cuh"
 
-__constant__ int SBC;
+__constant__ unsigned int SBC;
 __constant__ int SPC;
 __constant__ int RC;
 
@@ -21,11 +21,11 @@ namespace NSMCuda {
 
 void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 {
-	int sbc = t.getN();
+	unsigned int sbc = t.getN();
 	int spc = s.getS();
 	int rc = r.getR();
 
-	cudaMemcpyToSymbol(SBC, &sbc, sizeof(int));
+	cudaMemcpyToSymbol(SBC, &sbc, sizeof(unsigned int));
 	cudaMemcpyToSymbol(SPC, &spc, sizeof(int));
 	cudaMemcpyToSymbol(RC, &rc, sizeof(int));
 

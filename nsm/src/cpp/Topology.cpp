@@ -97,8 +97,9 @@ std::istream& operator>>(std::istream& is, Topology& t)
 		}
 
 		// fill others with -1
+		unsigned int current_sbi = std::stoi(subvolume);
 		while (i < 6) {
-			t.getNeighboursArray()[(counter - 1) * 6 + i] = -1;
+			t.getNeighboursArray()[(counter - 1) * 6 + i] = current_sbi;
 			i++;
 		}
 	}

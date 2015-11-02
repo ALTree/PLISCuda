@@ -11,7 +11,7 @@ namespace NSMCuda {
 
 class State {
 
-	int n;    // number of sub-volumes
+	unsigned int n;    // number of sub-volumes
 	int s;    // number of species
 
 	int * state;
@@ -48,7 +48,7 @@ public:
 
 	friend void swap(State& first, State& second)
 	{
-		int temp = first.n;
+		unsigned int temp = first.n;
 		first.n = second.n;
 		second.n = temp;
 
@@ -60,7 +60,7 @@ public:
 	}
 
 	// ---------- Getters ----------
-	int getN() const
+	unsigned int getN() const
 	{
 		return n;
 	}
@@ -76,7 +76,7 @@ public:
 	}
 
 	// ---------- Setters ----------
-	void setN(int n)
+	void setN(unsigned int n)
 	{
 		this->n = n;
 	}
