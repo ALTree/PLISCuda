@@ -14,20 +14,27 @@
 __constant__ unsigned int SBC;
 __constant__ int SPC;
 __constant__ int RC;
+__constant__ int NC;
 
 // #define DEBUG
 
 namespace NSMCuda {
 
+// TODO: rename
+// we keep nsm_step as a kernel, but this will be
+// the main driver and "nsm" is not the right name.
 void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 {
 	unsigned int sbc = t.getN();
 	int spc = s.getS();
 	int rc = r.getR();
 
+	int nc = 10;
+
 	cudaMemcpyToSymbol(SBC, &sbc, sizeof(unsigned int));
 	cudaMemcpyToSymbol(SPC, &spc, sizeof(int));
 	cudaMemcpyToSymbol(RC, &rc, sizeof(int));
+	cudaMemcpyToSymbol(NC, &nc, sizeof(int));
 
 	std::cout << "----- Allocating GPU memory ...";
 

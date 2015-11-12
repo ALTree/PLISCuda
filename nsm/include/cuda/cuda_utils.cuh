@@ -13,6 +13,11 @@
 //     rate_matrix[GET_RATE(i, sbi)]
 #define GET_RATE(i, sbi) ((i) * (SBC) + (sbi))
 
+// get the stechiometric coefficient for specie spi in reaction ri
+// use like
+//     reactants[GET_COEFF(spi, ri)]
+#define GET_COEFF(spi, ri) ((spi)* (RC) + (ri))
+
 // returns the sum of a floating point array of length len
 template<typename T>
 __device__ T sum_fp_array(T * array, int len)
