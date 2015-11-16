@@ -11,7 +11,7 @@ __device__ bool is_critical(int * state, int * reactants, int * products, int sb
 __device__ float compute_m();
 
 // returns g (as defined in Cao, Gillespie, Petzold - Efficient step size selection
-// for the tau-leaping simulation method, J chem Phys 124, 044109) for reaction specie
+// for the tau-leaping simulation method, J chem Phys 124, 044109, page 6) for specie
 // spi in reaction ri inside subvolume sbi
 __device__ float compute_g(int * state, int * reactants, int sbi, int spi);
 
@@ -20,5 +20,10 @@ __device__ float compute_g(int * state, int * reactants, int sbi, int spi);
 // 2 for HOR(i) = 2 and is a "1 1" reaction
 // 3 for HOR(i) = 3 and is a "2" reaction
 __device__ int HOR(int * reactants, int spi);
+
+// compute mu (as defined in Cao, Gillespie, Petzold - Efficient step size selection
+// for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32a),
+// for specie spi in subvolume sbi
+__device__ float compute_mu(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array);
 
 #endif /* LEAP_CUH_ */

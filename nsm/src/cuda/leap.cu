@@ -73,4 +73,22 @@ __device__ int HOR(int * reactants, int spi)
 	return max_hor;
 
 }
+__device__ float compute_mu(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array)
+{
+	float mu = 0.0;
+
+	for (int i = 0; i < RC; i++) {
+
+		// when computing mu when onyl sum over non-critical reactions
+		if(is_critical(state, reactants, products, sbi, i)) {
+			continue;
+		}
+
+		// mu = sum (change_vector) * (reaction_rate)
+		mu += (products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)]) * react_rates_array[GET_RR(i, sbi)];
+	}
+
+	return mu;
+}
+
 

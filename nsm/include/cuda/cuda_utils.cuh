@@ -16,7 +16,12 @@
 // get the stechiometric coefficient for specie spi in reaction ri
 // use like
 //     reactants[GET_COEFF(spi, ri)]
-#define GET_COEFF(spi, ri) ((spi)* (RC) + (ri))
+#define GET_COEFF(spi, ri) ((spi) * (RC) + (ri))
+
+// get the react rates for reaction ri in subvolume sbi
+// use like
+//     react_rates_array[(GET_RR(ri, sbi)]
+#define GET_RR(ri, sbi) ((ri) * (SBC) + (sbi))
 
 // returns the sum of a floating point array of length len
 template<typename T>
@@ -28,6 +33,5 @@ __device__ T sum_fp_array(T * array, int len)
 
 	return sum;
 }
-
 
 #endif /* CUDA_UTILS_CUH_ */
