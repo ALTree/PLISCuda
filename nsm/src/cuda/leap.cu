@@ -21,23 +21,26 @@ __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
 	}
 #endif
 
+	int x = 0;
 	switch (hor) {
 	case 1:
 		return 1;
 	case 2:
 		return 2;
 	case 3:
-		int x = state[GET_SPI(spi, sbi)];
+		x = state[GET_SPI(spi, sbi)];
 		if (x == 1) { // TODO: is 1.0 / +Inf == 0? can we use this to avoid the check?
 			return 2.0;
 		}
-		return 2.0 + 1.0 / (state[GET_SPI(spi, sbi)]);
+		return 2.0 + 1.0 / (x - 1);
+	default:
+		return 0; // nope
 	}
 }
 
 __device__ int HOR(int * reactants, int spi)
 {
-	max_hor = 0;
+	int max_hor = 0;
 	bool is_bi_reaction = false;
 
 	for (int i = 0; i < RC; i++) {
@@ -49,16 +52,15 @@ __device__ int HOR(int * reactants, int spi)
 		}
 
 		// sum all the coeff. of the current
-		// reaction to compute its order
-		hor = 0;
-		for (int j = 0; j < SP; j++) {
-			int c = reactants[GET_COEFF(j, i)]
+		// reaction to compute its order.
+		int hor = 0;
+		for (int j = 0; j < SPC; j++) {
+			int c = reactants[GET_COEFF(j, i)];
 			hor += c;
 			// check if ri requires 2 molecules of spi
 			if (j == spi && c == 2) {
-				is_bi_reaction = true;
+				is_bi_reaction = true; // TODO: replace with branchless code
 			}
-
 		}
 
 		max_hor = max(hor, max_hor);
