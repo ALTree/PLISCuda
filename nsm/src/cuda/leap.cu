@@ -73,22 +73,44 @@ __device__ int HOR(int * reactants, int spi)
 	return max_hor;
 
 }
+
 __device__ float compute_mu(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array)
 {
 	float mu = 0.0;
 
 	for (int i = 0; i < RC; i++) {
 
-		// when computing mu when onyl sum over non-critical reactions
+		// when computing mu we only sum over non-critical reactions
 		if(is_critical(state, reactants, products, sbi, i)) {
 			continue;
 		}
 
-		// mu = sum (change_vector) * (reaction_rate)
+		// mu is the sum of (change_vector) * (reaction_rate) over
+		// non-critical reactions.
 		mu += (products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)]) * react_rates_array[GET_RR(i, sbi)];
 	}
 
 	return mu;
+}
+
+__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array)
+{
+	float sigma2 = 0.0;
+
+	for (int i = 0; i < RC; i++) {
+
+		// when computing sigma2 we only sum over non-critical reactions
+		if(is_critical(state, reactants, products, sbi, i)) {
+			continue;
+		}
+
+		// sigma2 is the sum of (change_vector)^2 * (reaction_rate) over
+		// non-critical reactions.
+		int v = products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)];
+		sigma2 += (v*v) * react_rates_array[GET_RR(i, sbi)];
+	}
+
+	return sigma2;
 }
 
 

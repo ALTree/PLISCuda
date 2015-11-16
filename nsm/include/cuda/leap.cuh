@@ -26,4 +26,9 @@ __device__ int HOR(int * reactants, int spi);
 // for specie spi in subvolume sbi
 __device__ float compute_mu(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array);
 
+// compute sigma2 (as defined in Cao, Gillespie, Petzold - Efficient step size selection
+// for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32b),
+// for specie spi in subvolume sbi
+__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array);
+
 #endif /* LEAP_CUH_ */
