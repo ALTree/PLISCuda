@@ -37,4 +37,8 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, in
 __device__ float compute_tau_sp(int * state, int * reactants, int * products, int sbi, int spi,
 		float * react_rates_array);
 
+// compute the subvolume tau time (i.e. the min of the tau_sp over all the species), in subvolume sbi.
+// The min has to be taken over the reactant species NOT involved in critical reactions.
+__device__ float compute_tau(int * state, int * reactants, int * products, int sbi, float * react_rates_array);
+
 #endif /* LEAP_CUH_ */

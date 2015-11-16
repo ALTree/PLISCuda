@@ -123,11 +123,37 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 	float mu = compute_g(state, reactants, sbi, spi);
 	float sigma2 = compute_sigma2(state, reactants, products, sbi, spi, react_rates_array);
 
-	float t1 = max(EPSILON*x/g, 1.0f)/(abs(mu));
-
-	float m = max(EPSILON*x/g, 1.0f);
-	float t2 = (m*m)/(sigma2);
+	float m = max(EPSILON * x / g, 1.0f);
+	float t1 = m / abs(mu);
+	float t2 = (m * m) / (sigma2);
 
 	return min(t1, t2);
+}
+__device__ float compute_tau(int * state, int * reactants, int * products, int sbi, float * react_rates_array)
+{
+	float min_tau = 0.0;
+
+	for (int spi = 0; spi < SPC; spi++) {
+
+		// First of all we need to check if the specie spi is involved
+		// as reactant in a critical reaction. If it is, skip it.
+		bool skip = false;
+		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
+			if (is_critical(state, reactants, products, sbi, ri)) {    // if it's critical
+				// skip if the specie spi is involved in the reaction
+				skip = (reactants[GET_COEFF(spi, ri)] > 0);
+			}
+		}
+
+		if (skip) {
+			continue;
+		}
+		// spi is not involved in critical reactions.
+
+		float tau = compute_tau_sp(state, reactants, products, sbi, spi, react_rates_array);
+		min_tau = min(min_tau, tau);
+	}
+
+	return min_tau;
 }
 
