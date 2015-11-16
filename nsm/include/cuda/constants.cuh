@@ -5,5 +5,6 @@ extern __constant__ unsigned int SBC;
 extern __constant__ int SPC;
 extern __constant__ int RC;
 extern __constant__ int NC;
+extern __constant__ float EPSILON;
 
 #endif /* CONSTANTS_CUH_ */

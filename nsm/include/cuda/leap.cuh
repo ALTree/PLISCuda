@@ -8,7 +8,6 @@
 
 // returns true iff reaction ri is critical in subvolume sbi
 __device__ bool is_critical(int * state, int * reactants, int * products, int sbi, int ri);
-__device__ float compute_m();
 
 // returns g (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 6) for specie
@@ -29,6 +28,13 @@ __device__ float compute_mu(int * state, int * reactants, int * products, int sb
 // compute sigma2 (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32b),
 // for specie spi in subvolume sbi
-__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array);
+__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi,
+		float * react_rates_array);
+
+// compute the tau time (as defined in Cao, Gillespie, Petzold - Efficient step size selection
+// for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 33) for
+// a single specie, in subvolume sbi
+__device__ float compute_tau_sp(int * state, int * reactants, int * products, int sbi, int spi,
+		float * react_rates_array);
 
 #endif /* LEAP_CUH_ */

@@ -29,12 +29,12 @@ __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
 		return 2;
 	case 3:
 		x = state[GET_SPI(spi, sbi)];
-		if (x == 1) { // TODO: is 1.0 / +Inf == 0? can we use this to avoid the check?
+		if (x == 1) {    // TODO: is 1.0 / +Inf == 0? can we use this to avoid the check?
 			return 2.0;
 		}
 		return 2.0 + 1.0 / (x - 1);
 	default:
-		return 0; // nope
+		return 0;    // nope
 	}
 }
 
@@ -59,7 +59,7 @@ __device__ int HOR(int * reactants, int spi)
 			hor += c;
 			// check if ri requires 2 molecules of spi
 			if (j == spi && c == 2) {
-				is_bi_reaction = true; // TODO: replace with branchless code
+				is_bi_reaction = true;    // TODO: replace with branchless code
 			}
 		}
 
@@ -81,7 +81,7 @@ __device__ float compute_mu(int * state, int * reactants, int * products, int sb
 	for (int i = 0; i < RC; i++) {
 
 		// when computing mu we only sum over non-critical reactions
-		if(is_critical(state, reactants, products, sbi, i)) {
+		if (is_critical(state, reactants, products, sbi, i)) {
 			continue;
 		}
 
@@ -93,24 +93,41 @@ __device__ float compute_mu(int * state, int * reactants, int * products, int sb
 	return mu;
 }
 
-__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array)
+__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi,
+		float * react_rates_array)
 {
 	float sigma2 = 0.0;
 
 	for (int i = 0; i < RC; i++) {
 
 		// when computing sigma2 we only sum over non-critical reactions
-		if(is_critical(state, reactants, products, sbi, i)) {
+		if (is_critical(state, reactants, products, sbi, i)) {
 			continue;
 		}
 
 		// sigma2 is the sum of (change_vector)^2 * (reaction_rate) over
 		// non-critical reactions.
 		int v = products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)];
-		sigma2 += (v*v) * react_rates_array[GET_RR(i, sbi)];
+		sigma2 += (v * v) * react_rates_array[GET_RR(i, sbi)];
 	}
 
 	return sigma2;
 }
 
+__device__ float compute_tau_sp(int * state, int * reactants, int * products, int sbi, int spi,
+		float * react_rates_array)
+{
+	float g = compute_g(state, reactants, sbi, spi);
+	int x = state[GET_SPI(spi, sbi)];
+
+	float mu = compute_g(state, reactants, sbi, spi);
+	float sigma2 = compute_sigma2(state, reactants, products, sbi, spi, react_rates_array);
+
+	float t1 = max(EPSILON*x/g, 1.0f)/(abs(mu));
+
+	float m = max(EPSILON*x/g, 1.0f);
+	float t2 = (m*m)/(sigma2);
+
+	return min(t1, t2);
+}
 
