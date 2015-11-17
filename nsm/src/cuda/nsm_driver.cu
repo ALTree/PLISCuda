@@ -16,6 +16,7 @@ __constant__ int SPC;
 __constant__ int RC;
 __constant__ int NC;
 __constant__ float EPSILON;
+__constant__ int * REACTANTS;
 
 // #define DEBUG
 
@@ -33,11 +34,11 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	int nc = 10;
 	float epsilon = 0.05;
 
-	cudaMemcpyToSymbol(SBC, &sbc, sizeof(unsigned int));
-	cudaMemcpyToSymbol(SPC, &spc, sizeof(int));
-	cudaMemcpyToSymbol(RC, &rc, sizeof(int));
-	cudaMemcpyToSymbol(NC, &nc, sizeof(int));
-	cudaMemcpyToSymbol(EPSILON, &epsilon, sizeof(float));
+	gpuErrchk(cudaMemcpyToSymbol(SBC, &sbc, sizeof(unsigned int)));
+	gpuErrchk(cudaMemcpyToSymbol(SPC, &spc, sizeof(int)));
+	gpuErrchk(cudaMemcpyToSymbol(RC, &rc, sizeof(int)));
+	gpuErrchk(cudaMemcpyToSymbol(NC, &nc, sizeof(int)));
+	gpuErrchk(cudaMemcpyToSymbol(EPSILON, &epsilon, sizeof(float)));
 
 	std::cout << "----- Allocating GPU memory ...";
 

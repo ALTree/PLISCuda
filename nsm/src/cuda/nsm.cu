@@ -101,10 +101,9 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 	printf("[sbv %d] tau = %f, rand = %f\n", sbi, tau[sbi], rand);
 #endif
 
-	if (rand < rate_matrix[GET_RATE(0, sbi)] / rate_matrix[GET_RATE(2, sbi)]) {
-		// fire a reaction
+	if (rand < rate_matrix[GET_RATE(0, sbi)] / rate_matrix[GET_RATE(2, sbi)]) {    // reaction
 
-		// choose a random reaction to fire
+	// choose a random reaction to fire
 		int ri = choose_rand_reaction(rate_matrix, react_rates_array, rand);
 
 #ifdef DEBUG
@@ -133,8 +132,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		react_rates(state, reactants, rrc, react_rates_array);
 		diff_rates(state, drc, diff_rates_array);
 		update_rate_matrix(topology, rate_matrix, react_rates_array, diff_rates_array);
-	} else {
-		// diffuse a specie
+	} else {    // diffusion
 
 		// choose a random specie to diffuse
 		int spi = choose_rand_specie(topology, rate_matrix, diff_rates_array, rand);
@@ -166,7 +164,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, int * top
 		}
 
 		// Update state iff we are the choosen one.
-		// Also if we hit a -1 (i.e. diffuse to myself) don't do anything
+		// Also if we rdi == sbi (i.e. diffuse to myself) don't do anything
 		if (sbi == min_sbi && rdi != sbi) {
 			state[GET_SPI(spi, sbi)] -= 1;
 			state[GET_SPI(spi, rdi)] += 1;
