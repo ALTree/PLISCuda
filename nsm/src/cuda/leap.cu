@@ -99,28 +99,28 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 	mu += diff_rates_array[GET_DR(spi, sbi)];
 
 	// add propensities of incoming diffusions for specie spi.
-	for(int i = 0; i < 6; i++) { // loop over the neighbours
-		unsigned int ni = topology[sbi*6 + i]; // neighbour index
+	for (int i = 0; i < 6; i++) {    // loop over the neighbours
+		unsigned int ni = topology[sbi * 6 + i];    // neighbour index
 
 		// first we need to compute how many neighbours ni has
 		int nni = 0;
 		for (int j = 0; j < 6; j++) {
-			if (topology[ni*6 + j] != ni) {
+			if (topology[ni * 6 + j] != ni) {
 				nni++;
 			}
 		}
 
 		// now we add to mu the propensity of specie spi in
 		// subvolume ni divided by nni
-		mu += (diff_rates_array[GET_DR(spi, ni)])/nni;
+		mu += (diff_rates_array[GET_DR(spi, ni)]) / nni;
 
 	}
 
 	return mu;
 }
 
-__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi,
-		float * react_rates_array)
+__device__ float compute_sigma2(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
+		float * react_rates_array, float * diff_rates_array)
 {
 	float sigma2 = 0.0;
 
@@ -137,17 +137,41 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, in
 		sigma2 += (v * v) * react_rates_array[GET_RR(i, sbi)];
 	}
 
+	// add propensities of outgoing diffusions for specie spi.
+	// We should sum the diffusion propensities over all the
+	// neighbours, but diff_rates_array already has the
+	// overall diffusion propensity.
+	sigma2 += diff_rates_array[GET_DR(spi, sbi)];
+
+	// add propensities of incoming diffusions for specie spi.
+	for (int i = 0; i < 6; i++) {    // loop over the neighbours
+		unsigned int ni = topology[sbi * 6 + i];    // neighbour index
+
+		// first we need to compute how many neighbours ni has
+		int nni = 0;
+		for (int j = 0; j < 6; j++) {
+			if (topology[ni * 6 + j] != ni) {
+				nni++;
+			}
+		}
+
+		// now we add to mu the propensity of specie spi in
+		// subvolume ni divided by nni
+		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / nni;
+
+	}
+
 	return sigma2;
 }
 
-__device__ float compute_tau_sp(int * state, int * reactants, int * products, int sbi, int spi,
-		float * react_rates_array)
+__device__ float compute_tau_sp(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
+		float * react_rates_array, float * diff_rates_array)
 {
 	float g = compute_g(state, reactants, sbi, spi);
 	int x = state[GET_SPI(spi, sbi)];
 
-	float mu = compute_g(state, reactants, sbi, spi);
-	float sigma2 = compute_sigma2(state, reactants, products, sbi, spi, react_rates_array);
+	float mu = compute_mu(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
+	float sigma2 = compute_sigma2(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
 
 	float m = max(EPSILON * x / g, 1.0f);
 	float t1 = m / abs(mu);
@@ -155,7 +179,8 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 
 	return min(t1, t2);
 }
-__device__ float compute_tau(int * state, int * reactants, int * products, int sbi, float * react_rates_array)
+__device__ float compute_tau(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
+		float * react_rates_array, float * diff_rates_array)
 {
 	float min_tau = 0.0;
 
@@ -176,7 +201,7 @@ __device__ float compute_tau(int * state, int * reactants, int * products, int s
 		}
 		// spi is not involved in critical reactions.
 
-		float tau = compute_tau_sp(state, reactants, products, sbi, spi, react_rates_array);
+		float tau = compute_tau_sp(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
 		min_tau = min(min_tau, tau);
 	}
 

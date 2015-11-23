@@ -29,17 +29,18 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 // compute sigma2 (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32b),
 // for specie spi in subvolume sbi
-__device__ float compute_sigma2(int * state, int * reactants, int * products, int sbi, int spi,
-		float * react_rates_array);
+__device__ float compute_sigma2(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
+		float * react_rates_array, float * diff_rates_array);
 
 // compute the tau time (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 33) for
 // a single specie, in subvolume sbi
-__device__ float compute_tau_sp(int * state, int * reactants, int * products, int sbi, int spi,
-		float * react_rates_array);
+__device__ float compute_tau_sp(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
+		float * react_rates_array, float * diff_rates_array);
 
 // compute the subvolume tau time (i.e. the min of the tau_sp over all the species), in subvolume sbi.
 // The min has to be taken over the reactant species NOT involved in critical reactions.
-__device__ float compute_tau(int * state, int * reactants, int * products, int sbi, float * react_rates_array);
+__device__ float compute_tau(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
+		float * react_rates_array, float * diff_rates_array);
 
 #endif /* LEAP_CUH_ */
