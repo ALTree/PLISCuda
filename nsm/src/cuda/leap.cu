@@ -89,7 +89,7 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 
 		// mu is the sum of (change_vector) * (reaction_rate) over
 		// non-critical reactions.
-		mu += (products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)]) * react_rates_array[GET_RR(i, sbi)];
+		mu += (products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)]) * react_rates_array[GET_RR(i, sbi)];
 	}
 
 	// add propensities of outgoing diffusions for specie spi.
@@ -133,7 +133,7 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 
 		// sigma2 is the sum of (change_vector)^2 * (reaction_rate) over
 		// non-critical reactions.
-		int v = products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)];
+		int v = products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)];
 		sigma2 += (v * v) * react_rates_array[GET_RR(i, sbi)];
 	}
 
@@ -157,7 +157,7 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 
 		// now we add to mu the propensity of specie spi in
 		// subvolume ni divided by nni
-		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / nni;
+		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / max(nni, 1);    // TODO: fix?
 
 	}
 
@@ -208,7 +208,7 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 	return min_tau;
 }
 
-__device__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
+__global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
 		float * react_rates_array, float * diff_rates_array, float * tau)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;

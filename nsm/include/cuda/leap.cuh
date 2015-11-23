@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 
 #include <math.h>
+#include <stdio.h>
 
 #include "constants.cuh"
 #include "cuda_utils.cuh"
@@ -47,7 +48,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 __device__ float compute_tau(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
 		float * react_rates_array, float * diff_rates_array);
 
-__device__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
+__global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
 		float * react_rates_array, float * diff_rates_array, float * tau);
 
 #endif /* LEAP_CUH_ */

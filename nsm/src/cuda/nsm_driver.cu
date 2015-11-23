@@ -9,6 +9,7 @@
 #include "../../include/cuda/cuda_utils.cuh"
 #include "../../include/cuda/rates.cuh"
 #include "../../include/cuda/nsm.cuh"
+#include "../../include/cuda/leap.cuh"
 #include "../../include/cuda/constants.cuh"
 
 __constant__ unsigned int SBC;
@@ -63,7 +64,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	// ----- allocate and memcpy topology array -----
 	unsigned int * h_topology = t.getNeighboursArray();
 
-	int * d_topology;
+	unsigned int * d_topology;
 	gpuErrchk(cudaMalloc(&d_topology, 6 * sbc * sizeof(unsigned int)));
 	gpuErrchk(cudaMemcpy(d_topology, h_topology, 6 * sbc * sizeof(unsigned int), cudaMemcpyHostToDevice));
 
@@ -112,13 +113,22 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Fill initial next_event array... ";
 
-	fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
+	// fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
+	fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_react_rates_array,
+			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()));
+
+	std::cout << "\n";
+	for (int i = 0; i < sbc; i++)
+		std::cout << "sbv " << i << ", tau = " << tau[i] << "\n";
+
+	gpuErrchk(cudaDeviceSynchronize());
+	exit(0);
 
 	std::cout << "done!\n";
 
 	std::cout << "----- Starting nsm iterations... \n";
 
-	int steps = 10000;
+	int steps = 1024;
 
 	for (int step = 0; step < steps; step++) {
 

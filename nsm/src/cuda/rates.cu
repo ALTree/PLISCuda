@@ -63,7 +63,7 @@ __device__ void diff_rates(int * state, float * drc, float * diff_rates_array)
 	}
 }
 
-__device__ void update_rate_matrix(int * topology, float * rate_matrix, float * react_rates_array,
+__device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix, float * react_rates_array,
 		float * diff_rates_array)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -95,7 +95,7 @@ __device__ void update_rate_matrix(int * topology, float * rate_matrix, float * 
 	rate_matrix[SBC * 2 + sbi] = react_sum + diff_sum;
 }
 
-__global__ void compute_rates(int * state, int * reactants, int * topology, float * rate_matrix, float * rrc,
+__global__ void compute_rates(int * state, int * reactants, unsigned int * topology, float * rate_matrix, float * rrc,
 		float * drc, float * react_rates_array, float * diff_rates_array)
 {
 	react_rates(state, reactants, rrc, react_rates_array);

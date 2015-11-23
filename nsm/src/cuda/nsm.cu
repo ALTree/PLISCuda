@@ -26,7 +26,7 @@ __device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_arr
 	return ri - 1;
 }
 
-__device__ int choose_rand_specie(int * topology, float * rate_matrix, float * diff_rates_array, float rand)
+__device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, float * diff_rates_array, float rand)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -87,7 +87,7 @@ int h_get_min_tau(thrust::device_vector<float> &tau)
 	return iter - tau.begin();
 }
 
-__global__ void nsm_step(int * state, int * reactants, int * products, int * topology, float * rate_matrix, float * rrc,
+__global__ void nsm_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix, float * rrc,
 		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
 		curandStateMRG32k3a * s)
 {
