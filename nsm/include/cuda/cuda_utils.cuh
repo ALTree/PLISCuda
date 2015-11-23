@@ -26,7 +26,7 @@
 // get the diff rate for specie spi in subvolume sbi
 // use like
 //     diff_rates_array[(GET_DR(spi, sbi)]
-#define GET_DR(ri, sbi) ((spi) * (SBC) + (sbi))
+#define GET_DR(spi, sbi) ((spi) * (SBC) + (sbi))
 
 // returns the sum of a floating point array of length len
 template<typename T>

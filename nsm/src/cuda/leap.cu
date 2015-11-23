@@ -182,7 +182,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 __device__ float compute_tau(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
 		float * react_rates_array, float * diff_rates_array)
 {
-	float min_tau = 0.0;
+	float min_tau = INFINITY;
 
 	for (int spi = 0; spi < SPC; spi++) {
 
