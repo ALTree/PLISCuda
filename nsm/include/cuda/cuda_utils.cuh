@@ -18,10 +18,15 @@
 //     reactants[GET_COEFF(spi, ri)]
 #define GET_COEFF(spi, ri) ((spi) * (RC) + (ri))
 
-// get the react rates for reaction ri in subvolume sbi
+// get the react rate for reaction ri in subvolume sbi
 // use like
 //     react_rates_array[(GET_RR(ri, sbi)]
 #define GET_RR(ri, sbi) ((ri) * (SBC) + (sbi))
+
+// get the diff rate for specie spi in subvolume sbi
+// use like
+//     diff_rates_array[(GET_DR(spi, sbi)]
+#define GET_DR(ri, sbi) ((spi) * (SBC) + (sbi))
 
 // returns the sum of a floating point array of length len
 template<typename T>

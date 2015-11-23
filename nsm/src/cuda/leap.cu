@@ -74,7 +74,8 @@ __device__ int HOR(int * reactants, int spi)
 
 }
 
-__device__ float compute_mu(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array)
+__device__ float compute_mu(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
+		float * react_rates_array, float * diff_rates_array)
 {
 	float mu = 0.0;
 
@@ -91,8 +92,15 @@ __device__ float compute_mu(int * state, int * reactants, int * products, int sb
 		mu += (products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)]) * react_rates_array[GET_RR(i, sbi)];
 	}
 
-	// sum propensities of outgoing diffusions
-	// TODO.
+	// add propensities of outgoing diffusions for specie spi.
+	// We should sum the diffusion propensities over all the
+	// neighbours, but diff_rates_array already has the
+	// overall diffusion propensity.
+	mu += diff_rates_array[GET_DR(spi, sbi)];
+
+	// TODO: add propensities for incoming diffusions.
+	// Problem: we need to compute them, they're not in
+	// diff_rates_array.
 
 	return mu;
 }

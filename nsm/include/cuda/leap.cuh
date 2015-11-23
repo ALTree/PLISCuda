@@ -23,7 +23,8 @@ __device__ int HOR(int * reactants, int spi);
 // compute mu (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32a),
 // for specie spi in subvolume sbi
-__device__ float compute_mu(int * state, int * reactants, int * products, int sbi, int spi, float * react_rates_array);
+__device__ float compute_mu(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
+		float * react_rates_array, float * diff_rates_array);
 
 // compute sigma2 (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32b),
