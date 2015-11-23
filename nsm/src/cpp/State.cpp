@@ -11,7 +11,7 @@ std::ostream& operator<<(std::ostream& os, State& s)
 	int size = s.getN() * s.getS();
 	for (int i = 0; i < size; i++) {
 		os << s.getState()[i] << " ";
-		if ((i+1) % s.getN() == 0)
+		if ((i + 1) % s.getN() == 0)
 			os << "\n";
 	}
 
@@ -70,24 +70,21 @@ std::istream& operator>>(std::istream& is, State& state)
 	unsigned int counter = 0;
 	std::string subvolume;
 	std::string subvolume_line;
-	int current_subvolume = 0;
 
 	while (std::getline(is, subvolume, ':')) {
 
 		// check if subvolume number is what we expect
 		try {
-			if (counter == std::stoi(subvolume)) {
-				// yes. write current subvolume in offset array and increment counter
-				counter++;
-			} else {
-				// no. abort parsing.
-				is.setstate(std::ios::failbit);
-				throw std::invalid_argument("Unexpected subvolume number. "
-						"Want: " + std::to_string(counter) + "Got: " + subvolume);
-			}
+			counter = std::stoi(subvolume);
 		} catch (std::invalid_argument &) {
 			is.setstate(std::ios::failbit);
 			throw std::invalid_argument("Invalid subvolume number : " + subvolume);
+		}
+
+		if (counter >= state.getN()) {
+			is.setstate(std::ios::failbit);
+			throw std::invalid_argument("Unexpected subvolume number. "
+					"Got: " + std::to_string(counter));
 		}
 
 		is.get();    // eat space after ':'
@@ -119,11 +116,10 @@ std::istream& operator>>(std::istream& is, State& state)
 				throw std::invalid_argument("Invalid: species count < 0");
 			}
 
-			state.getState()[current_subvolume + n * i] = c;
+			state.getState()[counter + n * i] = c;
 
 		}
 
-		current_subvolume++;
 	}
 
 	return is;

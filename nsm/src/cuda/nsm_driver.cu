@@ -100,6 +100,15 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
 
+	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+	std::cout << "-- state\n";
+	for (int i = 0; i < sbc; i++) {
+		std::cout << "sub " << i << ": ";
+		for (int j = 0; j < spc; j++)
+			std::cout << h_state[j * sbc + i] << " ";
+		std::cout << "\n";
+	}
+
 	std::cout << " done!\n";
 
 	std::cout << "--- Starting nsm \n";
