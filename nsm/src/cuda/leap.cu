@@ -78,6 +78,7 @@ __device__ float compute_mu(int * state, int * reactants, int * products, int sb
 {
 	float mu = 0.0;
 
+	// sum propensities for the reactions
 	for (int i = 0; i < RC; i++) {
 
 		// when computing mu we only sum over non-critical reactions
@@ -89,6 +90,9 @@ __device__ float compute_mu(int * state, int * reactants, int * products, int sb
 		// non-critical reactions.
 		mu += (products[GET_SPI(spi, sbi)] - reactants[GET_SPI(spi, sbi)]) * react_rates_array[GET_RR(i, sbi)];
 	}
+
+	// sum propensities of outgoing diffusions
+	// TODO.
 
 	return mu;
 }

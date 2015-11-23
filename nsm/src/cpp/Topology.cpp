@@ -7,7 +7,7 @@ std::ostream& operator<<(std::ostream& os, Topology& t)
 	os << "--- Topology --- " << "\n";
 	os << "\t" << "Subvolumes number: " << t.getN() << "\n";
 	os << "\t" << "Neighbours: " << "\n\t\t";
-	for (int i = 0; i < t.getNeighboursLength(); i++) {
+	for (unsigned int i = 0; i < t.getNeighboursLength(); i++) {
 		os << t.getNeighboursArray()[i] << " ";
 	}
 	os << "\n";
@@ -22,7 +22,7 @@ std::istream& operator>>(std::istream& is, Topology& t)
 	std::getline(is, subvolumes);
 
 	// try parse-to-integer on the part after ':'
-	int n;
+	unsigned int n;
 	try {
 		n = std::stoi(subvolumes);
 	} catch (std::invalid_argument &) {
@@ -38,13 +38,13 @@ std::istream& operator>>(std::istream& is, Topology& t)
 
 	// allocate Topology arrays
 	t.setN(n);
-	t.setNeighboursArray(new int[6 * n]);
+	t.setNeighboursArray(new unsigned int[6 * n]);
 
 	// eat newline after first line
 	is.get();
 
 	// loop: parse the "subvolume: {neighbours list}" lines
-	int counter = 0;
+	unsigned int counter = 0;
 	std::string subvolume;
 	std::string neighbours_line;
 

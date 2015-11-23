@@ -61,11 +61,11 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	gpuErrchk(cudaMemcpy(d_products, h_products, spc * rc * sizeof(int), cudaMemcpyHostToDevice));
 
 	// ----- allocate and memcpy topology array -----
-	int * h_topology = t.getNeighboursArray();
+	unsigned int * h_topology = t.getNeighboursArray();
 
 	int * d_topology;
-	gpuErrchk(cudaMalloc(&d_topology, 6 * sbc * sizeof(int)));
-	gpuErrchk(cudaMemcpy(d_topology, h_topology, 6 * sbc * sizeof(int), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMalloc(&d_topology, 6 * sbc * sizeof(unsigned int)));
+	gpuErrchk(cudaMemcpy(d_topology, h_topology, 6 * sbc * sizeof(unsigned int), cudaMemcpyHostToDevice));
 
 	// ----- allocate rate matrix -----
 	float * d_rate_matrix;

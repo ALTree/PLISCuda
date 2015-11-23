@@ -6,6 +6,5 @@ extern __constant__ int SPC;
 extern __constant__ int RC;
 extern __constant__ int NC;
 extern __constant__ float EPSILON;
-extern __constant__ int * REACTANTS;
 
 #endif /* CONSTANTS_CUH_ */

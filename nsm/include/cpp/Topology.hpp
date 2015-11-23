@@ -12,8 +12,7 @@ namespace NSMCuda {
 class Topology {
 
 	unsigned int n;    // number of sub-volumes
-
-	int * neighbours_array;
+	unsigned int * neighbours_array;
 
 public:
 
@@ -26,9 +25,9 @@ public:
 
 	// ---------- Copy Constructor ----------
 	Topology(const Topology& other)
-			: n(other.n), neighbours_array(new int[n * 6])
+			: n(other.n), neighbours_array(new unsigned int[n * 6])
 	{
-		for (int i = 0; i < 6 * n; i++) {
+		for (unsigned int i = 0; i < 6 * n; i++) {
 			neighbours_array[i] = other.neighbours_array[i];
 		}
 	}
@@ -61,23 +60,23 @@ public:
 		return n;
 	}
 
-	int * getNeighboursArray() const
+	unsigned int * getNeighboursArray() const
 	{
 		return neighbours_array;
 	}
 
-	int getNeighboursLength() const
+	unsigned int getNeighboursLength() const
 	{
 		return 6 * n;
 	}
 
 	// ---------- Setters ----------
-	void setN(int n)
+	void setN(unsigned int n)
 	{
 		this->n = n;
 	}
 
-	void setNeighboursArray(int * neighboursArray)
+	void setNeighboursArray(unsigned int * neighboursArray)
 	{
 		neighbours_array = neighboursArray;
 	}
