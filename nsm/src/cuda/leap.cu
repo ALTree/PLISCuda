@@ -208,3 +208,13 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 	return min_tau;
 }
 
+__device__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
+		float * react_rates_array, float * diff_rates_array, float * tau)
+{
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= SBC)
+		return;
+
+	tau[sbi] = compute_tau(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
+}
+
