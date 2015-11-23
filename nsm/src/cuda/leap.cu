@@ -98,9 +98,23 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 	// overall diffusion propensity.
 	mu += diff_rates_array[GET_DR(spi, sbi)];
 
-	// TODO: add propensities for incoming diffusions.
-	// Problem: we need to compute them, they're not in
-	// diff_rates_array.
+	// add propensities of incoming diffusions for specie spi.
+	for(int i = 0; i < 6; i++) { // loop over the neighbours
+		unsigned int ni = topology[sbi*6 + i]; // neighbour index
+
+		// first we need to compute how many neighbours ni has
+		int nni = 0;
+		for (int j = 0; j < 6; j++) {
+			if (topology[ni*6 + j] != ni) {
+				nni++;
+			}
+		}
+
+		// now we add to mu the propensity of specie spi in
+		// subvolume ni divided by nni
+		mu += (diff_rates_array[GET_DR(spi, ni)])/nni;
+
+	}
 
 	return mu;
 }
