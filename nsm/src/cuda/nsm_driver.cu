@@ -111,18 +111,36 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "done!\n";
 
+	float * h_rate_matrix = new float[3 * sbc];
+	gpuErrchk(cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost));
+	std::cout << "-- rate matrix\n";
+	for (int i = 0; i < sbc; i++) {
+		std::cout << "sub " << i << ": ";
+		std::cout << h_rate_matrix[i] << " ";
+		std::cout << h_rate_matrix[i + sbc] << " ";
+		std::cout << h_rate_matrix[i + sbc * 2] << " ";
+		std::cout << "\n";
+	}
+
 	std::cout << "----- Fill initial next_event array... ";
 
-	// fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
-	fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_react_rates_array,
-			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()));
+	bool leap = true;
+
+	if (!leap) {
+		fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
+	} else {
+		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_react_rates_array,
+				d_diff_rates_array, thrust::raw_pointer_cast(tau.data()));
+	}
 
 	std::cout << "\n";
 	for (int i = 0; i < sbc; i++)
 		std::cout << "sbv " << i << ", tau = " << tau[i] << "\n";
 
-	gpuErrchk(cudaDeviceSynchronize());
-	exit(0);
+	if (true) {
+		gpuErrchk(cudaDeviceSynchronize());
+		exit(0);
+	}
 
 	std::cout << "done!\n";
 

@@ -89,7 +89,8 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 
 		// mu is the sum of (change_vector) * (reaction_rate) over
 		// non-critical reactions.
-		mu += (products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)]) * react_rates_array[GET_RR(i, sbi)];
+		int v = products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)];
+		mu += v * react_rates_array[GET_RR(i, sbi)];
 	}
 
 	// add propensities of outgoing diffusions for specie spi.
@@ -110,9 +111,9 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 			}
 		}
 
-		// now we add to mu the propensity of specie spi in
-		// subvolume ni divided by nni
-		mu += (diff_rates_array[GET_DR(spi, ni)]) / nni;
+		// now we subtract from mu the propensity of specie spi in
+		// subvolume ni divided by nni (i.e. we sum a negative value).
+		mu -= (diff_rates_array[GET_DR(spi, ni)]) / nni;
 
 	}
 
@@ -156,7 +157,8 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 		}
 
 		// now we add to mu the propensity of specie spi in
-		// subvolume ni divided by nni
+		// subvolume ni divided by nni. No need to square since
+		// the coeff. is always -1, just sum 1.
 		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / max(nni, 1);    // TODO: fix?
 
 	}
@@ -179,6 +181,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 
 	return min(t1, t2);
 }
+
 __device__ float compute_tau(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
 		float * react_rates_array, float * diff_rates_array)
 {
@@ -192,7 +195,7 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
 			if (is_critical(state, reactants, products, sbi, ri)) {    // if it's critical
 				// skip if the specie spi is involved in the reaction
-				skip = (reactants[GET_COEFF(spi, ri)] > 0);
+				skip = skip | (reactants[GET_COEFF(spi, ri)] > 0);
 			}
 		}
 
@@ -202,6 +205,7 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 		// spi is not involved in critical reactions.
 
 		float tau = compute_tau_sp(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
+
 		min_tau = min(min_tau, tau);
 	}
 
