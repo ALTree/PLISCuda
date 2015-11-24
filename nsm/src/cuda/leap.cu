@@ -34,7 +34,10 @@ __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
 		}
 		return 2.0 + 1.0 / (x - 1);
 	default:
-		return 0;    // nope
+		// HOR(spi) == 0 if spi does not appear as reactant in any reaction.
+		// Return +Inf so that when we divide by g we get 0 and the procedure
+		// takes max(0, 1) = 1 as g.
+		return INFINITY;
 	}
 }
 
@@ -175,6 +178,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 	float mu = compute_mu(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
 	float sigma2 = compute_sigma2(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
 
+
 	float m = max(EPSILON * x / g, 1.0f);
 	float t1 = m / abs(mu);
 	float t2 = (m * m) / (sigma2);
@@ -195,7 +199,7 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
 			if (is_critical(state, reactants, products, sbi, ri)) {    // if it's critical
 				// skip if the specie spi is involved in the reaction
-				skip = skip | (reactants[GET_COEFF(spi, ri)] > 0);
+				skip = skip || (reactants[GET_COEFF(spi, ri)] > 0);
 			}
 		}
 

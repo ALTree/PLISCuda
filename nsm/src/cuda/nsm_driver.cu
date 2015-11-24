@@ -94,20 +94,16 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	gpuErrchk(cudaMalloc(&d_prngstate, sbc * sizeof(curandStateMRG32k3a)));
 	fill_prngstate_array<<<1, sbc>>>(d_prngstate);
 
+	// ----- allocate leap array
+	bool * d_leap;
+	gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(bool)));
+
 	// zero GPU memory, just to be sure
 	// TODO: remove(?)
 	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
-
-	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
-	std::cout << "-- state\n";
-	for (int i = 0; i < sbc; i++) {
-		std::cout << "sub " << i << ": ";
-		for (int j = 0; j < spc; j++)
-			std::cout << h_state[j * sbc + i] << " ";
-		std::cout << "\n";
-	}
+	gpuErrchk(cudaMemset(d_leap, 0, sbc * sizeof(bool)));
 
 	std::cout << " done!\n";
 
