@@ -2,6 +2,7 @@
 #define LEAP_CUH_
 
 #include <cuda_runtime.h>
+#include <curand_kernel.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -48,6 +49,9 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 		float * react_rates_array, float * diff_rates_array);
 
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * react_rates_array, float * diff_rates_array, float * tau);
+		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, bool * leap);
+
+__global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
+		float * react_rates_array, float * diff_rates_array, float * tau, bool * leap, curandStateMRG32k3a * prngstate);
 
 #endif /* LEAP_CUH_ */

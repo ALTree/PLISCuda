@@ -178,7 +178,6 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 	float mu = compute_mu(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
 	float sigma2 = compute_sigma2(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
 
-
 	float m = max(EPSILON * x / g, 1.0f);
 	float t1 = m / abs(mu);
 	float t2 = (m * m) / (sigma2);
@@ -217,12 +216,38 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 }
 
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * react_rates_array, float * diff_rates_array, float * tau)
+		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, bool * leap)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
-	tau[sbi] = compute_tau(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
+	float tauv = compute_tau(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
+	tau[sbi] = tauv;
+	leap[sbi] = tauv >= 1.0 / rate_matrix[GET_RATE(2, sbi)];
+}
+
+__global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
+		float * react_rates_array, float * diff_rates_array, float * tau, bool * leap, curandStateMRG32k3a * prngstate)
+{
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= SBC || !leap[sbi])
+		return;
+
+	// fire all the reaction events
+	for (int ri = 0; ri < RC; ri++) {
+
+		unsigned int k;    // how many times it fires
+		k = curand_poisson(&prngstate[sbi], tau[sbi] * react_rates_array[GET_RR(ri, sbi)]);
+
+		// update state
+		for (int spi = 0; spi < SPC; spi++) {
+			state[GET_SPI(spi, sbi)] += k * (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
+		}
+
+	}
+
+	__syncthreads();
+
 }
 

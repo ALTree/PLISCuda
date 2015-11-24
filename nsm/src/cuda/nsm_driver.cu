@@ -134,8 +134,8 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	if (!leap) {
 		fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
 	} else {
-		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_react_rates_array,
-				d_diff_rates_array, thrust::raw_pointer_cast(tau.data()));
+		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
+				d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap);
 	}
 
 	std::cout << "\n";

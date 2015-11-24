@@ -122,7 +122,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, unsigned 
 		// TODO: check(?)
 		if (sbi == min_sbi) {    // (but only if you are the choosen one)
 			for (int i = 0; i < SPC; i++)
-				state[GET_SPI(i, sbi)] += products[i * RC + ri] - reactants[i * RC + ri];
+				state[GET_SPI(i, sbi)] += products[i * RC + ri] - reactants[i * RC + ri]; // TODO: update with macro
 		}
 
 		// TODO: do we need this?
