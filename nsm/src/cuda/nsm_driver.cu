@@ -1,16 +1,4 @@
-#include <cuda_runtime.h>
-
-// TODO: move includes into header
-#include <thrust/device_vector.h>
-#include <curand_kernel.h>
-
 #include "../../include/cuda/nsm_driver.cuh"
-
-#include "../../include/cuda/cuda_utils.cuh"
-#include "../../include/cuda/rates.cuh"
-#include "../../include/cuda/nsm.cuh"
-#include "../../include/cuda/leap.cuh"
-#include "../../include/cuda/constants.cuh"
 
 __constant__ unsigned int SBC;
 __constant__ int SPC;
@@ -18,8 +6,6 @@ __constant__ int RC;
 __constant__ int NC;
 __constant__ float EPSILON;
 __constant__ int * REACTANTS;
-
-// #define DEBUG
 
 namespace NSMCuda {
 
@@ -129,20 +115,20 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 
 	std::cout << "----- Fill initial next_event array... ";
 
-	bool leap = true;
+	bool leap = false;
 
 	if (!leap) {
 		fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
 	} else {
-		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
-				d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap);
+		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap);
 	}
 
 	std::cout << "\n";
 	for (int i = 0; i < sbc; i++)
 		std::cout << "sbv " << i << ", tau = " << tau[i] << "\n";
 
-	if (true) {
+	if (leap) {
 		gpuErrchk(cudaDeviceSynchronize());
 		exit(0);
 	}
