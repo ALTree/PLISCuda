@@ -8,6 +8,8 @@
 #include "../include/cpp/validation.hpp"
 #include "../include/cuda/nsm_driver.cuh"
 
+#include "../include/cuda/constants.cuh"
+
 int main(int argc, char * argv[])
 {
 	if (argc < 5) {
@@ -15,10 +17,12 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
+#if LOG
+	std::cout << "\n   ***   Start setup log   ***   \n\n";
+	std::cout << "--- Parsing input files... ";
+#endif
+
 	// ---------- open and parse topology_file ----------
-
-	std::cout << "--- Parsing input files ...";
-
 	std::ifstream topology_file(argv[1]);
 	if (topology_file.bad()) {
 		std::cerr << "couldn't load topology_file\n";
@@ -35,7 +39,6 @@ int main(int argc, char * argv[])
 	}
 
 	// ---------- open and parse state_file ----------
-
 	std::ifstream state_file(argv[2]);
 	if (state_file.bad()) {
 		std::cerr << "couldn't load state_file\n";
@@ -52,7 +55,6 @@ int main(int argc, char * argv[])
 	}
 
 	// ---------- open and parse reactions_file ----------
-
 	std::ifstream reactions_file(argv[3]);
 	if (reactions_file.bad()) {
 		std::cerr << "couldn't load reactions_file\n";
@@ -76,12 +78,15 @@ int main(int argc, char * argv[])
 	NSMCuda::read_rates_constants(constants_file, reaction_rates_constants, diffusion_rates_constants, reactions.getR(),
 			reactions.getS());
 
+#if LOG
 	std::cout << " done!\n";
+#endif
 
 	NSMCuda::is_consistent(topology, initial_state, reactions);
 
-	std::cout << "--- Consistency check: success!" << "\n";
-	std::cout << "--- Starting nsm setup\n";
+#if LOG
+	std::cout << "--- Consistency check... done!" << "\n\n";
+#endif
 
 	NSMCuda::nsm(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants);
 

@@ -21,6 +21,10 @@ namespace NSMCuda {
 
 void nsm(Topology, State, Reactions, float *, float *);
 
+void print_state(int * h_state, int spc, int sbc);
+void print_rate_matrix(float * h_rate_matrix, int sbc);
+void print_tau(thrust::device_vector<float>, int sbc);
+
 }
 
 #endif /* NSM_DRIVER_HPP_ */
