@@ -139,7 +139,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Start simulation.\n\n";
 #endif
 
-	int steps = 1;
+	int steps = 4;
 
 	for (int step = 1; step <= steps; step++) {
 
