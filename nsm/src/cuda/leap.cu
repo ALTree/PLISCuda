@@ -245,7 +245,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	for (int ri = 0; ri < RC; ri++) {
 
 		unsigned int k;    // how many times it fires
-		k = _curand_poisson_(&prngstate[sbi], tau[sbi] * react_rates_array[GET_RR(ri, sbi)]);
+		k = curand_poisson(&prngstate[sbi], tau[sbi] * react_rates_array[GET_RR(ri, sbi)]);
 
 		printf("(%f) [subv %d] fire reaction %d for %d times\n", tau[sbi], sbi, ri, k);
 
@@ -270,7 +270,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		// update the state of neighbouring subvolumes
 		unsigned int k;
 		for (int ngb = 0; ngb < neigh_count; ngb++) {
-			k = _curand_poisson_(&prngstate[sbi], tau[sbi] * diff_rates_array[GET_DR(spi, sbi)] / neigh_count);
+			k = curand_poisson(&prngstate[sbi], tau[sbi] * diff_rates_array[GET_DR(spi, sbi)] / neigh_count);
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
 			k_sum += k;
 		}
@@ -281,18 +281,5 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);
 	}
 
-}
-
-__device__ unsigned int _curand_poisson_(curandStateMRG32k3a * prngstate, float lambda)
-{
-	float l = exp(-lambda), p = 1.0f;
-	int k = 0;
-
-	do {
-		k++;
-		p *= curand_uniform(prngstate);
-	} while (p > l);
-
-	return k - 1;
 }
 
