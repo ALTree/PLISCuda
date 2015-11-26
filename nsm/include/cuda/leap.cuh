@@ -56,4 +56,6 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float * tau, bool * leap,
 		curandStateMRG32k3a * prngstate);
 
+__device__ unsigned int _curand_poisson_(curandStateMRG32k3a * prngstate, float lambda);
+
 #endif /* LEAP_CUH_ */
