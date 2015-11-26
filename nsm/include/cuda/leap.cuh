@@ -9,6 +9,7 @@
 
 #include "constants.cuh"
 #include "cuda_utils.cuh"
+#include "nsm.cuh" // remove after we moved update_rate_matrix and co.
 
 // returns true iff reaction ri is critical in subvolume sbi
 __device__ bool is_critical(int * state, int * reactants, int * products, int sbi, int ri);
@@ -51,7 +52,8 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
 		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, bool * leap);
 
-__global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
-		float * react_rates_array, float * diff_rates_array, float * tau, bool * leap, curandStateMRG32k3a * prngstate);
+__global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
+		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float * tau, bool * leap,
+		curandStateMRG32k3a * prngstate);
 
 #endif /* LEAP_CUH_ */

@@ -227,12 +227,19 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	leap[sbi] = tauv >= 1.0 / rate_matrix[GET_RATE(2, sbi)];
 }
 
-__global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
-		float * react_rates_array, float * diff_rates_array, float * tau, bool * leap, curandStateMRG32k3a * prngstate)
+__global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
+		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float * tau, bool * leap,
+		curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC || !leap[sbi])
 		return;
+
+	// count neighbours of the current subvolume. We'll need the value later.
+	// TODO: remove when issue #26 is fixed
+	int neigh_count = 0;
+	for (int i = 0; i < 6; i++)
+		neigh_count += (topology[sbi * 6 + i] != sbi);
 
 	// fire all the reaction events
 	for (int ri = 0; ri < RC; ri++) {
@@ -240,7 +247,11 @@ __global__ void leap_step(int * state, int * reactants, int * products, unsigned
 		unsigned int k;    // how many times it fires
 		k = curand_poisson(&prngstate[sbi], tau[sbi] * react_rates_array[GET_RR(ri, sbi)]);
 
+		printf("(%f) [subv %d] fire reaction %d for %d times\n", tau[sbi], sbi, ri, k);
+
 		// update state
+		// TODO: needs to be atomic? I suspect so..
+		// Maybe not if we use __synchthreads( ) before the diffusion events.
 		for (int spi = 0; spi < SPC; spi++) {
 			state[GET_SPI(spi, sbi)] += k * (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
 		}
@@ -248,6 +259,34 @@ __global__ void leap_step(int * state, int * reactants, int * products, unsigned
 	}
 
 	__syncthreads();
+
+	// fire outgoing diffusion events
+	for (int spi = 0; spi < SPC; spi++) {
+
+		unsigned int k_sum = 0;    // How many molecules of spi are diffused away from sbi.
+								   // It is the sum of the number of molecules of specie spi
+								   // that we diffused in each neighbour.
+
+		// update the state of neighbouring subvolumes
+		unsigned int k;
+		for (int ngb = 0; ngb < neigh_count; ngb++) {
+			k = curand_poisson(&prngstate[sbi], tau[sbi] * diff_rates_array[GET_DR(spi, sbi) / neigh_count]);
+			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
+			k_sum += k;
+		}
+
+		printf("(%f) [subv %d] diffuse %d molecules of specie %d\n", tau[sbi], sbi, k_sum, spi);
+
+		// update state of current subvolume
+		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);
+	}
+
+	__syncthreads();
+
+	// update rates
+	react_rates(state, reactants, rrc, react_rates_array);
+	diff_rates(state, drc, diff_rates_array);
+	update_rate_matrix(topology, rate_matrix, react_rates_array, diff_rates_array);
 
 }
 
