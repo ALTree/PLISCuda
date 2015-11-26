@@ -232,8 +232,13 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || isinf(tau[sbi]) /*|| !leap[sbi]*/)
+	if (sbi >= SBC /*|| !leap[sbi]*/)
 		return;
+
+	if(isinf(tau[sbi])) {
+		goto update;
+	}
+
 
 	// count neighbours of the current subvolume. We'll need the value later.
 	// TODO: remove when issue #26 is fixed
@@ -284,7 +289,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	__syncthreads();
 
 	// update rates
-	react_rates(state, reactants, rrc, react_rates_array);
+	update: react_rates(state, reactants, rrc, react_rates_array);
 	diff_rates(state, drc, diff_rates_array);
 	update_rate_matrix(topology, rate_matrix, react_rates_array, diff_rates_array);
 
