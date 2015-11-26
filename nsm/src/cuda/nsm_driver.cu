@@ -150,6 +150,8 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		} else {
 			leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
 					d_diff_rates_array, d_rrc, d_drc, thrust::raw_pointer_cast(tau.data()), d_leap, d_prngstate);
+			compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
+					d_diff_rates_array);
 		}
 
 #if LOGSTEPS
