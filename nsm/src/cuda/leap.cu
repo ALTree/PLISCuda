@@ -185,7 +185,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 	return min(t1, t2);
 }
 
-__device__ float compute_tau(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
+__device__ float compute_tau_ncr(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
 		float * react_rates_array, float * diff_rates_array)
 {
 	float min_tau = INFINITY;
@@ -215,16 +215,49 @@ __device__ float compute_tau(int * state, int * reactants, int * products, unsig
 	return min_tau;
 }
 
+__device__ float compute_tau_cr(int * state, int * reactants, int * products, int sbi, float * react_rates_array,
+		float * diff_rates_array, curandStateMRG32k3a * s)
+{
+	float react_rates_sum_cr;    // sum of the react rates of critical reactions
+
+	for (int ri = 0; ri < RC; ri++) {
+		react_rates_sum_cr += (react_rates_array[0] * is_critical(state, reactants, products, sbi, ri));
+	}
+
+	if (react_rates_sum_cr == 0.0)
+		return INFINITY;
+
+	// TODO: we need to consider diffusion rates too.
+	float rand = curand_uniform(&s[sbi]);
+	return -logf(rand) / react_rates_sum_cr;
+}
+
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, bool * leap)
+		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, bool * leap, bool * cr,
+		curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
-	float tauv = compute_tau(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
-	tau[sbi] = tauv;
-	leap[sbi] = tauv >= 1.0 / rate_matrix[GET_RATE(2, sbi)];
+	float tau_ncr = compute_tau_ncr(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
+	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
+
+	// if tau_ncr is too small, we can't leap in this subvolume.
+	leap[sbi] = tau_ncr >= 1.0 / rate_matrix[GET_RATE(2, sbi)];
+
+	if (tau_ncr < tau_cr) {    // TODO: remove branch(?)
+		// critical reactions will not fire, all the others
+		// will leap with tau = tau_ncr
+		tau[sbi] = tau_ncr;
+		cr[sbi] = false;
+	} else {
+		// a single critical reaction will fire, all the
+		// non-critical reactions will leap with tau = tau_cr
+		tau[sbi] = tau_cr;
+		cr[sbi] = true;
+	}
+
 }
 
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
@@ -241,8 +274,12 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	for (int i = 0; i < 6; i++)
 		neigh_count += (topology[sbi * 6 + i] != sbi);
 
-	// fire all the reaction events
+	// fire all the non-critical reaction events
 	for (int ri = 0; ri < RC; ri++) {
+
+		if (is_critical(state, reactants, products, sbi, ri)) {
+			continue;
+		}
 
 		unsigned int k;    // how many times it fires
 		k = curand_poisson(&prngstate[sbi], tau[sbi] * react_rates_array[GET_RR(ri, sbi)]);

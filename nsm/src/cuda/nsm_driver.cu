@@ -86,9 +86,11 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	gpuErrchk(cudaMalloc(&d_prngstate, sbc * sizeof(curandStateMRG32k3a)));
 	fill_prngstate_array<<<1, sbc>>>(d_prngstate);
 
-	// ----- allocate leap array
+	// ----- allocate leap and cr arrays
 	bool * d_leap;
+	bool * d_cr;
 	gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(bool)));
+	gpuErrchk(cudaMalloc(&d_cr, sbc * sizeof(bool)));
 
 	// zero GPU memory, just to be sure
 	// TODO: remove(?)
@@ -127,7 +129,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
 	} else {
 		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
-				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap);
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr, d_prngstate);
 	}
 
 #if LOG
