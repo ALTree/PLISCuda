@@ -87,9 +87,9 @@ int h_get_min_tau(thrust::device_vector<float> &tau)
 	return iter - tau.begin();
 }
 
-__global__ void nsm_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix, float * rrc,
-		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
-		curandStateMRG32k3a * s)
+__global__ void nsm_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
+		float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
+		float * current_time, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -114,15 +114,15 @@ __global__ void nsm_step(int * state, int * reactants, int * products, unsigned 
 
 		// ri = -1 means we can't fire any reaction in this subvolume
 		if (sbi == min_sbi && ri != -1) {
-			printf("(%f) [subv %d] fire reaction %d\n", tau[sbi], sbi, ri);
+			printf("(%f) [subv %d] fire reaction %d\n", *current_time, sbi, ri);
 		}
 
 		// fire reaction and update the state of the system
 		// if sbi = min_sbi then it should be guaranteed that ri != -1
 		// TODO: check(?)
-		if (sbi == min_sbi) {    // (but only if you are the choosen one)
+		if (sbi == min_sbi && ri != -1) {    // (but only if you are the choosen one)
 			for (int i = 0; i < SPC; i++)
-				state[GET_SPI(i, sbi)] += products[i * RC + ri] - reactants[i * RC + ri]; // TODO: update with macro
+				state[GET_SPI(i, sbi)] += products[GET_COEFF(i, ri)] - reactants[GET_COEFF(i, ri)];
 		}
 
 		// TODO: do we need this?
@@ -160,7 +160,7 @@ __global__ void nsm_step(int * state, int * reactants, int * products, unsigned 
 #endif
 
 		if (sbi == min_sbi) {
-			printf("(%f) [subv %d] diffuse specie %d in subvolume %d\n", tau[sbi], sbi, spi, rdi);
+			printf("(%f) [subv %d] diffuse specie %d in subvolume %d\n", *current_time, sbi, spi, rdi);
 		}
 
 		// Update state iff we are the choosen one.
@@ -182,5 +182,5 @@ __global__ void nsm_step(int * state, int * reactants, int * products, unsigned 
 
 	// compute next event time for this subvolume
 	rand = curand_uniform(&s[sbi]);
-	tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi)] + tau[min_sbi];
+	tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi)];
 }

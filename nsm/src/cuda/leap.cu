@@ -218,10 +218,10 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 __device__ float compute_tau_cr(int * state, int * reactants, int * products, int sbi, float * react_rates_array,
 		float * diff_rates_array, curandStateMRG32k3a * s)
 {
-	float react_rates_sum_cr;    // sum of the react rates of critical reactions
+	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
 
 	for (int ri = 0; ri < RC; ri++) {
-		react_rates_sum_cr += (react_rates_array[0] * is_critical(state, reactants, products, sbi, ri));
+		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri));
 	}
 
 	if (react_rates_sum_cr == 0.0)
@@ -246,7 +246,7 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	// if tau_ncr is too small, we can't leap in this subvolume.
 	leap[sbi] = tau_ncr >= 1.0 / rate_matrix[GET_RATE(2, sbi)];
 
-	if (tau_ncr < tau_cr) {    // TODO: remove branch(?)
+	if (tau_ncr < tau_cr) {
 		// critical reactions will not fire, all the others
 		// will leap with tau = tau_ncr
 		tau[sbi] = tau_ncr;

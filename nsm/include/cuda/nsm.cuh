@@ -29,7 +29,7 @@ __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, 
 int h_get_min_tau(thrust::device_vector<float> &tau);
 
 __global__ void nsm_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix, float * rrc,
-		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
+		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi, float * current_time,
 		curandStateMRG32k3a * s);
 
 #endif /* NSM_CUH_ */

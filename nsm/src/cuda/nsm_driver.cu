@@ -6,6 +6,7 @@ __constant__ int RC;
 __constant__ int NC;
 __constant__ float EPSILON;
 __constant__ int * REACTANTS;
+float TAU;
 
 namespace NSMCuda {
 
@@ -78,11 +79,14 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	gpuErrchk(cudaMalloc(&d_react_rates_array, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMalloc(&d_diff_rates_array, sbc * spc * sizeof(float)));
 
-	// ----- allocate next_event thrust  vector
+	// ----- allocate tau thrust vector and current_time
 	thrust::device_vector<float> tau(sbc);
+	float * d_current_time;
+	float h_current_time = 0.0;
+	gpuErrchk(cudaMalloc(&d_current_time, sizeof(float)));
 
 	// ----- allocate and initialize prng array
-	curandStateMRG32k3a* d_prngstate;
+	curandStateMRG32k3a * d_prngstate;
 	gpuErrchk(cudaMalloc(&d_prngstate, sbc * sizeof(curandStateMRG32k3a)));
 	fill_prngstate_array<<<1, sbc>>>(d_prngstate);
 
@@ -123,13 +127,14 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Fill initial next_event array... ";
 #endif
 
-	bool leap = true;
+	bool leap = false;
 
 	if (!leap) {
 		fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
 	} else {
 		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
-				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr, d_prngstate);
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr,
+				d_prngstate);
 	}
 
 #if LOG
@@ -141,19 +146,23 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Start simulation.\n\n";
 #endif
 
-	int steps = 4;
+	int steps = 2;
 
 	for (int step = 1; step <= steps; step++) {
 
 		int next = h_get_min_tau(tau);
+		h_current_time += tau[next];
+		gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
+
 		if (!leap) {
 			nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_rrc, d_drc,
-					d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next, d_prngstate);
+					d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), next, d_current_time,
+					d_prngstate);
 		} else {
 			leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
 					d_diff_rates_array, d_rrc, d_drc, thrust::raw_pointer_cast(tau.data()), d_leap, d_prngstate);
-			compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
-					d_diff_rates_array);
+			compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc,
+					d_react_rates_array, d_diff_rates_array);
 		}
 
 #if LOGSTEPS
@@ -171,8 +180,11 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		// print tau array
 		print_tau(tau, sbc);
 #endif
+
 	}
+
 	gpuErrchk(cudaDeviceSynchronize());
+
 #if LOG
 	std::cout << "\n--- End simulation.\n\n";
 #endif
