@@ -261,11 +261,13 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 }
 
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
-		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float * tau, bool * leap,
-		curandStateMRG32k3a * prngstate)
+		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
+		float * current_time, bool * leap, curandStateMRG32k3a * prngstate)
 {
+	// TODO: why is current_time a pointer?
+
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || isinf(tau[sbi]) /*|| !leap[sbi]*/)
+	if (sbi >= SBC || isinf(min_tau) /*|| !leap[sbi]*/)
 		return;
 
 	// count neighbours of the current subvolume. We'll need the value later.
@@ -282,9 +284,10 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		}
 
 		unsigned int k;    // how many times it fires
-		k = curand_poisson(&prngstate[sbi], tau[sbi] * react_rates_array[GET_RR(ri, sbi)]);
+		k = curand_poisson(&prngstate[sbi], min_tau * react_rates_array[GET_RR(ri, sbi)]);
 
-		printf("(%f) [subv %d] fire reaction %d for %d times\n", tau[sbi], sbi, ri, k);
+		if (k > 0)
+			printf("(%f) [subv %d] fire reaction %d for %d times\n", *current_time, sbi, ri, k);
 
 		// update state
 		// TODO: needs to be atomic? I suspect so..
@@ -307,12 +310,13 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		// update the state of neighbouring subvolumes
 		unsigned int k;
 		for (int ngb = 0; ngb < neigh_count; ngb++) {
-			k = curand_poisson(&prngstate[sbi], tau[sbi] * diff_rates_array[GET_DR(spi, sbi)] / neigh_count);
+			k = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)] / neigh_count);
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
 			k_sum += k;
 		}
 
-		printf("(%f) [subv %d] diffuse away %d molecules of specie %d\n", tau[sbi], sbi, k_sum, spi);
+		if (k_sum > 0)
+			printf("(%f) [subv %d] diffuse away %d molecules of specie %d\n", *current_time, sbi, k_sum, spi);
 
 		// update state of current subvolume
 		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);

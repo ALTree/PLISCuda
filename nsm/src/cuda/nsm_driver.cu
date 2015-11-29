@@ -127,7 +127,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Fill initial next_event array... ";
 #endif
 
-	bool leap = false;
+	bool leap = true;
 
 	if (!leap) {
 		fill_tau_array<<<1, sbc>>>(thrust::raw_pointer_cast(tau.data()), d_rate_matrix);
@@ -146,7 +146,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Start simulation.\n\n";
 #endif
 
-	int steps = 2;
+	int steps = 4;
 
 	for (int step = 1; step <= steps; step++) {
 
@@ -160,9 +160,12 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 					d_prngstate);
 		} else {
 			leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
-					d_diff_rates_array, d_rrc, d_drc, thrust::raw_pointer_cast(tau.data()), d_leap, d_prngstate);
+					d_diff_rates_array, d_rrc, d_drc, tau[next], d_current_time, d_leap, d_prngstate);
 			compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc,
 					d_react_rates_array, d_diff_rates_array);
+			fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
+					d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr,
+					d_prngstate);
 		}
 
 #if LOGSTEPS
@@ -188,6 +191,9 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 #if LOG
 	std::cout << "\n--- End simulation.\n\n";
 #endif
+
+	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+	print_state(h_state, spc, sbc);
 }
 
 // ----- print utils stuff -----
