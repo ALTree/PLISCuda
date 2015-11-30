@@ -139,7 +139,8 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
 	gpuErrchk(cudaMemcpy(h_cr, d_cr, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
 	for (int i = 0; i < sbc; i++) {
-		std::cout << "sbi " << i << "] " << "leap: " << h_leap[i] << ", cr: " << h_cr[i] << "\n";
+		std::cout << "sbi " << i << "] " << "leap: " << (h_leap[i] ? "yes" : "no") << ", cr: "
+				<< (h_cr[i] ? "yes" : "no") << "\n";
 	}
 #endif
 
@@ -152,7 +153,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Start simulation.\n\n";
 #endif
 
-	int steps = 4;
+	int steps = 12;
 
 	for (int step = 1; step <= steps; step++) {
 
@@ -170,12 +171,13 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 				d_current_time, d_leap, d_prngstate);
 
 		// update rates
-		compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc,
-				 d_react_rates_array, d_diff_rates_array);
+		compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
+				d_diff_rates_array);
 
 		// update tau array
-		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
-					d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr, d_prngstate);
+		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr,
+				d_prngstate);
 
 		/*
 		 if (!leap) {
@@ -218,7 +220,8 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 		gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
 		gpuErrchk(cudaMemcpy(h_cr, d_cr, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
 		for (int i = 0; i < sbc; i++) {
-			std::cout << "sbi " << i << "] " << "leap: " << h_leap[i] << ", cr: " << h_cr[i] << "\n";
+			std::cout << "sbi " << i << "] " << "leap: " << (h_leap[i] ? "yes" : "no") << ", cr: "
+					<< (h_cr[i] ? "yes" : "no") << "\n";
 		}
 
 #endif

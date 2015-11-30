@@ -311,10 +311,10 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			k = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)] / neigh_count);
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
 			k_sum += k;
+			if (k > 0)
+				printf("(%f) [subv %d] diffuse away %d molecules of specie %d to subv %d \n", *current_time, sbi, k,
+						spi, topology[sbi * 6 + ngb]);
 		}
-
-		if (k_sum > 0)
-			printf("(%f) [subv %d] diffuse away %d molecules of specie %d\n", *current_time, sbi, k_sum, spi);
 
 		// update state of current subvolume
 		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);
@@ -333,6 +333,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	for (int ri = 0; ri < RC; ri++)
 		sum += react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri);
 
+	// if the sum is zero we can't fire any of them
 	if (sum == 0.0)
 		return;
 
@@ -340,28 +341,25 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	float partial_sum = 0;
 
 	int ric = 0;
-	while (partial_sum <= scaled_sum && ric < RC) {
+	while (partial_sum <= scaled_sum) {
 		partial_sum += react_rates_array[GET_RR(ric, sbi)] * is_critical(state, reactants, products, sbi, ric);
 		ric++;
 	}
+	// we'll fire the ric-nth critical reactions
 
-	ric = ric - 1;    // we'll now fire the ric-nth critical reaction
-	int ri = 0;
-	int ric_counter = 0;
-	while (ric_counter < ric) {    // TODO: refactor this crap
+	int ri;
+	for (ri = 0; ri < RC && ric > 0; ri++) {
 		if (is_critical(state, reactants, products, sbi, ri)) {
-			ric_counter++;
+			ric--;
 		}
-		ri++;
 	}
-
-	ri = max(ri - 1, 0);    // TODO: this one, too.
+	ri = ri - 1;
 
 	for (int spi = 0; spi < SPC; spi++) {    // TODO: atomic add?
 		state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
 	}
 
-	printf("(%f) [subv %d] fire critical reaction %d\n", *current_time, sbi, ri);
+	printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
 
 }
 
