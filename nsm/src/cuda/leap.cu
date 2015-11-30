@@ -312,7 +312,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
 			k_sum += k;
 			if (k > 0)
-				printf("(%f) [subv %d] diffuse away %d molecules of specie %d to subv %d \n", *current_time, sbi, k,
+				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k,
 						spi, topology[sbi * 6 + ngb]);
 		}
 

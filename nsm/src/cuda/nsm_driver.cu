@@ -130,7 +130,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
 			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr, d_prngstate);
 
-#ifdef LOG
+#if LOG
 	// print tau array
 	print_tau(tau, sbc);
 
@@ -153,7 +153,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Start simulation.\n\n";
 #endif
 
-	int steps = 12;
+	int steps = 256;
 
 	for (int step = 1; step <= steps; step++) {
 
@@ -179,25 +179,9 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr,
 				d_prngstate);
 
-		/*
-		 if (!leap) {
-		 nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_rrc, d_drc,
-		 d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau_sbi,
-		 d_current_time, d_prngstate);
-		 compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc,
-		 d_react_rates_array, d_diff_rates_array);
-
-
-		 } else {
-		 leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
-		 d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_cr, d_prngstate);
-		 compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc,
-		 d_react_rates_array, d_diff_rates_array);
-		 fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
-		 d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr,
-		 d_prngstate);
-		 }
-		 */
+#if LOG
+		std::cout << "\n";
+#endif
 
 #if LOGSTEPS
 		std::cout << "\n----- [step " << step << "] -----\n\n";
