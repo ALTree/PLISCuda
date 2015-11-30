@@ -59,7 +59,7 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
 		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
-		float * current_time, bool * leap, curandStateMRG32k3a * prngstate);
+		float * current_time, bool * leap, bool * cr, curandStateMRG32k3a * prngstate);
 
 __device__ unsigned int _curand_poisson_(curandStateMRG32k3a * prngstate, float lambda);
 

@@ -244,7 +244,7 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
 
 	// if tau_ncr is too small, we can't leap in this subvolume.
-	leap[sbi] = tau_ncr >= 1.0 / rate_matrix[GET_RATE(2, sbi)];
+	leap[sbi] = tau_ncr >= 2.0 / rate_matrix[GET_RATE(2, sbi)];
 
 	if (tau_ncr < tau_cr) {
 		// critical reactions will not fire, all the others
@@ -262,12 +262,10 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
 		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
-		float * current_time, bool * leap, curandStateMRG32k3a * prngstate)
+		float * current_time, bool * leap, bool * cr, curandStateMRG32k3a * prngstate)
 {
-	// TODO: why is current_time a pointer?
-
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || isinf(min_tau) /*|| !leap[sbi]*/)
+	if (sbi >= SBC || !leap[sbi])
 		return;
 
 	// count neighbours of the current subvolume. We'll need the value later.
@@ -321,6 +319,49 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		// update state of current subvolume
 		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);
 	}
+
+	if (!cr[sbi])
+		return;
+
+	__syncthreads();
+
+	// fire a single critical reaction
+	float rand = curand_uniform(&prngstate[sbi]);
+
+	// first we sum the reaction rates of critical reactions
+	float sum = 0.0;
+	for (int ri = 0; ri < RC; ri++)
+		sum += react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri);
+
+	if (sum == 0.0)
+		return;
+
+	float scaled_sum = sum * rand;
+	float partial_sum = 0;
+
+	int ric = 0;
+	while (partial_sum <= scaled_sum && ric < RC) {
+		partial_sum += react_rates_array[GET_RR(ric, sbi)] * is_critical(state, reactants, products, sbi, ric);
+		ric++;
+	}
+
+	ric = ric - 1;    // we'll now fire the ric-nth critical reaction
+	int ri = 0;
+	int ric_counter = 0;
+	while (ric_counter < ric) {    // TODO: refactor this crap
+		if (is_critical(state, reactants, products, sbi, ri)) {
+			ric_counter++;
+		}
+		ri++;
+	}
+
+	ri = max(ri - 1, 0);    // TODO: this one, too.
+
+	for (int spi = 0; spi < SPC; spi++) {    // TODO: atomic add?
+		state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
+	}
+
+	printf("(%f) [subv %d] fire critical reaction %d\n", *current_time, sbi, ri);
 
 }
 

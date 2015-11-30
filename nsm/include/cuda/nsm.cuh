@@ -13,7 +13,6 @@
 // fill the whole tau array with random times
 __global__ void fill_tau_array(float * tau, float * rate_matrix);
 
-
 __global__ void fill_prngstate_array(curandStateMRG32k3a * prngstate);
 
 // returns the index of a random reaction to fire in the associated subvolume.
@@ -28,8 +27,8 @@ __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, 
 
 int h_get_min_tau(thrust::device_vector<float> &tau);
 
-__global__ void nsm_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix, float * rrc,
-		float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi, float * current_time,
-		curandStateMRG32k3a * s);
+__global__ void nsm_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
+		float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
+		float * current_time, bool * leap, curandStateMRG32k3a * s);
 
 #endif /* NSM_CUH_ */
