@@ -57,22 +57,6 @@ __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, 
 	return spi - 1;
 }
 
-/*
- __global__ void fill_tau_array(float * tau, float * rate_matrix)
- {
- unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
- if (sbi >= SBC)
- return;
-
- curandStateMRG32k3a s;
- curand_init(2 * sbi, 0, 0, &s);    // initialize with *2sbi to avoid getting the same first value
- // later when we use curand_init(sbi, ..)
-
- float rand = curand_uniform(&s);
- tau[sbi] = -logf(rand) / rate_matrix[GET_RATE(2, sbi)];
- }
- */
-
 // TODO: remove fill_tau_array and use this for everything
 __global__ void fill_prngstate_array(curandStateMRG32k3a * prngstate)
 {
