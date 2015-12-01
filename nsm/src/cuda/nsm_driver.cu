@@ -153,11 +153,16 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	std::cout << "--- Start simulation.\n\n";
 #endif
 
-	int steps = 256;
+	int steps = 512;
 
 	for (int step = 1; step <= steps; step++) {
 
 		int min_tau_sbi = h_get_min_tau(tau);
+		if(isinf(tau[min_tau_sbi])) {
+			printf("\n\n--------------- WARNING: min(tau) = +Inf - abort simulation ---------------\n\n");
+			break;
+		}
+
 		h_current_time += tau[min_tau_sbi];
 		gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 

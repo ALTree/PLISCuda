@@ -8,6 +8,6 @@ extern __constant__ int NC;
 extern __constant__ float EPSILON;
 
 #define LOG true
-#define LOGSTEPS false
+#define LOGSTEPS true
 
 #endif /* CONSTANTS_CUH_ */
