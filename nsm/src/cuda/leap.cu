@@ -248,15 +248,8 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
 
 	// if tau_ncr is too small, we can't leap in this subvolume.
-	// prevent leap = true if tau_ncr is +Inf
+	// Prevent leap = true if tau_ncr is +Inf
 	leap[sbi] = !isinf(tau_ncr) && (tau_ncr >= 2.0 / rate_matrix[GET_RATE(2, sbi)]);
-
-	/*
-	if(sbi == 12) {
-		printf("-----> tauncr = %f, taucr = %f \n ", tau_ncr, tau_cr);
-		printf("-----> 2.0 / rate = %f\n ", 2.0 / rate_matrix[GET_RATE(2, sbi)]);
-	}
-	*/
 
 	if (tau_ncr < tau_cr) {
 		// critical reactions will not fire, all the others
@@ -313,23 +306,36 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	// fire outgoing diffusion events
 	for (int spi = 0; spi < SPC; spi++) {
 
-		unsigned int k_sum = 0;    // How many molecules of spi are diffused away from sbi.
-								   // It is the sum of the number of molecules of specie spi
-								   // that we diffused in each neighbour.
+		// how many molecules of spi are diffused away from sbi
+		unsigned int k_sum = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)]);
 
-		// update the state of neighbouring subvolumes
-		unsigned int k;
-		for (int ngb = 0; ngb < neigh_count; ngb++) {
-			k = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)] / neigh_count);
+		// update state of current subvolume (we need to to this now
+		// because we'll change k_sum in the following.
+		// TODO: check if neg.
+		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);
+
+		// try to diffuse k_sum molecules to neighbours evenly
+		unsigned int k = (unsigned int) (k_sum / neigh_count);
+		for (unsigned int ngb = 0; ngb < neigh_count; ngb++) {
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
-			k_sum += k;
 			if (k > 0)
 				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k, spi,
 						topology[sbi * 6 + ngb]);
+			k_sum -= k;
 		}
 
-		// update state of current subvolume
-		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);
+		unsigned int ngb = 0;
+		while (k_sum > 0) {    // k_sum was not divisible by neigh_count
+			// we know that k_sum is now smaller than neigh_count,
+			// se just send one molecule to each neightbour until
+			// we have diffused all the ramaining ones.
+			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], 1);
+			printf("(%f) [subv %d] diffuse 1 molecule of specie %d to subv %d \n", *current_time, sbi, spi,
+					topology[sbi * 6 + ngb]);
+			ngb++;
+			k_sum--;
+		}
+
 	}
 
 	if (!cr[sbi])
@@ -337,15 +343,15 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 	__syncthreads();
 
-	// fire a single critical reaction
+// fire a single critical reaction
 	float rand = curand_uniform(&prngstate[sbi]);
 
-	// first we sum the reaction rates of critical reactions
+// first we sum the reaction rates of critical reactions
 	float sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
 		sum += react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri);
 
-	// if the sum is zero we can't fire any of them
+// if the sum is zero we can't fire any of them
 	if (sum == 0.0)
 		return;
 
@@ -357,7 +363,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		partial_sum += react_rates_array[GET_RR(ric, sbi)] * is_critical(state, reactants, products, sbi, ric);
 		ric++;
 	}
-	// we'll fire the ric-nth critical reactions
+// we'll fire the ric-nth critical reactions
 
 	int ri;
 	for (ri = 0; ri < RC && ric > 0; ri++) {
