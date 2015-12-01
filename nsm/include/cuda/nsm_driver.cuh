@@ -19,7 +19,7 @@
 
 namespace NSMCuda {
 
-void nsm(Topology, State, Reactions, float *, float *);
+void nsm(Topology, State, Reactions, float *, float *, int);
 
 void print_state(int * h_state, int spc, int sbc);
 void print_rate_matrix(float * h_rate_matrix, int sbc);

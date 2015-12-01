@@ -13,7 +13,7 @@
 int main(int argc, char * argv[])
 {
 	if (argc < 5) {
-		std::cout << "Usage: ./nsm topology_file state_file reactions_file constants_file\n";
+		std::cout << "Usage: ./nsm topology_file state_file reactions_file constants_file {no. of steps}\n";
 		return 1;
 	}
 
@@ -78,6 +78,8 @@ int main(int argc, char * argv[])
 	NSMCuda::read_rates_constants(constants_file, reaction_rates_constants, diffusion_rates_constants, reactions.getR(),
 			reactions.getS());
 
+	int steps = std::stoi(argv[5]);
+
 #if LOG
 	std::cout << " done!\n";
 #endif
@@ -88,7 +90,7 @@ int main(int argc, char * argv[])
 	std::cout << "--- Consistency check... done!" << "\n\n";
 #endif
 
-	NSMCuda::nsm(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants);
+	NSMCuda::nsm(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants, steps);
 
 }
 

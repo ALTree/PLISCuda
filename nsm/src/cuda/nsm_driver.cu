@@ -13,7 +13,7 @@ namespace NSMCuda {
 // TODO: rename
 // we keep nsm_step as a kernel, but this will be
 // the main driver and "nsm" is not the right name.
-void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
+void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps)
 {
 	unsigned int sbc = t.getN();
 	int spc = s.getS();
@@ -152,8 +152,6 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc)
 	print_tau(tau, sbc);
 	std::cout << "--- Start simulation.\n\n";
 #endif
-
-	int steps = 512;
 
 	for (int step = 1; step <= steps; step++) {
 
