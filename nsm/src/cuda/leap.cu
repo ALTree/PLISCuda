@@ -219,17 +219,21 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 		float * diff_rates_array, curandStateMRG32k3a * s)
 {
 	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
+	float diff_rates_sum_cr = 0.0;     // sum of diffusion rates of critical diffusion events
 
 	for (int ri = 0; ri < RC; ri++) {
 		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri));
 	}
 
-	if (react_rates_sum_cr == 0.0)
+	for (int spi = 0; spi < SPC; spi++) {
+		diff_rates_sum_cr += (diff_rates_array[GET_DR(spi, sbi)] * (state[GET_SPI(spi, sbi)] < NC));
+	}
+
+	if (react_rates_sum_cr == 0.0 && diff_rates_sum_cr == 0.0)
 		return INFINITY;
 
-	// TODO: we need to consider diffusion rates too.
 	float rand = curand_uniform(&s[sbi]);
-	return -logf(rand) / react_rates_sum_cr;
+	return -logf(rand) / (react_rates_sum_cr + diff_rates_sum_cr);
 }
 
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
@@ -244,7 +248,15 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
 
 	// if tau_ncr is too small, we can't leap in this subvolume.
-	leap[sbi] = tau_ncr >= 2.0 / rate_matrix[GET_RATE(2, sbi)];
+	// prevent leap = true if tau_ncr is +Inf
+	leap[sbi] = !isinf(tau_ncr) && (tau_ncr >= 2.0 / rate_matrix[GET_RATE(2, sbi)]);
+
+	/*
+	if(sbi == 12) {
+		printf("-----> tauncr = %f, taucr = %f \n ", tau_ncr, tau_cr);
+		printf("-----> 2.0 / rate = %f\n ", 2.0 / rate_matrix[GET_RATE(2, sbi)]);
+	}
+	*/
 
 	if (tau_ncr < tau_cr) {
 		// critical reactions will not fire, all the others
@@ -312,8 +324,8 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
 			k_sum += k;
 			if (k > 0)
-				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k,
-						spi, topology[sbi * 6 + ngb]);
+				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k, spi,
+						topology[sbi * 6 + ngb]);
 		}
 
 		// update state of current subvolume

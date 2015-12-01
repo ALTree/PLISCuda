@@ -19,7 +19,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 	int spc = s.getS();
 	int rc = r.getR();
 
-	int nc = 10;
+	int nc = 10;    // critical event threshold
 	float epsilon = 0.05;
 
 #if LOG
@@ -156,7 +156,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 	for (int step = 1; step <= steps; step++) {
 
 		int min_tau_sbi = h_get_min_tau(tau);
-		if(isinf(tau[min_tau_sbi])) {
+		if (isinf(tau[min_tau_sbi])) {
 			printf("\n\n--------------- WARNING: min(tau) = +Inf - abort simulation ---------------\n\n");
 			break;
 		}
