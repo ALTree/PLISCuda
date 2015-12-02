@@ -341,19 +341,32 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	if (!cr[sbi])
 		return;
 
+	// Problem: in the following we use the old react_rates_array (we'll
+	// update it later, in another kernel call), but it can happen that a
+	// reaction has rate > 0 even if we can't fire it (for example because
+	// we had 2 molecules at the start of this step, but the leap diffusion
+	// phase we just executed removed one of them).
+	// To avoid negative population, we choose the random reaction as usual,
+	// but we only fire it if we have enough molecules in the subvolume.
+	// Note that it's possibile that something has entered from a neighbour
+	// during the leap phase, so checking the state is a good pragmatic
+	// way to ensure that we'll fire everytime is possibile.
+
 	__syncthreads();
 
-// fire a single critical reaction
+	// fire a single critical reaction
 	float rand = curand_uniform(&prngstate[sbi]);
 
-// first we sum the reaction rates of critical reactions
+	// first we sum the reaction rates of critical reactions
 	float sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
 		sum += react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri);
 
-// if the sum is zero we can't fire any of them
+	// if the sum is zero we can't fire any of them
 	if (sum == 0.0)
 		return;
+
+
 
 	float scaled_sum = sum * rand;
 	float partial_sum = 0;
@@ -363,7 +376,8 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		partial_sum += react_rates_array[GET_RR(ric, sbi)] * is_critical(state, reactants, products, sbi, ric);
 		ric++;
 	}
-// we'll fire the ric-nth critical reactions
+	// We'll fire the ric-nth critical reactions.
+
 
 	int ri;
 	for (ri = 0; ri < RC && ric > 0; ri++) {
@@ -372,6 +386,16 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		}
 	}
 	ri = ri - 1;
+
+	// Check if the current state lets us fire reaction ro
+	// (see comment above).
+	bool fire = true;
+	for(int spi = 0; spi < SPC; spi++) {
+		fire = fire && (state[GET_SPI(spi, sbi)] >= reactants[GET_COEFF(spi, ri)]);
+	}
+
+	if(!fire)
+		return;
 
 	for (int spi = 0; spi < SPC; spi++) {    // TODO: atomic add?
 		state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
