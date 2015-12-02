@@ -3,6 +3,7 @@
 
 #include <cuda_runtime.h>
 #include <thrust/device_vector.h>
+#include <thrust/logical.h>
 #include <curand_kernel.h>
 
 #include "../cpp/State.hpp"

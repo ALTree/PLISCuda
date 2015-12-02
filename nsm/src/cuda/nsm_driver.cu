@@ -36,12 +36,15 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 	std::cout << "--- Allocating GPU memory... ";
 #endif
 
-	// ----- allocate and memcpy state array -----
+	// ----- allocate and memcpy state arrays -----
 	int * h_state = s.getState();
 
 	int * d_state;
 	gpuErrchk(cudaMalloc(&d_state, sbc * spc * sizeof(int)));
 	gpuErrchk(cudaMemcpy(d_state, h_state, sbc * spc * sizeof(int), cudaMemcpyHostToDevice));
+
+	int * d_state2;
+	gpuErrchk(cudaMalloc(&d_state2, sbc * spc * sizeof(int)));
 
 	// ----- allocate and memcpy reactants and products arrays -----
 	int * h_reactants = r.getReactants();
@@ -155,23 +158,50 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 
 	for (int step = 1; step <= steps; step++) {
 
+		// copy current state to d_state2
+		gpuErrchk(cudaMemcpy(d_state2, d_state, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
+
+		// get min tau from device
 		int min_tau_sbi = h_get_min_tau(tau);
 		if (isinf(tau[min_tau_sbi])) {
 			printf("\n\n--------------- WARNING: min(tau) = +Inf - abort simulation ---------------\n\n");
 			break;
 		}
 
-		h_current_time += tau[min_tau_sbi];
+		// update current time and forward it to the Device
+		float min_tau = tau[min_tau_sbi];
+		h_current_time += min_tau;
 		gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 
+		REPEAT: //
 		// first we leap, with tau = min_tau, in every subvolume that has leap enabled
 		leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
 				d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_cr, d_prngstate);
 
-		// now we do a single ssa step, if min was etc etc
+		// now we do a single ssa step, if min_tau was in a subvolume with leap not enabled
 		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_rrc, d_drc,
 				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau_sbi,
 				d_current_time, d_leap, d_prngstate);
+
+		// check if we need to revert this step
+		thrust::device_vector<bool> revert(sbc);
+		check_state<<<1, sbc>>>(d_state, thrust::raw_pointer_cast(revert.data()));
+		bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<bool>());
+		if (revert_state) {
+#if LOGSTEPS
+			std::cout << "\n--------------- REVERT STATE ---------------\n\n";
+			std::cout << "----- old tau = " << min_tau << "time was = " << h_current_time << "\n";
+			std::cout << "----- new tau = " << min_tau/2.0 << " ";
+#endif
+			d_state = d_state2;
+			h_current_time = h_current_time - min_tau + min_tau / 2.0;
+			min_tau = min_tau / 2.0;
+#if LOGSTEPS
+			std::cout << "time is  = " << h_current_time << "\n";
+			gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
+#endif
+			goto REPEAT;
+		}
 
 		// update rates
 		compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,

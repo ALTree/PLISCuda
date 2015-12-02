@@ -296,7 +296,8 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		// TODO: needs to be atomic? I suspect so..
 		// Maybe not if we use __synchthreads( ) before the diffusion events.
 		for (int spi = 0; spi < SPC; spi++) {
-			state[GET_SPI(spi, sbi)] += k * (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
+			int new_state = k * (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
+			atomicAdd(&state[GET_SPI(spi, sbi)], new_state);
 		}
 
 	}
@@ -366,8 +367,6 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	if (sum == 0.0)
 		return;
 
-
-
 	float scaled_sum = sum * rand;
 	float partial_sum = 0;
 
@@ -377,7 +376,6 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		ric++;
 	}
 	// We'll fire the ric-nth critical reactions.
-
 
 	int ri;
 	for (ri = 0; ri < RC && ric > 0; ri++) {
@@ -390,11 +388,11 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	// Check if the current state lets us fire reaction ro
 	// (see comment above).
 	bool fire = true;
-	for(int spi = 0; spi < SPC; spi++) {
+	for (int spi = 0; spi < SPC; spi++) {
 		fire = fire && (state[GET_SPI(spi, sbi)] >= reactants[GET_COEFF(spi, ri)]);
 	}
 
-	if(!fire)
+	if (!fire)
 		return;
 
 	for (int spi = 0; spi < SPC; spi++) {    // TODO: atomic add?
@@ -403,5 +401,18 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 	printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
 
+}
+
+__global__ void check_state(int * state, bool * revert)
+{
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= SBC)
+		return;
+
+	bool _revert = false;
+	for (int spi = 0; spi < SPC; spi++)
+		_revert = _revert || (state[GET_SPI(spi, sbi)] < 0);
+
+	revert[sbi] = _revert;
 }
 

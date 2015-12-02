@@ -31,4 +31,6 @@ __global__ void nsm_step(int * state, int * reactants, int * products, unsigned 
 		float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
 		float * current_time, bool * leap, curandStateMRG32k3a * s);
 
+
+
 #endif /* NSM_CUH_ */

@@ -130,3 +130,13 @@ __global__ void nsm_step(int * state, int * reactants, int * products, unsigned 
 	}
 
 }
+
+
+
+
+
+
+
+
+
+
