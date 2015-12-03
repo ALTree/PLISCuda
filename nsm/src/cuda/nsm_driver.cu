@@ -173,7 +173,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 		h_current_time += min_tau;
 		gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 
-		REPEAT: //
+		REPEAT:    //
 		// first we leap, with tau = min_tau, in every subvolume that has leap enabled
 		leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
 				d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_cr, d_prngstate);
@@ -193,7 +193,9 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 			std::cout << "----- old tau = " << min_tau << "time was = " << h_current_time << "\n";
 			std::cout << "----- new tau = " << min_tau/2.0 << " ";
 #endif
-			d_state = d_state2;
+			// restore state from the copy
+			gpuErrchk(cudaMemcpy(d_state, d_state2, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
+
 			h_current_time = h_current_time - min_tau + min_tau / 2.0;
 			min_tau = min_tau / 2.0;
 #if LOGSTEPS
@@ -238,7 +240,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 		gpuErrchk(cudaMemcpy(h_cr, d_cr, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
 		for (int i = 0; i < sbc; i++) {
 			std::cout << "sbi " << i << "] " << "leap: " << (h_leap[i] ? "yes" : "no") << ", cr: "
-					<< (h_cr[i] ? "yes" : "no") << "\n";
+			<< (h_cr[i] ? "yes" : "no") << "\n";
 		}
 
 #endif
