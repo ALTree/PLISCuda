@@ -9,7 +9,7 @@
 
 #include "constants.cuh"
 #include "cuda_utils.cuh"
-#include "nsm.cuh" // remove after we moved update_rate_matrix and co.
+
 // returns true iff reaction ri is critical in subvolume sbi
 __device__ bool is_critical(int * state, int * reactants, int * products, int sbi, int ri);
 

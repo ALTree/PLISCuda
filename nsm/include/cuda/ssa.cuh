@@ -10,10 +10,8 @@
 #include "rates.cuh"
 #include "constants.cuh"
 
-// fill the whole tau array with random times
-__global__ void fill_tau_array(float * tau, float * rate_matrix);
-
-__global__ void fill_prngstate_array(curandStateMRG32k3a * prngstate);
+// initialize prngstate array (one prng for each thread).
+__global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate);
 
 // returns the index of a random reaction to fire in the associated subvolume.
 // The chance that we choose reaction R is given by the react rate of R over
@@ -25,12 +23,16 @@ __device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_arr
 // the sum of the diffusion rates of all the species.
 __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, float * diff_rates_array, float rand);
 
-int h_get_min_tau(thrust::device_vector<float> &tau);
-
-__global__ void nsm_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
-		float * rrc, float * drc, float * react_rates_array, float * diff_rates_array, float * tau, int min_sbi,
-		float * current_time, bool * leap, curandStateMRG32k3a * s);
-
-
+// Performs a single SSA step.
+// Returns immediately if:
+//     - the current thread is associated with a sbv marked as leap
+//     - the subvolume index is different from min_sbi (the one with minimum tau)
+//
+// The kernel either fire a reaction or performs a diffusion.
+// It updates the state of the neighbours, if necessary.
+// It does NOT update tau or the current time.
+__global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
+		float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, bool * leap,
+		curandStateMRG32k3a * s);
 
 #endif /* NSM_CUH_ */

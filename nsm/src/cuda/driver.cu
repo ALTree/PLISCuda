@@ -90,7 +90,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	// ----- allocate and initialize prng array
 	curandStateMRG32k3a * d_prngstate;
 	gpuErrchk(cudaMalloc(&d_prngstate, sbc * sizeof(curandStateMRG32k3a)));
-	fill_prngstate_array<<<1, sbc>>>(d_prngstate);
+	initialize_prngstate_array<<<1, sbc>>>(d_prngstate);
 
 	// ----- allocate leap and cr arrays
 	bool * d_leap;
@@ -176,9 +176,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 				d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_cr, d_prngstate);
 
 		// now we do a single ssa step, if min_tau was in a subvolume with leap not enabled
-		nsm_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_rrc, d_drc,
-				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau_sbi,
-				d_current_time, d_leap, d_prngstate);
+		ssa_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
+				d_diff_rates_array, min_tau_sbi, d_current_time, d_leap, d_prngstate);
 
 		// check if we need to revert this step
 		thrust::device_vector<bool> revert(sbc);
@@ -252,6 +251,12 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 	print_state(h_state, spc, sbc);
+}
+
+int h_get_min_tau(thrust::device_vector<float> &tau)
+{
+	thrust::device_vector<float>::iterator iter = thrust::min_element(tau.begin(), tau.end());
+	return iter - tau.begin();
 }
 
 // ----- print utils stuff -----

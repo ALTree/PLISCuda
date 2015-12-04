@@ -14,7 +14,7 @@
 
 #include "cuda_utils.cuh"
 #include "rates.cuh"
-#include "nsm.cuh"
+#include "ssa.cuh"
 #include "leap.cuh"
 #include "constants.cuh"
 
@@ -23,6 +23,9 @@ namespace NSMCuda {
 // Run a simulation with the given topology, initial state, set of reactions, and
 // react and diffusion rates constants, for *steps* steps.
 void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps);
+
+// get index of min value in tau array
+int h_get_min_tau(thrust::device_vector<float> &tau);
 
 // Print utils for logging
 void print_state(int * h_state, int spc, int sbc);
