@@ -28,15 +28,4 @@
 //     diff_rates_array[(GET_DR(spi, sbi)]
 #define GET_DR(spi, sbi) ((spi) * (SBC) + (sbi))
 
-// returns the sum of a floating point array of length len
-template<typename T>
-__device__ T sum_fp_array(T * array, int len)
-{
-	T sum = 0.0;
-	for (int i = 0; i < len; i++)
-		sum += array[i];
-
-	return sum;
-}
-
 #endif /* CUDA_UTILS_CUH_ */
