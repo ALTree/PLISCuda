@@ -47,8 +47,8 @@ __device__ void react_rates(int * state, int * reactants, float * rrc, float * r
 	if (sbi >= SBC)
 		return;
 
-	for (int i = 0; i < RC; i++) {
-		react_rates_array[SBC * i + sbi] = react_rate(state, reactants, sbi, i, rrc);
+	for (int ri = 0; ri < RC; ri++) {
+		react_rates_array[GET_RR(ri, sbi)] = react_rate(state, reactants, sbi, ri, rrc);
 	}
 }
 
@@ -58,8 +58,8 @@ __device__ void diff_rates(int * state, float * drc, float * diff_rates_array)
 	if (sbi >= SBC)
 		return;
 
-	for (int i = 0; i < SPC; i++) {
-		diff_rates_array[SBC * i + sbi] = drc[i] * state[GET_SPI(i, sbi)];
+	for (int spi = 0; spi < SPC; spi++) {
+		diff_rates_array[GET_DR(spi, sbi)] = drc[spi] * state[GET_SPI(spi, sbi)];
 	}
 }
 
@@ -72,13 +72,13 @@ __device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix,
 
 	// sum reaction rates
 	float react_sum = 0.0;
-	for (int i = 0; i < RC; i++)
-		react_sum += react_rates_array[SBC * i + sbi];
+	for (int ri = 0; ri < RC; ri++)
+		react_sum += react_rates_array[GET_RR(ri, sbi)];
 
 	// sum diffusion rates
 	float diff_sum = 0.0;
-	for (int i = 0; i < SPC; i++)
-		diff_sum += diff_rates_array[SBC * i + sbi];
+	for (int spi = 0; spi < SPC; spi++)
+		diff_sum += diff_rates_array[GET_DR(spi, sbi)];
 
 	// count subvolume neighbours (since diff_rate = #neighbours x diff_sum)
 	// TODO: write # of neighbours somewhere and use it so we can remove the
@@ -90,9 +90,9 @@ __device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix,
 	diff_sum *= neigh_count;
 
 	// write data into rate matrix
-	rate_matrix[SBC * 0 + sbi] = react_sum;
-	rate_matrix[SBC * 1 + sbi] = diff_sum;
-	rate_matrix[SBC * 2 + sbi] = react_sum + diff_sum;
+	rate_matrix[GET_RATE(0, sbi)] = react_sum;
+	rate_matrix[GET_RATE(1, sbi)] = diff_sum;
+	rate_matrix[GET_RATE(2, sbi)] = react_sum + diff_sum;
 }
 
 __global__ void compute_rates(int * state, int * reactants, unsigned int * topology, float * rate_matrix, float * rrc,

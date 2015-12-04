@@ -26,6 +26,4 @@ __device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix,
 __global__ void compute_rates(int * state, int * reactants, unsigned int * topology, float * rate_matrix, float * rrc,
 		float * drc, float * react_rates_array, float * diff_rates_array);
 
-
-
 #endif /* RATES_CUH_ */
