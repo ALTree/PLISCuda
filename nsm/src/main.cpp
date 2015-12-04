@@ -6,7 +6,7 @@
 #include "../include/cpp/Topology.hpp"
 
 #include "../include/cpp/validation.hpp"
-#include "../include/cuda/nsm_driver.cuh"
+#include "../include/cuda/driver.cuh"
 
 #include "../include/cuda/constants.cuh"
 
@@ -90,7 +90,7 @@ int main(int argc, char * argv[])
 	std::cout << "--- Consistency check... done!" << "\n\n";
 #endif
 
-	NSMCuda::nsm(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants, steps);
+	NSMCuda::run_simulation(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants, steps);
 
 }
 

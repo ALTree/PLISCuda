@@ -20,8 +20,11 @@
 
 namespace NSMCuda {
 
-void nsm(Topology, State, Reactions, float *, float *, int);
+// Run a simulation with the given topology, initial state, set of reactions, and
+// react and diffusion rates constants, for *steps* steps.
+void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps);
 
+// Print utils for logging
 void print_state(int * h_state, int spc, int sbc);
 void print_rate_matrix(float * h_rate_matrix, int sbc);
 void print_tau(thrust::device_vector<float>, int sbc);

@@ -1,4 +1,4 @@
-#include "../../include/cuda/nsm_driver.cuh"
+#include "../../include/cuda/driver.cuh"
 
 __constant__ unsigned int SBC;
 __constant__ int SPC;
@@ -10,22 +10,21 @@ float TAU;
 
 namespace NSMCuda {
 
-// TODO: rename
-// we keep nsm_step as a kernel, but this will be
-// the main driver and "nsm" is not the right name.
-void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps)
+void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps)
 {
 	unsigned int sbc = t.getN();
 	int spc = s.getS();
 	int rc = r.getR();
 
-	int nc = 10;    // critical event threshold
-	float epsilon = 0.05;
+	int nc = 10;    // threshold for critical/non-critical event
+	float epsilon = 0.05;    // the epsilon parameter in the computation of the leap tau
+							 // see [Tao06], formula 33
 
 #if LOG
 	std::cout << "\n   ***   Start simulation log   ***   \n\n";
 #endif
 
+	// move constants to GPU
 	gpuErrchk(cudaMemcpyToSymbol(SBC, &sbc, sizeof(unsigned int)));
 	gpuErrchk(cudaMemcpyToSymbol(SPC, &spc, sizeof(int)));
 	gpuErrchk(cudaMemcpyToSymbol(RC, &rc, sizeof(int)));
@@ -100,7 +99,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 	gpuErrchk(cudaMalloc(&d_cr, sbc * sizeof(bool)));
 
 	// zero GPU memory, just to be sure
-	// TODO: remove(?)
+	// TODO: remove(?) or check that we are zeroing everything
 	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
@@ -118,9 +117,8 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 	std::cout << "done!\n";
 #endif
 
-	float * h_rate_matrix;
-
 #if LOG
+	float * h_rate_matrix;
 	h_rate_matrix = new float[3 * sbc];
 	gpuErrchk(cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost));
 	print_rate_matrix(h_rate_matrix, sbc);
@@ -134,7 +132,6 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr, d_prngstate);
 
 #if LOG
-	// print tau array
 	print_tau(tau, sbc);
 
 	bool * h_leap = new bool[sbc];
@@ -173,7 +170,7 @@ void nsm(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int ste
 		h_current_time += min_tau;
 		gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 
-		REPEAT:    //
+		REPEAT:
 		// first we leap, with tau = min_tau, in every subvolume that has leap enabled
 		leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
 				d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_cr, d_prngstate);
