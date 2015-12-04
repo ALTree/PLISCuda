@@ -9,7 +9,7 @@ SourceFile="${@: -1}"
 # get the file extension
 Extension=${SourceFile##*.}
 
-if [ "$Extension" == "cpp" ]
+if [ "$Extension" == "hpp" ]
 then
    StdFlag="-std=c++11"
 else

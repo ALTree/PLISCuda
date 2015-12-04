@@ -1,4 +1,4 @@
 #!/bin/bash
 
 nvccPath=$(which nvcc)
-$nvccPath $*
+$nvccPath $* -std=c++11
