@@ -53,10 +53,19 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 __device__ float compute_tau_cr(int * state, int * reactants, int * products, int sbi, float * react_rates_array,
 		float * diff_rates_array, curandStateMRG32k3a * s);
 
+// Fill the tau array with taus computed as [Cao06]
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
 		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, bool * leap, bool * cr,
 		curandStateMRG32k3a * s);
 
+// Performs a single leap step.
+// Returns immediately if:
+//     - the current thread is associated with a sbv not marked as leap
+//
+// The kernel fire all non-critical reactions and diffuse all the species, and then
+// it fires ONE critical reaction (if it is enabled in the current state, after the
+// leaping. If not, it does not fire any reaction).
+// It does NOT update tau or the current time.
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
 		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
 		float * current_time, bool * leap, bool * cr, curandStateMRG32k3a * prngstate);

@@ -15,12 +15,6 @@ __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
 
 	int hor = HOR(reactants, spi);
 
-#ifdef DEBUG
-	if (hor < 1 || hor > 2) {
-		printf(">>>>> ARGH! @ compute_g(%d, %d): hor = %d\n", sbi, spi, hor);
-	}
-#endif
-
 	int x = 0;
 	switch (hor) {
 	case 1:
