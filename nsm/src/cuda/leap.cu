@@ -204,9 +204,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 		}
 
 		// check for critical diffusion events
-		if (is_critical_diffusion(state, sbi, spi)) {
-			skip = true;
-		}
+		skip = skip || is_critical_diffusion(state, sbi, spi);
 
 		if (skip) {
 			continue;
@@ -233,7 +231,7 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 	}
 
 	for (int spi = 0; spi < SPC; spi++) {
-		diff_rates_sum_cr += (diff_rates_array[GET_DR(spi, sbi)] * (state[GET_SPI(spi, sbi)] < NC));
+		diff_rates_sum_cr += (diff_rates_array[GET_DR(spi, sbi)] * is_critical_diffusion(state, sbi, spi));
 	}
 
 	if (react_rates_sum_cr == 0.0 && diff_rates_sum_cr == 0.0)
@@ -253,8 +251,6 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 
 	float tau_ncr = compute_tau_ncr(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
-
-	printf("-----> [sbv %d] tau_ncr = %f, tau_cr = %f\n", sbi, tau_ncr, tau_cr);
 
 	// if tau_ncr is too small, we can't leap in this subvolume.
 	// Prevent leap = true if tau_ncr is +Inf
@@ -338,15 +334,21 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			k_sum -= k;
 		}
 
-		unsigned int ngb = 0;
 		while (k_sum > 0) {    // k_sum was not divisible by neigh_count
 			// we know that k_sum is now smaller than neigh_count,
 			// se just send one molecule to each neightbour until
 			// we have diffused all the remaining ones.
-			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], 1);
+			//
+			// We need to randomize the target subvolume or the simulation
+			// will be biased!
+			int rdi; // neighbour index
+			do {
+				rdi = (int) (curand_uniform(&prngstate[sbi]) * 6);
+			} while (rdi > 5 && topology[sbi*6 + rdi] != sbi);
+
+			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + rdi])], 1);
 			printf("(%f) [subv %d] diffuse 1 molecule of specie %d to subv %d \n", *current_time, sbi, spi,
-					topology[sbi * 6 + ngb]);
-			ngb++;
+					topology[sbi * 6 + rdi]);
 			k_sum--;
 		}
 
@@ -384,7 +386,6 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		dr_sum += diff_rates_array[GET_DR(spi, sbi)] * is_critical_diffusion(state, sbi, spi);
 
 	// if the sum is zero we can't fire or diffuse anything
-	printf("---------->[sbv %d] rr_sum = %f, dr_sum = %f\n", sbi, rr_sum, dr_sum);
 	if (rr_sum + dr_sum == 0.0) {
 		return;
 	}
@@ -428,7 +429,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 	} else {    // diffusion
 
-		float scaled_sum = dr_sum * rand; // no need to scale down by neigh_count (it's the raw sum)
+		float scaled_sum = dr_sum * rand;    // no need to scale down by neigh_count (it's the raw sum)
 		float partial_sum = 0;
 
 		int spic = 0;
