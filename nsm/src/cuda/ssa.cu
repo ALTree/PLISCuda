@@ -100,8 +100,7 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 
 		printf("(%f) [subv %d][SSA] diffuse specie %d in subvolume %d\n", *current_time, sbi, spi, rdi);
 
-		// Update state iff we are the choosen one.
-		// Also if we rdi == sbi (i.e. diffuse to myself) don't do anything
+		// If rdi == sbi (i.e. diffuse to myself) don't do anything
 		// TODO: atomic?
 		if (rdi != sbi) {
 			state[GET_SPI(spi, sbi)] -= 1;

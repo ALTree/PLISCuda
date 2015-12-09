@@ -12,7 +12,7 @@ __device__ bool is_critical_reaction(int * state, int * reactants, int * product
 
 __device__ bool is_critical_diffusion(int * state, int sbi, int spi)
 {
-	return state[GET_SPI(spi, sbi)] > NC;    // TODO: use another constant?
+	return state[GET_SPI(spi, sbi)] < NC;    // TODO: use another constant?
 }
 
 __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
@@ -192,8 +192,10 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 	for (int spi = 0; spi < SPC; spi++) {
 
 		// First of all we need to check if the specie spi is involved
-		// as reactant in a critical reaction. If it is, skip it.
+		// in a critical event. If it is, skip it.
 		bool skip = false;
+
+		// check for critical reaction events
 		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
 			if (is_critical_reaction(state, reactants, products, sbi, ri)) {    // if it's critical
 				// skip if the specie spi is involved in the reaction
@@ -201,10 +203,15 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 			}
 		}
 
+		// check for critical diffusion events
+		if (is_critical_diffusion(state, sbi, spi)) {
+			skip = true;
+		}
+
 		if (skip) {
 			continue;
 		}
-		// spi is not involved in critical reactions.
+		// spi is not involved in any critical event.
 
 		float tau = compute_tau_sp(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
 
@@ -254,13 +261,13 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	leap[sbi] = !isinf(tau_ncr) && (tau_ncr >= 2.0 / rate_matrix[GET_RATE(2, sbi)]);
 
 	if (tau_ncr < tau_cr) {
-		// critical reactions will not fire, all the others
-		// will leap with tau = tau_ncr
+		// no critical event will happen, we'll leap with
+		// all the non-critical events
 		tau[sbi] = tau_ncr;
 		cr[sbi] = false;
 	} else {
-		// a single critical reaction will fire, all the
-		// non-critical reactions will leap with tau = tau_cr
+		// a single critical event will happen, all the
+		// non-critical events will leap with tau = tau_cr
 		tau[sbi] = tau_cr;
 		cr[sbi] = true;
 	}
@@ -306,8 +313,12 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 	__syncthreads();
 
-	// fire outgoing diffusion events
+	// fire non-critical outgoing diffusion events
 	for (int spi = 0; spi < SPC; spi++) {
+
+		if (is_critical_diffusion(state, sbi, spi)) {
+			continue;
+		}
 
 		// how many molecules of spi are diffused away from sbi
 		unsigned int k_sum = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)]);
@@ -331,7 +342,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		while (k_sum > 0) {    // k_sum was not divisible by neigh_count
 			// we know that k_sum is now smaller than neigh_count,
 			// se just send one molecule to each neightbour until
-			// we have diffused all the ramaining ones.
+			// we have diffused all the remaining ones.
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], 1);
 			printf("(%f) [subv %d] diffuse 1 molecule of specie %d to subv %d \n", *current_time, sbi, spi,
 					topology[sbi * 6 + ngb]);
@@ -357,51 +368,110 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 	__syncthreads();
 
-	// fire a single critical reaction
+	// fire a single critical event
 	float rand = curand_uniform(&prngstate[sbi]);
 
-	// first we sum the reaction rates of critical reactions
-	float sum = 0.0;
+	// first we have to choose if we'll fire a reaction or we'll diffuse a molecule
+
+	// sum the reaction rates of critical reactions
+	float rr_sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
-		sum += react_rates_array[GET_RR(ri, sbi)] * is_critical_reaction(state, reactants, products, sbi, ri);
+		rr_sum += react_rates_array[GET_RR(ri, sbi)] * is_critical_reaction(state, reactants, products, sbi, ri);
 
-	// if the sum is zero we can't fire any of them
-	if (sum == 0.0)
+	// sum the diffusion rates of critical diffusion events
+	float dr_sum = 0.0;
+	for (int spi = 0; spi < SPC; spi++)
+		dr_sum += diff_rates_array[GET_DR(spi, sbi)] * is_critical_diffusion(state, sbi, spi);
+
+	// if the sum is zero we can't fire or diffuse anything
+	printf("---------->[sbv %d] rr_sum = %f, dr_sum = %f\n", sbi, rr_sum, dr_sum);
+	if (rr_sum + dr_sum == 0.0) {
 		return;
-
-	float scaled_sum = sum * rand;
-	float partial_sum = 0;
-
-	int ric = 0;
-	while (partial_sum <= scaled_sum) {
-		partial_sum += react_rates_array[GET_RR(ric, sbi)] * is_critical_reaction(state, reactants, products, sbi, ric);
-		ric++;
 	}
-	// We'll fire the ric-nth critical reactions.
 
-	int ri;
-	for (ri = 0; ri < RC && ric > 0; ri++) {
-		if (is_critical_reaction(state, reactants, products, sbi, ri)) {
-			ric--;
+	if (rand < rr_sum / (rr_sum + dr_sum)) {    // reaction
+
+		float scaled_sum = rr_sum * rand;
+		float partial_sum = 0;
+
+		int ric = 0;
+		while (partial_sum <= scaled_sum) {
+			partial_sum += react_rates_array[GET_RR(ric, sbi)]
+					* is_critical_reaction(state, reactants, products, sbi, ric);
+			ric++;
 		}
+		// We'll fire the ric-nth critical reactions.
+
+		int ri;
+		for (ri = 0; ri < RC && ric > 0; ri++) {
+			if (is_critical_reaction(state, reactants, products, sbi, ri)) {
+				ric--;
+			}
+		}
+		ri = ri - 1;
+
+		// Check if the current state lets us fire reaction ri
+		// (see comment above).
+		bool fire = true;
+		for (int spi = 0; spi < SPC; spi++) {
+			fire = fire && (state[GET_SPI(spi, sbi)] >= reactants[GET_COEFF(spi, ri)]);
+		}
+
+		if (!fire)
+			return;
+
+		for (int spi = 0; spi < SPC; spi++) {    // TODO: atomic add?
+			state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
+		}
+
+		printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
+
+	} else {    // diffusion
+
+		float scaled_sum = dr_sum * rand; // no need to scale down by neigh_count (it's the raw sum)
+		float partial_sum = 0;
+
+		int spic = 0;
+		while (partial_sum <= scaled_sum) {
+			partial_sum += diff_rates_array[GET_DR(spic, sbi)] * is_critical_diffusion(state, sbi, spic);
+			spic++;
+		}
+		// We'll diffuse the spic-nth critical specie.
+
+		int spi;
+		for (spi = 0; spi < SPC && spic > 0; spi++) {
+			if (is_critical_diffusion(state, sbi, spi)) {
+				spic--;
+			}
+		}
+		spi = spi - 1;
+
+		// Check if the current state lets us diffuse specie spi
+		// (see comment above).
+		bool fire = state[GET_SPI(spi, sbi)] > 0;
+
+		if (!fire)
+			return;
+
+		// choose a random destination
+		// TODO: we need to re-use the rand we already have.
+		int rdi;
+		do {
+			rdi = (int) (curand_uniform(&prngstate[sbi]) * 6);
+		} while (rdi > 5);
+
+		// get index of neighbour #rdi (overwrite rdi, whatever)
+		rdi = topology[sbi * 6 + rdi];
+
+		// If rdi == sbi (i.e. diffuse to myself) don't do anything
+		// TODO: atomic?
+		if (rdi != sbi) {
+			atomicAdd(&state[GET_SPI(spi, sbi)], -1);
+			atomicAdd(&state[GET_SPI(spi, rdi)], 1);
+		}
+
+		printf("(%f) [subv %d] diffuse specie %d to %d (critical)\n", *current_time, sbi, spi, rdi);
 	}
-	ri = ri - 1;
-
-	// Check if the current state lets us fire reaction ro
-	// (see comment above).
-	bool fire = true;
-	for (int spi = 0; spi < SPC; spi++) {
-		fire = fire && (state[GET_SPI(spi, sbi)] >= reactants[GET_COEFF(spi, ri)]);
-	}
-
-	if (!fire)
-		return;
-
-	for (int spi = 0; spi < SPC; spi++) {    // TODO: atomic add?
-		state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
-	}
-
-	printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
 
 }
 
