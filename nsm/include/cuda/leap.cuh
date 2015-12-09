@@ -11,7 +11,10 @@
 #include "cuda_utils.cuh"
 
 // returns true iff reaction ri is critical in subvolume sbi
-__device__ bool is_critical(int * state, int * reactants, int * products, int sbi, int ri);
+__device__ bool is_critical_reaction(int * state, int * reactants, int * products, int sbi, int ri);
+
+// returns true iff specie spi is critical in subvolume sbi
+__device__ bool is_critical_diffusion(int * state, int sbi, int spi);
 
 // returns g (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 6) for specie
@@ -39,6 +42,8 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 // compute the tau time (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 33) for
 // a single specie, in subvolume sbi.
+// Diffusion events are taken into account(so it's not really [Tao06], it's che modified version
+// found in [Harris10]
 __device__ float compute_tau_sp(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
 		float * react_rates_array, float * diff_rates_array);
 

@@ -1,13 +1,18 @@
 #include "../../include/cuda/leap.cuh"
 
-__device__ bool is_critical(int * state, int * reactants, int * products, int sbi, int ri)
+__device__ bool is_critical_reaction(int * state, int * reactants, int * products, int sbi, int ri)
 {
 	bool crit = false;
-	for (int i = 0; i < SPC; i++) {
-		crit = crit || ((reactants[GET_COEFF(i, ri)] - products[GET_COEFF(i, ri)]) * NC > state[GET_SPI(i, sbi)]);
+	for (int spi = 0; spi < SPC; spi++) {
+		crit = crit || ((reactants[GET_COEFF(spi, ri)] - products[GET_COEFF(spi, ri)]) * NC > state[GET_SPI(spi, sbi)]);
 	}
 
 	return crit;
+}
+
+__device__ bool is_critical_diffusion(int * state, int sbi, int spi)
+{
+	return state[GET_SPI(spi, sbi)] > NC;    // TODO: use another constant?
 }
 
 __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
@@ -80,7 +85,7 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 	for (int i = 0; i < RC; i++) {
 
 		// when computing mu we only sum over non-critical reactions
-		if (is_critical(state, reactants, products, sbi, i)) {
+		if (is_critical_reaction(state, reactants, products, sbi, i)) {
 			continue;
 		}
 
@@ -125,7 +130,7 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 	for (int i = 0; i < RC; i++) {
 
 		// when computing sigma2 we only sum over non-critical reactions
-		if (is_critical(state, reactants, products, sbi, i)) {
+		if (is_critical_reaction(state, reactants, products, sbi, i)) {
 			continue;
 		}
 
@@ -190,7 +195,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 		// as reactant in a critical reaction. If it is, skip it.
 		bool skip = false;
 		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
-			if (is_critical(state, reactants, products, sbi, ri)) {    // if it's critical
+			if (is_critical_reaction(state, reactants, products, sbi, ri)) {    // if it's critical
 				// skip if the specie spi is involved in the reaction
 				skip = skip || (reactants[GET_COEFF(spi, ri)] > 0);
 			}
@@ -216,7 +221,8 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 	float diff_rates_sum_cr = 0.0;     // sum of diffusion rates of critical diffusion events
 
 	for (int ri = 0; ri < RC; ri++) {
-		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri));
+		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)]
+				* is_critical_reaction(state, reactants, products, sbi, ri));
 	}
 
 	for (int spi = 0; spi < SPC; spi++) {
@@ -240,6 +246,8 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 
 	float tau_ncr = compute_tau_ncr(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
+
+	printf("-----> [sbv %d] tau_ncr = %f, tau_cr = %f\n", sbi, tau_ncr, tau_cr);
 
 	// if tau_ncr is too small, we can't leap in this subvolume.
 	// Prevent leap = true if tau_ncr is +Inf
@@ -276,7 +284,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	// fire all the non-critical reaction events
 	for (int ri = 0; ri < RC; ri++) {
 
-		if (is_critical(state, reactants, products, sbi, ri)) {
+		if (is_critical_reaction(state, reactants, products, sbi, ri)) {
 			continue;
 		}
 
@@ -355,7 +363,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	// first we sum the reaction rates of critical reactions
 	float sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
-		sum += react_rates_array[GET_RR(ri, sbi)] * is_critical(state, reactants, products, sbi, ri);
+		sum += react_rates_array[GET_RR(ri, sbi)] * is_critical_reaction(state, reactants, products, sbi, ri);
 
 	// if the sum is zero we can't fire any of them
 	if (sum == 0.0)
@@ -366,14 +374,14 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 	int ric = 0;
 	while (partial_sum <= scaled_sum) {
-		partial_sum += react_rates_array[GET_RR(ric, sbi)] * is_critical(state, reactants, products, sbi, ric);
+		partial_sum += react_rates_array[GET_RR(ric, sbi)] * is_critical_reaction(state, reactants, products, sbi, ric);
 		ric++;
 	}
 	// We'll fire the ric-nth critical reactions.
 
 	int ri;
 	for (ri = 0; ri < RC && ric > 0; ri++) {
-		if (is_critical(state, reactants, products, sbi, ri)) {
+		if (is_critical_reaction(state, reactants, products, sbi, ri)) {
 			ric--;
 		}
 	}
