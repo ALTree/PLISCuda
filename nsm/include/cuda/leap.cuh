@@ -60,8 +60,8 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 
 // Fill the tau array with taus computed as [Cao06]
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, char * leap,
-		curandStateMRG32k3a * s);
+		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, float min_tau,
+		char * leap, curandStateMRG32k3a * s);
 
 // Performs a single leap step.
 // Returns immediately if:

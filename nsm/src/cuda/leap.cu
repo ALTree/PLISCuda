@@ -242,21 +242,41 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 }
 
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, char * leap,
-		curandStateMRG32k3a * s)
+		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, float min_tau,
+		char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
+	// If on the previous step nobody changed our state from
+	// SSA_FF to SSA, it means that no molecule entered here
+	// and we can fast-forward time without recomputing anything.
+	// Set tau = old_tau - min_tau and return.
+	//
+	// Check:
+	//     - If min_tau == 0.0 we are setting up the simulation, so pass.
+	//     - If tau[sbi] is +Inf no event can happen here, so pass.
+	//     - If min_tau == tau[sbi], it means that we have the same tau
+	//       as the subvolume that has the min_tau, but he was the lucky
+	//       one and we didn't get to act. We can't fast-forward (that
+	//       would bring tau to zero), so just recompute a new tau.
+	if (leap[sbi] == SSA_FF && !isinf(tau[sbi]) && min_tau > 0.0 && min_tau != tau[sbi]) {
+		printf("----------> subv %d was fast forwared from tau = %f to tau = %f (min_tau = %f)\n", sbi, tau[sbi],
+				tau[sbi] - min_tau, min_tau);
+		tau[sbi] -= min_tau;
+		return;
+	}
+
 	float tau_ncr = compute_tau_ncr(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
 
-	// if tau_ncr is too small, we can't leap in this subvolume.
-	// Also Prevent leap = true if tau_ncr is +Inf
+	// If tau_ncr is +Inf then every reaction is critical, and we can't leap.
+	// Also prevent leap if tau_ncr is too small.
 	bool leap_here = true;
 	if (isinf(tau_ncr) || (tau_ncr < 2.0 / rate_matrix[GET_RATE(2, sbi)])) {
-		leap[sbi] = SSA;
+		leap[sbi] = SSA_FF;    // We start with fast-forward enabled. If someone diffuses
+							   // to us, they will need disable it by setting the state to SSA.
 		leap_here = false;
 	}
 
@@ -281,10 +301,10 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || leap[sbi] == SSA)
+	if (sbi >= SBC || leap[sbi] == SSA || leap[sbi] == SSA_FF)
 		return;
 
-	// count neighbours of the current subvolume. We'll need the value later.
+	// Count the neighbours of the current subvolume. We'll need the value later.
 	// TODO: remove when issue #26 is fixed
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
@@ -304,8 +324,6 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			printf("(%f) [subv %d] fire reaction %d for %d times\n", *current_time, sbi, ri, k);
 
 		// update state
-		// TODO: needs to be atomic? I suspect so..
-		// Maybe not if we use __synchthreads( ) before the diffusion events.
 		for (int spi = 0; spi < SPC; spi++) {
 			int new_state = k * (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
 			atomicAdd(&state[GET_SPI(spi, sbi)], new_state);
@@ -327,6 +345,11 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			unsigned int k = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)]);
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
 			atomicSub(&state[GET_SPI(spi, sbi)], k);
+			if (leap[topology[sbi * 6 + ngb]] == SSA_FF) {
+				leap[topology[sbi * 6 + ngb]] = SSA;    // set the OP of the receiver to SSA
+				printf("-----> subv %d set %d to SSA\n", sbi, topology[sbi * 6 + ngb]);
+			}
+
 			if (k > 0)
 				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k, spi,
 						topology[sbi * 6 + ngb]);
@@ -445,10 +468,11 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		rdi = topology[sbi * 6 + rdi];
 
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
-		// TODO: atomic?
 		if (rdi != sbi) {
 			atomicAdd(&state[GET_SPI(spi, sbi)], -1);
 			atomicAdd(&state[GET_SPI(spi, rdi)], 1);
+			if (leap[topology[rdi]] == SSA_FF)
+				leap[topology[rdi]] = SSA;    // set the OP of the receiver to SSA
 		}
 
 		printf("(%f) [subv %d] diffuse specie %d to %d (critical)\n", *current_time, sbi, spi, rdi);

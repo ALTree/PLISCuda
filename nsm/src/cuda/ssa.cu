@@ -68,7 +68,7 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 		curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || leap[sbi] != SSA || min_sbi != sbi)
+	if (sbi >= SBC || leap[sbi] == LEAP_CR || leap[sbi] == LEAP_NOCR || min_sbi != sbi)
 		return;
 
 	float rand = curand_uniform(&s[sbi]);
@@ -82,6 +82,9 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 		// if sbi = min_sbi then it should be guaranteed that ri != -1
 		for (int i = 0; i < SPC; i++)
 			state[GET_SPI(i, sbi)] += products[GET_COEFF(i, ri)] - reactants[GET_COEFF(i, ri)];
+
+		// set our own OP to SSA (we can't fast-forward if we fired a reaction)
+		leap[sbi] = SSA;
 
 	} else {    // diffusion
 
@@ -100,10 +103,11 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 		printf("(%f) [subv %d][SSA] diffuse specie %d in subvolume %d\n", *current_time, sbi, spi, rdi);
 
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
-		// TODO: atomic?
 		if (rdi != sbi) {
-			state[GET_SPI(spi, sbi)] -= 1;
-			state[GET_SPI(spi, rdi)] += 1;
+			atomicSub(&state[GET_SPI(spi, sbi)], 1);
+			atomicAdd(&state[GET_SPI(spi, rdi)], 1);
+			if (leap[rdi] == SSA_FF)
+				leap[rdi] = SSA;    // set the OP of the receiver to SSA
 		}
 
 	}

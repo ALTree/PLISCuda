@@ -127,7 +127,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #endif
 
 	fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
-			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_prngstate);
+			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
 
 #if LOG
 	print_tau(tau, sbc);
@@ -206,7 +206,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 		// update tau array
 		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
-				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_prngstate);
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau, d_leap,
+				d_prngstate);
 
 #if LOG
 		std::cout << "\n";
