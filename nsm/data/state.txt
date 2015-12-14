@@ -1,4 +1,4 @@
 subvolumes: 9
 species: 3
 
-4: 0 0 256
+4: 0 0 2048

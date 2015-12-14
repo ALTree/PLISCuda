@@ -12,7 +12,7 @@ __device__ bool is_critical_reaction(int * state, int * reactants, int * product
 
 __device__ bool is_critical_diffusion(int * state, int sbi, int spi)
 {
-	return state[GET_SPI(spi, sbi)] < NC;    // TODO: use another constant?
+	return state[GET_SPI(spi, sbi)] < NC;
 }
 
 __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
@@ -242,7 +242,7 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 }
 
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, bool * leap, bool * cr,
+		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, char * leap,
 		curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -253,29 +253,35 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
 
 	// if tau_ncr is too small, we can't leap in this subvolume.
-	// Prevent leap = true if tau_ncr is +Inf
-	leap[sbi] = !isinf(tau_ncr) && (tau_ncr >= 2.0 / rate_matrix[GET_RATE(2, sbi)]);
+	// Also Prevent leap = true if tau_ncr is +Inf
+	bool leap_here = true;
+	if (isinf(tau_ncr) || (tau_ncr < 2.0 / rate_matrix[GET_RATE(2, sbi)])) {
+		leap[sbi] = SSA;
+		leap_here = false;
+	}
 
 	if (tau_ncr < tau_cr) {
 		// no critical event will happen, we'll leap with
 		// all the non-critical events
 		tau[sbi] = tau_ncr;
-		cr[sbi] = false;
+		if (leap_here)
+			leap[sbi] = LEAP_NOCR;
 	} else {
 		// a single critical event will happen, all the
 		// non-critical events will leap with tau = tau_cr
 		tau[sbi] = tau_cr;
-		cr[sbi] = true;
+		if (leap_here)
+			leap[sbi] = LEAP_CR;
 	}
 
 }
 
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
 		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
-		float * current_time, bool * leap, bool * cr, curandStateMRG32k3a * prngstate)
+		float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || !leap[sbi])
+	if (sbi >= SBC || leap[sbi] == SSA)
 		return;
 
 	// count neighbours of the current subvolume. We'll need the value later.
@@ -328,7 +334,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 	}
 
-	if (!cr[sbi])
+	if (leap[sbi] != LEAP_CR)
 		return;
 
 	// Problem: in the following we use the old react_rates_array (we'll

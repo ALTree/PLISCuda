@@ -54,7 +54,6 @@ __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, 
 	return spi - 1;
 }
 
-// TODO: remove fill_tau_array and use this for everything
 __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -65,11 +64,11 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 }
 
 __global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
-		float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, bool * leap,
+		float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, char * leap,
 		curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || leap[sbi] || min_sbi != sbi)
+	if (sbi >= SBC || leap[sbi] != SSA || min_sbi != sbi)
 		return;
 
 	float rand = curand_uniform(&s[sbi]);

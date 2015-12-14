@@ -93,17 +93,15 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	initialize_prngstate_array<<<1, sbc>>>(d_prngstate);
 
 	// ----- allocate leap and cr arrays
-	bool * d_leap;
-	bool * d_cr;
-	gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(bool)));
-	gpuErrchk(cudaMalloc(&d_cr, sbc * sizeof(bool)));
+	char * d_leap;
+	gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(char)));
 
 	// zero GPU memory, just to be sure
 	// TODO: remove(?) or check that we are zeroing everything
 	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
-	gpuErrchk(cudaMemset(d_leap, 0, sbc * sizeof(bool)));
+	gpuErrchk(cudaMemset(d_leap, 0, sbc * sizeof(char)));
 
 #if LOG
 	std::cout << "done!\n";
@@ -129,18 +127,15 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #endif
 
 	fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
-			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr, d_prngstate);
+			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_prngstate);
 
 #if LOG
 	print_tau(tau, sbc);
 
-	bool * h_leap = new bool[sbc];
-	bool * h_cr = new bool[sbc];
-	gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
-	gpuErrchk(cudaMemcpy(h_cr, d_cr, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
+	char * h_leap = new char[sbc];
+	gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(char), cudaMemcpyDeviceToHost));
 	for (int i = 0; i < sbc; i++) {
-		std::cout << "sbi " << i << "] " << "leap: " << (h_leap[i] ? "yes" : "no") << ", cr: "
-				<< (h_cr[i] ? "yes" : "no") << "\n";
+		std::cout << "sbi " << i << "] " << "leap: " << '0' + h_leap[i] << "\n";
 	}
 #endif
 
@@ -154,6 +149,10 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #endif
 
 	for (int step = 1; step <= steps; step++) {
+
+#if LOGSTEPS
+		std::cout << "\n----- [step " << step << "] -----\n\n";
+#endif
 
 		// copy current state to d_state2
 		gpuErrchk(cudaMemcpy(d_state2, d_state, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
@@ -173,7 +172,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		REPEAT:
 		// first we leap, with tau = min_tau, in every subvolume that has leap enabled
 		leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
-				d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_cr, d_prngstate);
+				d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_prngstate);
 
 		// now we do a single ssa step, if min_tau was in a subvolume with leap not enabled
 		ssa_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
@@ -187,7 +186,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #if LOGSTEPS
 			std::cout << "\n--------------- REVERT STATE ---------------\n\n";
 			std::cout << "----- old tau = " << min_tau << "time was = " << h_current_time << "\n";
-			std::cout << "----- new tau = " << min_tau/2.0 << " ";
+			std::cout << "----- new tau = " << min_tau / 2.0 << " ";
 #endif
 			// restore state from the copy
 			gpuErrchk(cudaMemcpy(d_state, d_state2, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
@@ -207,15 +206,13 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 		// update tau array
 		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
-				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_cr,
-				d_prngstate);
+				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), d_leap, d_prngstate);
 
 #if LOG
 		std::cout << "\n";
 #endif
 
 #if LOGSTEPS
-		std::cout << "\n----- [step " << step << "] -----\n\n";
 
 		// print system state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
@@ -231,12 +228,9 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 		// print cr and leap arrays
 		bool * h_leap = new bool[sbc];
-		bool * h_cr = new bool[sbc];
 		gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
-		gpuErrchk(cudaMemcpy(h_cr, d_cr, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
 		for (int i = 0; i < sbc; i++) {
-			std::cout << "sbi " << i << "] " << "leap: " << (h_leap[i] ? "yes" : "no") << ", cr: "
-			<< (h_cr[i] ? "yes" : "no") << "\n";
+			std::cout << "sbi " << i << "] " << "leap: " << '0' + h_leap[i] << "\n";
 		}
 
 #endif
