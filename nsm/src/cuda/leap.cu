@@ -316,40 +316,14 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			continue;
 		}
 
-		// how many molecules of spi are diffused away from sbi
-		unsigned int k_sum = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)]);
-
-		// update state of current subvolume (we need to to this now
-		// because we'll change k_sum in the following.
-		// TODO: check if neg.
-		atomicSub(&state[GET_SPI(spi, sbi)], k_sum);
-
-		// try to diffuse k_sum molecules to neighbours evenly
-		unsigned int k = (unsigned int) (k_sum / neigh_count);
+		// diffuse to each neighbour
 		for (unsigned int ngb = 0; ngb < neigh_count; ngb++) {
+			unsigned int k = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)]);
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
+			atomicSub(&state[GET_SPI(spi, sbi)], k);
 			if (k > 0)
 				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k, spi,
 						topology[sbi * 6 + ngb]);
-			k_sum -= k;
-		}
-
-		while (k_sum > 0) {    // k_sum was not divisible by neigh_count
-			// we know that k_sum is now smaller than neigh_count,
-			// se just send one molecule to each neightbour until
-			// we have diffused all the remaining ones.
-			//
-			// We need to randomize the target subvolume or the simulation
-			// will be biased!
-			int rdi; // neighbour index
-			do {
-				rdi = (int) (curand_uniform(&prngstate[sbi]) * 6);
-			} while (rdi > 5 || topology[sbi * 6 + rdi] == sbi); // shortcircuited
-
-			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + rdi])], 1);
-			printf("(%f) [subv %d] diffuse 1 molecule of specie %d to subv %d \n", *current_time, sbi, spi,
-					topology[sbi * 6 + rdi]);
-			k_sum--;
 		}
 
 	}
