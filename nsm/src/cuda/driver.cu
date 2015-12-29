@@ -6,11 +6,10 @@ __constant__ int RC;
 __constant__ int NC;
 __constant__ float EPSILON;
 __constant__ int * REACTANTS;
-float TAU;
 
 namespace NSMCuda {
 
-void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps)
+void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps, int constants_files_count)
 {
 	unsigned int sbc = t.getN();
 	int spc = s.getS();
@@ -70,10 +69,10 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	// ----- allocate and memcpy rrc and drc -----
 	float * d_rrc;
 	float * d_drc;
-	gpuErrchk(cudaMalloc(&d_rrc, rc * sizeof(float)));
-	gpuErrchk(cudaMalloc(&d_drc, spc * sizeof(float)));
-	gpuErrchk(cudaMemcpy(d_rrc, h_rrc, rc * sizeof(float), cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(d_drc, h_drc, spc * sizeof(float), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMalloc(&d_rrc, rc * sizeof(float) * constants_files_count));
+	gpuErrchk(cudaMalloc(&d_drc, spc * sizeof(float) * constants_files_count));
+	gpuErrchk(cudaMemcpy(d_rrc, h_rrc, rc * sizeof(float) * constants_files_count, cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMemcpy(d_drc, h_drc, spc * sizeof(float) * constants_files_count, cudaMemcpyHostToDevice));
 
 	// ----- allocate react_rates and diff_rates array
 	float * d_react_rates_array;

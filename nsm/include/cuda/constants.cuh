@@ -8,7 +8,7 @@ extern __constant__ int NC;
 extern __constant__ float EPSILON;
 
 #define LOG true
-#define LOGSTEPS true
+#define LOGSTEPS false
 
 enum op: char {
 	LEAP_CR,      // leap, then trigger a critical event

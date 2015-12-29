@@ -262,8 +262,8 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	//       one and we didn't get to act. We can't fast-forward (that
 	//       would bring tau to zero), so just recompute a new tau.
 	if (leap[sbi] == SSA_FF && !isinf(tau[sbi]) && min_tau > 0.0 && min_tau != tau[sbi]) {
-		printf("----------> subv %d was fast forwared from tau = %f to tau = %f (min_tau = %f)\n", sbi, tau[sbi],
-				tau[sbi] - min_tau, min_tau);
+		// printf("----------> subv %d was fast forwared from tau = %f to tau = %f (min_tau = %f)\n", sbi, tau[sbi],
+		// tau[sbi] - min_tau, min_tau);
 		tau[sbi] -= min_tau;
 		return;
 	}
@@ -347,7 +347,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			atomicSub(&state[GET_SPI(spi, sbi)], k);
 			if (leap[topology[sbi * 6 + ngb]] == SSA_FF) {
 				leap[topology[sbi * 6 + ngb]] = SSA;    // set the OP of the receiver to SSA
-				printf("-----> subv %d set %d to SSA\n", sbi, topology[sbi * 6 + ngb]);
+				// printf("-----> subv %d set %d to SSA\n", sbi, topology[sbi * 6 + ngb]);
 			}
 
 			if (k > 0)

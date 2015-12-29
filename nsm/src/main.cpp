@@ -13,7 +13,7 @@
 int main(int argc, char * argv[])
 {
 	if (argc < 5) {
-		std::cout << "Usage: ./nsm topology_file state_file reactions_file constants_file {no. of steps}\n";
+		std::cout << "Usage: ./nsm topology_file state_file reactions_file steps [constants_file]+ \n";
 		return 1;
 	}
 
@@ -70,15 +70,23 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-	// ---------- open and parse rate constants file ----------
-	std::ifstream constants_file(argv[4]);
-	float * reaction_rates_constants = new float[reactions.getR()];
-	float * diffusion_rates_constants = new float[reactions.getS()];
+	// --------- parse number of steps value ----------
+	int steps = std::stoi(argv[4]);
 
-	NSMCuda::read_rates_constants(constants_file, reaction_rates_constants, diffusion_rates_constants, reactions.getR(),
-			reactions.getS());
+	// ---------- open and parse rate constants file(s) ----------
+	int constants_files_count = argc - 5;
 
-	int steps = std::stoi(argv[5]);
+	float * reaction_rates_constants = new float[reactions.getR() * constants_files_count];
+	float * diffusion_rates_constants = new float[reactions.getS() * constants_files_count];
+
+	for (int i = 0; i < constants_files_count; i++) {
+		std::ifstream constants_file(argv[i + 5]);
+		NSMCuda::read_rates_constants(constants_file,
+				&reaction_rates_constants[i*reactions.getR()],
+				&diffusion_rates_constants[i*reactions.getS()],
+				reactions.getR(), reactions.getS());
+	}
+
 
 #if LOG
 	std::cout << " done!\n";
@@ -90,7 +98,8 @@ int main(int argc, char * argv[])
 	std::cout << "--- Consistency check... done!" << "\n\n";
 #endif
 
-	NSMCuda::run_simulation(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants, steps);
+	NSMCuda::run_simulation(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants,
+			steps, constants_files_count);
 
 }
 
