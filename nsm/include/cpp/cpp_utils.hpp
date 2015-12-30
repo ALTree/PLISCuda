@@ -26,7 +26,7 @@ inline std::vector<std::string> split(const std::string &s, char delim)
 	return elems;
 }
 
-inline bool read_rates_constants(std::istream& is, float * reaction_rates_constants, float * diffusion_rates_constants,
+inline void read_rates_constants(std::istream& is, float * reaction_rates_constants, float * diffusion_rates_constants,
 		int reactions_count, int species_count)
 {
 	std::string line;
@@ -42,8 +42,17 @@ inline bool read_rates_constants(std::istream& is, float * reaction_rates_consta
 	for (int i = 0; i < species_count; i++) {
 		diffusion_rates_constants[i] = std::stof(rate_constants.at(i));
 	}
+}
 
-	return true;
+inline void read_subv_constants(std::istream& is, int * subv_constants, uint sbc)
+{
+	std::string line;
+
+	for (int i = 0; i < sbc; i++) {
+		std::getline(is, line, ':');
+		std::getline(is, line);
+		subv_constants[i] = std::stoi(line);
+	}
 }
 
 }

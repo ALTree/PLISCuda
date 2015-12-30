@@ -9,7 +9,8 @@ __constant__ int * REACTANTS;
 
 namespace NSMCuda {
 
-void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps, int constants_files_count)
+void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps,
+		int constants_files_count, int * subv_constants)
 {
 	unsigned int sbc = t.getN();
 	int spc = s.getS();
@@ -17,7 +18,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 	int nc = 10;    // threshold for critical/non-critical event
 	float epsilon = 0.05;    // the epsilon parameter in the computation of the leap tau
-							 // see [Tao06], formula 33
+							 // see [Cao06], formula 33
 
 #if LOG
 	std::cout << "\n   ***   Start simulation log   ***   \n\n";
@@ -74,6 +75,11 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMemcpy(d_rrc, h_rrc, rc * sizeof(float) * constants_files_count, cudaMemcpyHostToDevice));
 	gpuErrchk(cudaMemcpy(d_drc, h_drc, spc * sizeof(float) * constants_files_count, cudaMemcpyHostToDevice));
 
+	// ----- allocate and memcpy subv_constants array -----
+	int * d_subv_consts;
+	gpuErrchk(cudaMalloc(&d_subv_consts, sbc * sizeof(int)));
+	gpuErrchk(cudaMemcpy(d_subv_consts, subv_constants, sbc * sizeof(int), cudaMemcpyHostToDevice));
+
 	// ----- allocate react_rates and diff_rates array
 	float * d_react_rates_array;
 	float * d_diff_rates_array;
@@ -107,8 +113,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	std::cout << "--- Initializing rate matrix... ";
 #endif
 
-	compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
-			d_diff_rates_array);
+	compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
+			d_react_rates_array, d_diff_rates_array);
 
 #if LOG
 	std::cout << "done!\n";
@@ -200,8 +206,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		}
 
 		// update rates
-		compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_react_rates_array,
-				d_diff_rates_array);
+		compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
+				d_react_rates_array, d_diff_rates_array);
 
 		// update tau array
 		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
