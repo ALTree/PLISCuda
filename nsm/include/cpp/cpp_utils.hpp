@@ -55,6 +55,34 @@ inline void read_subv_constants(std::istream& is, int * subv_constants, uint sbc
 	}
 }
 
+inline float read_log_data(std::istream& is, bool * log_subv, bool * log_specie)
+{
+	std::string line;
+
+	// parse log frequency
+	std::getline(is, line, ':');
+	std::getline(is, line);
+	float freq = std::stof(line);
+
+	// parse subvolumes line
+	std::getline(is, line, ' ');
+	std::getline(is, line);
+	std::vector<std::string> subv = NSMCuda::split(line, ' ');
+	for (auto &i : subv) {
+		log_subv[std::stoi(i)] = true;
+	}
+
+	// parse species line
+	std::getline(is, line, ' ');
+	std::getline(is, line);
+	std::vector<std::string> spc = NSMCuda::split(line, ' ');
+	for (auto &i : spc) {
+		log_subv[std::stoi(i)] = true;
+	}
+
+	return freq;
+}
+
 }
 
 // this NEEDS to stay here: it's to be used in host code

@@ -12,9 +12,9 @@
 
 int main(int argc, char * argv[])
 {
-	if (argc < 7) {
+	if (argc < 8) {
 		std::cout
-				<< "Usage: ./nsm topology_file state_file reactions_file steps subv_constants_file [constants_file]+ \n";
+				<< "Usage: ./nsm topology_file state_file reactions_file steps to_log subv_constants_file [constants_file]+ \n";
 		return 1;
 	}
 
@@ -74,19 +74,25 @@ int main(int argc, char * argv[])
 	// --------- parse number of steps value ----------
 	int steps = std::stoi(argv[4]);
 
+	// --------- parse to_log file ----------
+	std::ifstream log_file(argv[5]);
+	bool * subv_to_log = new bool[topology.getN()];
+	bool * spc_to_log = new bool[reactions.getS()];
+	NSMCuda::read_log_data(log_file, subv_to_log, spc_to_log);
+
 	// --------- parse subv <-> constants_set file ----------
 	int * subv_constants = new int[topology.getN()];
-	std::ifstream subv_file(argv[5]);
+	std::ifstream subv_file(argv[6]);
 	NSMCuda::read_subv_constants(subv_file, subv_constants, topology.getN());
 
 	// ---------- open and parse rate constants file(s) ----------
-	int constants_files_count = argc - 6;
+	int constants_files_count = argc - 7;
 
 	float * reaction_rates_constants = new float[reactions.getR() * constants_files_count];
 	float * diffusion_rates_constants = new float[reactions.getS() * constants_files_count];
 
 	for (int i = 0; i < constants_files_count; i++) {
-		std::ifstream constants_file(argv[i + 6]);
+		std::ifstream constants_file(argv[i + 7]);
 		NSMCuda::read_rates_constants(constants_file, &reaction_rates_constants[i * reactions.getR()],
 				&diffusion_rates_constants[i * reactions.getS()], reactions.getR(), reactions.getS());
 	}

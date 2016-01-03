@@ -206,6 +206,9 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		}
 
 		// update rates
+		// TODO: the computed values are not used if the subvolume
+		// is tagged as SSA_FF, so we should avoid doing the
+		// computation
 		compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
 				d_react_rates_array, d_diff_rates_array);
 
