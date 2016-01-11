@@ -38,7 +38,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	float epsilon = 0.05;    // the epsilon parameter in the computation of the leap tau
 							 // see [Cao06], formula 33
 
-	bool log_events = true;
+	bool log_events = false;
 
 #if LOG
 	std::cout << "\n   ***   Start simulation log   ***   \n\n";
@@ -127,8 +127,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	bool * d_spc_to_log;
 	gpuErrchk(cudaMalloc(&d_sbv_to_log, sbc * sizeof(bool)));
 	gpuErrchk(cudaMalloc(&d_spc_to_log, spc * sizeof(bool)));
-	gpuErrchk(cudaMemcpy(d_sbv_to_log, &to_log.subv, sbc * sizeof(bool), cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(d_spc_to_log, &to_log.spc, spc * sizeof(bool), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMemcpy(d_sbv_to_log, to_log.subv, sbc * sizeof(bool), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMemcpy(d_spc_to_log, to_log.spc, spc * sizeof(bool), cudaMemcpyHostToDevice));
 
 	int * d_log_data;
 
@@ -189,6 +189,15 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #if LOGSTEPS
 		std::cout << "\n----- [step " << step << "] -----\n\n";
 #endif
+
+		if(!log_events & step % 100 == 0) {
+			if(step > 100) {
+				for(int i = 0; i < 15; i++)
+					std::cout << "\b \b";
+			}
+			std::cout << std::setw(7) << step << "/" << steps;
+
+		}
 
 		// copy current state to d_state2
 		gpuErrchk(cudaMemcpy(d_state2, d_state, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));

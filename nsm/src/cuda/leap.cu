@@ -320,7 +320,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		unsigned int k;    // how many times it fires
 		k = curand_poisson(&prngstate[sbi], min_tau * react_rates_array[GET_RR(ri, sbi)]);
 
-		if (k > 0)
+		if (LOG_EVENTS && k > 0)
 			printf("(%f) [subv %d] fire reaction %d for %d times\n", *current_time, sbi, ri, k);
 
 		// update state
@@ -350,7 +350,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 				// printf("-----> subv %d set %d to SSA\n", sbi, topology[sbi * 6 + ngb]);
 			}
 
-			if (k > 0)
+			if (LOG_EVENTS && k > 0)
 				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k, spi,
 						topology[sbi * 6 + ngb]);
 		}
@@ -428,7 +428,8 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
 		}
 
-		printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
+		if(LOG_EVENTS)
+			printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
 
 	} else {    // diffusion
 
@@ -477,7 +478,8 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 				leap[topology[rdi]] = SSA;    // set the OP of the receiver to SSA
 		}
 
-		printf("(%f) [subv %d] diffuse specie %d to %d (critical)\n", *current_time, sbi, spi, rdi);
+		if(LOG_EVENTS)
+			printf("(%f) [subv %d] diffuse specie %d to %d (critical)\n", *current_time, sbi, spi, rdi);
 	}
 
 }

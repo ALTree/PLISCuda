@@ -76,7 +76,8 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 	if (rand < rate_matrix[GET_RATE(0, sbi)] / rate_matrix[GET_RATE(2, sbi)]) {    // reaction
 
 		int ri = choose_rand_reaction(rate_matrix, react_rates_array, rand);
-		printf("(%f) [subv %d][SSA] fire reaction %d\n", *current_time, sbi, ri);
+		if(LOG_EVENTS)
+			printf("(%f) [subv %d][SSA] fire reaction %d\n", *current_time, sbi, ri);
 
 		// fire reaction and update the state of the system
 		// if sbi = min_sbi then it should be guaranteed that ri != -1
@@ -100,7 +101,8 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 		// get index of neighbour #rdi (overwrite rdi, whatever)
 		rdi = topology[sbi * 6 + rdi];
 
-		printf("(%f) [subv %d][SSA] diffuse specie %d in subvolume %d\n", *current_time, sbi, spi, rdi);
+		if(LOG_EVENTS)
+			printf("(%f) [subv %d][SSA] diffuse specie %d in subvolume %d\n", *current_time, sbi, spi, rdi);
 
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
 		if (rdi != sbi) {

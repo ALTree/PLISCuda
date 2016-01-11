@@ -5,6 +5,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/logical.h>
 #include <curand_kernel.h>
+#include <iomanip>
 
 #include "../cpp/State.hpp"
 #include "../cpp/Reactions.hpp"
