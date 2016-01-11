@@ -6,6 +6,7 @@ __constant__ int RC;
 __constant__ int NC;
 __constant__ float EPSILON;
 __constant__ int * REACTANTS;
+__constant__ bool LOG_EVENTS;
 
 namespace NSMCuda {
 
@@ -16,9 +17,13 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	int spc = s.getS();
 	int rc = r.getR();
 
+	int threads = 512;
+	int blocks = ceil(sbc / 512.0);
+	std::cout << "threads: " << threads << ", blocks: " << blocks << "\n";
+
 	std::cout << "Will log data from subvolumes:\n\t";
 	for(int i = 0; i < sbc; i++)
-		std::cout << (to_log.subv[i] ? std::to_string(i) : "") << " ";
+		std::cout << (to_log.subv[i] ? std::to_string(i) + " ": "");
 	std::cout << "\n";
 
 	std::cout << "and species\n\t";
@@ -33,6 +38,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	float epsilon = 0.05;    // the epsilon parameter in the computation of the leap tau
 							 // see [Cao06], formula 33
 
+	bool log_events = true;
+
 #if LOG
 	std::cout << "\n   ***   Start simulation log   ***   \n\n";
 #endif
@@ -43,6 +50,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMemcpyToSymbol(RC, &rc, sizeof(int)));
 	gpuErrchk(cudaMemcpyToSymbol(NC, &nc, sizeof(int)));
 	gpuErrchk(cudaMemcpyToSymbol(EPSILON, &epsilon, sizeof(float)));
+	gpuErrchk(cudaMemcpyToSymbol(LOG_EVENTS, &log_events, sizeof(bool)));
 
 #if LOG
 	std::cout << "--- Allocating GPU memory... ";
@@ -108,7 +116,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	// ----- allocate and initialize prng array
 	curandStateMRG32k3a * d_prngstate;
 	gpuErrchk(cudaMalloc(&d_prngstate, sbc * sizeof(curandStateMRG32k3a)));
-	initialize_prngstate_array<<<1, sbc>>>(d_prngstate);
+	initialize_prngstate_array<<<blocks, threads>>>(d_prngstate);
 
 	// ----- allocate leap and cr arrays
 	char * d_leap;
@@ -136,7 +144,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	std::cout << "--- Initializing rate matrix... ";
 #endif
 
-	compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
+	compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
 			d_react_rates_array, d_diff_rates_array);
 
 #if LOG
@@ -154,7 +162,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	std::cout << "--- Fill initial next_event array... ";
 #endif
 
-	fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
+	fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
 			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
 
 #if LOG
@@ -199,16 +207,16 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 		REPEAT:
 		// first we leap, with tau = min_tau, in every subvolume that has leap enabled
-		leap_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
+		leap_step<<<blocks, threads>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
 				d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_prngstate);
 
 		// now we do a single ssa step, if min_tau was in a subvolume with leap not enabled
-		ssa_step<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
+		ssa_step<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
 				d_diff_rates_array, min_tau_sbi, d_current_time, d_leap, d_prngstate);
 
 		// check if we need to revert this step
 		thrust::device_vector<bool> revert(sbc);
-		check_state<<<1, sbc>>>(d_state, thrust::raw_pointer_cast(revert.data()));
+		check_state<<<blocks, threads>>>(d_state, thrust::raw_pointer_cast(revert.data()));
 		bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<bool>());
 		if (revert_state) {
 #if LOGSTEPS
@@ -228,17 +236,17 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 			goto REPEAT;
 		}
 
-		log_data<<<1, sbc>>>(d_state, d_sbv_to_log, d_spc_to_log, d_log_data);
+		log_data<<<blocks, threads>>>(d_state, d_sbv_to_log, d_spc_to_log, d_log_data);
 
 		// update rates
 		// TODO: the computed values are not used if the subvolume
 		// is tagged as SSA_FF, so we should avoid doing the
 		// computation
-		compute_rates<<<1, sbc>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
+		compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
 				d_react_rates_array, d_diff_rates_array);
 
 		// update tau array
-		fill_tau_array_leap<<<1, sbc>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
+		fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
 				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau, d_leap,
 				d_prngstate);
 

@@ -458,7 +458,9 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			return;
 
 		// choose a random destination
-		// TODO: we need to re-use the rand we already have.
+		// We should re-use the rand we already have, but it doesn't
+		// really matter, since we are using rejection sampling to
+		// choose the random destination.
 		int rdi;
 		do {
 			rdi = (int) (curand_uniform(&prngstate[sbi]) * 6);
