@@ -77,7 +77,7 @@ inline float read_log_data(std::istream& is, bool * log_subv, bool * log_specie)
 	std::getline(is, line);
 	std::vector<std::string> spc = NSMCuda::split(line, ' ');
 	for (auto &i : spc) {
-		log_subv[std::stoi(i)] = true;
+		log_specie[std::stoi(i)] = true;
 	}
 
 	return freq;

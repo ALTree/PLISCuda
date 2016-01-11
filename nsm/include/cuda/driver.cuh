@@ -17,13 +17,20 @@
 #include "ssa.cuh"
 #include "leap.cuh"
 #include "constants.cuh"
+#include "log.cuh"
+
+struct ToLog {
+	bool * subv;
+	bool * spc;
+	float freq;
+};
 
 namespace NSMCuda {
 
 // Run a simulation with the given topology, initial state, set of reactions, and
 // react and diffusion rates constants, for *steps* steps.
 void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps,
-		int constants_files_count, int * subv_constants);
+		int constants_files_count, int * subv_constants, struct ToLog);
 
 // get index of min value in tau array
 int h_get_min_tau(thrust::device_vector<float> &tau);

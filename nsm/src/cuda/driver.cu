@@ -10,11 +10,24 @@ __constant__ int * REACTANTS;
 namespace NSMCuda {
 
 void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps,
-		int constants_files_count, int * subv_constants)
+		int constants_files_count, int * subv_constants, struct ToLog to_log)
 {
 	unsigned int sbc = t.getN();
 	int spc = s.getS();
 	int rc = r.getR();
+
+	std::cout << "Will log data from subvolumes:\n\t";
+	for(int i = 0; i < sbc; i++)
+		std::cout << (to_log.subv[i] ? std::to_string(i) : "") << " ";
+	std::cout << "\n";
+
+	std::cout << "and species\n\t";
+	for(int i = 0; i < spc; i++)
+			std::cout << (to_log.spc[i] ? std::to_string(i) : "") << " ";
+		std::cout << "\n";
+
+	std::cout << "with frequency\n\t";
+	std::cout << to_log.freq << "\n";
 
 	int nc = 10;    // threshold for critical/non-critical event
 	float epsilon = 0.05;    // the epsilon parameter in the computation of the leap tau
@@ -100,6 +113,16 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	// ----- allocate leap and cr arrays
 	char * d_leap;
 	gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(char)));
+
+	// ----- allocate and initialize log arrays
+	bool * d_sbv_to_log;
+	bool * d_spc_to_log;
+	gpuErrchk(cudaMalloc(&d_sbv_to_log, sbc * sizeof(bool)));
+	gpuErrchk(cudaMalloc(&d_spc_to_log, spc * sizeof(bool)));
+	gpuErrchk(cudaMemcpy(d_sbv_to_log, &to_log.subv, sbc * sizeof(bool), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMemcpy(d_spc_to_log, &to_log.spc, spc * sizeof(bool), cudaMemcpyHostToDevice));
+
+	int * d_log_data;
 
 	// zero GPU memory, just to be sure
 	// TODO: remove(?) or check that we are zeroing everything
@@ -204,6 +227,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #endif
 			goto REPEAT;
 		}
+
+		log_data<<<1, sbc>>>(d_state, d_sbv_to_log, d_spc_to_log, d_log_data);
 
 		// update rates
 		// TODO: the computed values are not used if the subvolume
