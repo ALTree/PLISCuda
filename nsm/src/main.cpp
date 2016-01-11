@@ -12,7 +12,6 @@
 
 int main(int argc, char * argv[])
 {
-
 	if (argc < 8) {
 		std::cout
 				<< "Usage: ./nsm topology_file state_file reactions_file steps to_log subv_constants_file [constants_file]+ \n";
