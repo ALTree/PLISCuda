@@ -21,8 +21,10 @@
 #include "log.cuh"
 
 struct ToLog {
-	bool * subv;
+	unsigned int * subv;
+	int subv_len;
 	bool * spc;
+	int spc_len;
 	float freq;
 };
 

@@ -22,17 +22,17 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	std::cout << "threads: " << threads << ", blocks: " << blocks << "\n";
 
 	std::cout << "Will log data from subvolumes:\n\t";
-	for(int i = 0; i < sbc; i++)
-		std::cout << (to_log.subv[i] ? std::to_string(i) + " ": "");
+	for (int i = 0; i < to_log.subv_len; i++)
+		std::cout << to_log.subv[i] << " ";
 	std::cout << "\n";
 
 	std::cout << "and species\n\t";
-	for(int i = 0; i < spc; i++)
-			std::cout << (to_log.spc[i] ? std::to_string(i) : "") << " ";
-		std::cout << "\n";
+	for (int i = 0; i < spc; i++)
+		std::cout << (to_log.spc[i] ? std::to_string(i) : "") << " ";
+	std::cout << "\n";
 
 	std::cout << "with frequency\n\t";
-	std::cout << to_log.freq << "\n";
+	std::cout << to_log.freq << "\n\n";
 
 	int nc = 10;    // threshold for critical/non-critical event
 	float epsilon = 0.05;    // the epsilon parameter in the computation of the leap tau
@@ -107,7 +107,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMalloc(&d_react_rates_array, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMalloc(&d_diff_rates_array, sbc * spc * sizeof(float)));
 
-	// ----- allocate tau thrust vector and current_time
+	// ----- allocate tau thrust vector
 	thrust::device_vector<float> tau(sbc);
 	float * d_current_time;
 	float h_current_time = 0.0;
@@ -123,14 +123,16 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(char)));
 
 	// ----- allocate and initialize log arrays
-	bool * d_sbv_to_log;
+	unsigned int * d_sbv_to_log;
 	bool * d_spc_to_log;
-	gpuErrchk(cudaMalloc(&d_sbv_to_log, sbc * sizeof(bool)));
+	gpuErrchk(cudaMalloc(&d_sbv_to_log, to_log.subv_len * sizeof(unsigned int)));
 	gpuErrchk(cudaMalloc(&d_spc_to_log, spc * sizeof(bool)));
-	gpuErrchk(cudaMemcpy(d_sbv_to_log, to_log.subv, sbc * sizeof(bool), cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMemcpy(d_sbv_to_log, to_log.subv, to_log.subv_len * sizeof(unsigned int), cudaMemcpyHostToDevice));
 	gpuErrchk(cudaMemcpy(d_spc_to_log, to_log.spc, spc * sizeof(bool), cudaMemcpyHostToDevice));
 
+	int MAX_LOG = 1000;
 	int * d_log_data;
+	gpuErrchk(cudaMalloc(&d_log_data, to_log.subv_len * to_log.spc_len * MAX_LOG * sizeof(int)));
 
 	// zero GPU memory, just to be sure
 	// TODO: remove(?) or check that we are zeroing everything
@@ -138,6 +140,9 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_leap, 0, sbc * sizeof(char)));
+	gpuErrchk(cudaMemset(d_log_data, 0, to_log.subv_len * to_log.spc_len * MAX_LOG * sizeof(int)));
+
+	int * d_log_data_start = d_log_data;
 
 #if LOG
 	std::cout << "done!\n";
@@ -162,8 +167,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	std::cout << "--- Fill initial next_event array... ";
 #endif
 
-	fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
-			d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
+	fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
+			d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
 
 #if LOG
 	print_tau(tau, sbc);
@@ -184,15 +189,17 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	std::cout << "--- Start simulation.\n\n";
 #endif
 
+	int log_counter = 0;
+	float time_since_last_log = 0.0;
 	for (int step = 1; step <= steps; step++) {
 
 #if LOGSTEPS
 		std::cout << "\n----- [step " << step << "] -----\n\n";
 #endif
 
-		if(!log_events & step % 100 == 0) {
-			if(step > 100) {
-				for(int i = 0; i < 15; i++)
+		if (!log_events & step % 100 == 0) {
+			if (step > 100) {
+				for (int i = 0; i < 15; i++)
 					std::cout << "\b \b";
 			}
 			std::cout << std::setw(7) << step << "/" << steps;
@@ -245,7 +252,15 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 			goto REPEAT;
 		}
 
-		log_data<<<blocks, threads>>>(d_state, d_sbv_to_log, d_spc_to_log, d_log_data);
+		if (time_since_last_log >= to_log.freq && log_counter < MAX_LOG) {
+			log_data<<<blocks, threads>>>(d_state, d_sbv_to_log, to_log.subv_len, d_spc_to_log, to_log.spc_len,
+					d_log_data);
+			time_since_last_log = 0.0;
+			d_log_data = &d_log_data[to_log.spc_len * to_log.subv_len];
+			log_counter++;
+		} else {
+			time_since_last_log += min_tau;
+		}
 
 		// update rates
 		// TODO: the computed values are not used if the subvolume
@@ -295,7 +310,34 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #endif
 
 	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+	std::cout << "\n";
+	std::cout << "--- Final State ---\n";
 	print_state(h_state, spc, sbc);
+
+	std::cout << "\n\n--- Log Data ---\n";
+	int * h_log_data = new int[log_counter * to_log.spc_len * to_log.subv_len];
+	gpuErrchk(
+			cudaMemcpy(h_log_data, d_log_data_start, log_counter * to_log.spc_len * to_log.subv_len * sizeof(int),
+					cudaMemcpyDeviceToHost));
+
+	for (int i = 0; i < 100; i++)
+		std::cout << h_log_data[i] << " ";
+	std::cout << "\n";
+
+	for (int t = 0; t < log_counter; t++) {
+		std::cout << "--- time ~ " << t * to_log.freq << "\n";
+		for (int spi = 0; spi < to_log.spc_len; spi++) {
+			std::cout << "\tlogged specie " << spi << "\n\t\t";
+			for (int sbi = 0; sbi < to_log.subv_len; sbi++) {
+				std::cout << h_log_data[spi * to_log.spc_len + sbi] << " ";
+			}
+			std::cout << "\n";
+
+		}
+		h_log_data = &h_log_data[to_log.spc_len * to_log.subv_len];
+		std::cout << "\n";
+	}
+
 }
 
 int h_get_min_tau(thrust::device_vector<float> &tau)

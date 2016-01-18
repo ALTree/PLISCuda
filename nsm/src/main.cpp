@@ -76,13 +76,17 @@ int main(int argc, char * argv[])
 
 	// --------- parse to_log file ----------
 	std::ifstream log_file(argv[5]);
-	bool * subv_to_log = new bool[topology.getN()]();
+	unsigned int * subv_to_log = new unsigned int[topology.getN()]();
+	int log_subv_len;
+	int log_spc_len;
 	bool * spc_to_log = new bool[reactions.getS()]();
-	float freq = NSMCuda::read_log_data(log_file, subv_to_log, spc_to_log);
+	float freq = NSMCuda::read_log_data(log_file, subv_to_log, &log_subv_len, spc_to_log, &log_spc_len);
 
 	struct ToLog to_log;
 	to_log.subv = subv_to_log;
+	to_log.subv_len = log_subv_len;
 	to_log.spc = spc_to_log;
+	to_log.spc_len = log_spc_len;
 	to_log.freq = freq;
 
 	// --------- parse subv <-> constants_set file ----------

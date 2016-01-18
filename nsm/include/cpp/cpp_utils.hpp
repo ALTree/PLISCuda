@@ -55,7 +55,8 @@ inline void read_subv_constants(std::istream& is, int * subv_constants, uint sbc
 	}
 }
 
-inline float read_log_data(std::istream& is, bool * log_subv, bool * log_specie)
+inline float read_log_data(std::istream& is, unsigned int * log_subv, int * log_subv_len, bool * log_specie,
+		int * log_spc_len)
 {
 	std::string line;
 
@@ -68,17 +69,24 @@ inline float read_log_data(std::istream& is, bool * log_subv, bool * log_specie)
 	std::getline(is, line, ' ');
 	std::getline(is, line);
 	std::vector<std::string> subv = NSMCuda::split(line, ' ');
+	int count = 0;
 	for (auto &i : subv) {
-		log_subv[std::stoi(i)] = true;
+		log_subv[count] = std::stoi(i);
+		count++;
 	}
+
+	*log_subv_len = count;
 
 	// parse species line
 	std::getline(is, line, ' ');
 	std::getline(is, line);
 	std::vector<std::string> spc = NSMCuda::split(line, ' ');
+	count = 0;
 	for (auto &i : spc) {
 		log_specie[std::stoi(i)] = true;
+		count++;
 	}
+	*log_spc_len = count;
 
 	return freq;
 }
