@@ -193,11 +193,15 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	float time_since_last_log = 0.0;
 	for (int step = 1; step <= steps; step++) {
 
+		if(h_current_time > 1000.0) {
+			break;
+		}
+
 #if LOGSTEPS
 		std::cout << "\n----- [step " << step << "] -----\n\n";
 #endif
 
-		if (!log_events & step % 100 == 0) {
+		if (false && !log_events && step % 100 == 0) {
 			if (step > 100) {
 				for (int i = 0; i < 15; i++)
 					std::cout << "\b \b";
@@ -211,8 +215,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 		// get min tau from device
 		int min_tau_sbi = h_get_min_tau(tau);
-		if (isinf(tau[min_tau_sbi])) {
-			printf("\n\n--------------- WARNING: min(tau) = +Inf - abort simulation ---------------\n\n");
+		if (isinf(tau[min_tau_sbi]) || tau[min_tau_sbi] < 0.0) {
+			printf("\n\n--------------- WARNING: min(tau) = +Inf or < 0 - abort simulation ---------------\n\n");
 			break;
 		}
 
@@ -313,29 +317,32 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	std::cout << "\n";
 	std::cout << "--- Final State ---\n";
 	print_state(h_state, spc, sbc);
+	std::cout << "Final simulation time: " << h_current_time << "\n";
 
-	std::cout << "\n\n--- Log Data ---\n";
-	int * h_log_data = new int[log_counter * to_log.spc_len * to_log.subv_len];
-	gpuErrchk(
-			cudaMemcpy(h_log_data, d_log_data_start, log_counter * to_log.spc_len * to_log.subv_len * sizeof(int),
-					cudaMemcpyDeviceToHost));
+	if (log_events) {
+		std::cout << "\n\n--- Log Data ---\n";
+		int * h_log_data = new int[log_counter * to_log.spc_len * to_log.subv_len];
+		gpuErrchk(
+				cudaMemcpy(h_log_data, d_log_data_start, log_counter * to_log.spc_len * to_log.subv_len * sizeof(int),
+						cudaMemcpyDeviceToHost));
 
-	for (int i = 0; i < 100; i++)
-		std::cout << h_log_data[i] << " ";
-	std::cout << "\n";
-
-	for (int t = 0; t < log_counter; t++) {
-		std::cout << "--- time ~ " << t * to_log.freq << "\n";
-		for (int spi = 0; spi < to_log.spc_len; spi++) {
-			std::cout << "\tlogged specie " << spi << "\n\t\t";
-			for (int sbi = 0; sbi < to_log.subv_len; sbi++) {
-				std::cout << h_log_data[spi * to_log.spc_len + sbi] << " ";
-			}
-			std::cout << "\n";
-
-		}
-		h_log_data = &h_log_data[to_log.spc_len * to_log.subv_len];
+		for (int i = 0; i < 100; i++)
+			std::cout << h_log_data[i] << " ";
 		std::cout << "\n";
+
+		for (int t = 0; t < log_counter; t++) {
+			std::cout << "--- time ~ " << t * to_log.freq << "\n";
+			for (int spi = 0; spi < to_log.spc_len; spi++) {
+				std::cout << "\tlogged specie " << spi << "\n\t\t";
+				for (int sbi = 0; sbi < to_log.subv_len; sbi++) {
+					std::cout << h_log_data[spi * to_log.spc_len + sbi] << " ";
+				}
+				std::cout << "\n";
+
+			}
+			h_log_data = &h_log_data[to_log.spc_len * to_log.subv_len];
+			std::cout << "\n";
+		}
 	}
 
 }

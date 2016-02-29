@@ -32,7 +32,7 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 		if (reactants[index2] != 0) {    // bi_diff reaction type
 			int specie1_count = state[GET_SPI(specie_index, sbi)];
 			int specie2_count = state[GET_SPI(specie_index2, sbi)];
-			return specie1_count * specie2_count * rrc[ri];
+			return (rrc[ri] * specie1_count) * specie2_count;
 		}
 	}
 
