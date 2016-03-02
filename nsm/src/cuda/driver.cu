@@ -176,7 +176,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	char * h_leap = new char[sbc];
 	gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(char), cudaMemcpyDeviceToHost));
 	for (int i = 0; i < sbc; i++) {
-		std::cout << "sbi " << i << "] " << "leap: " << '0' + h_leap[i] << "\n";
+		std::cout << "sbi " << i << "] " << "leap: " << h_leap[i] << "\n";
 	}
 #endif
 
@@ -300,7 +300,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		bool * h_leap = new bool[sbc];
 		gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(bool), cudaMemcpyDeviceToHost));
 		for (int i = 0; i < sbc; i++) {
-			std::cout << "sbi " << i << "] " << "leap: " << '0' + h_leap[i] << "\n";
+			std::cout << "sbi " << i << "] " << "leap: " << h_leap[i] << "\n";
 		}
 
 #endif

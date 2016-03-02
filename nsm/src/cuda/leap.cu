@@ -4,7 +4,13 @@ __device__ bool is_critical_reaction(int * state, int * reactants, int * product
 {
 	bool crit = false;
 	for (int spi = 0; spi < SPC; spi++) {
-		crit = crit || ((reactants[GET_COEFF(spi, ri)] - products[GET_COEFF(spi, ri)]) * NC > state[GET_SPI(spi, sbi)]);
+		if(reactants[GET_COEFF(spi, ri)] > 0 && state[GET_SPI(spi, sbi)] == 0){
+			return true;
+		}
+		int delta = (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]) * NC;
+		if(delta > 0)
+			continue;
+		crit = crit || (abs(delta) > state[GET_SPI(spi, sbi)]);
 	}
 
 	return crit;
@@ -193,26 +199,28 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 
 		// First of all we need to check if the specie spi is involved
 		// in a critical event. If it is, skip it.
-		bool skip = false;
+		bool skip_r = false;
 
 		// check for critical reaction events
 		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
+
 			if (is_critical_reaction(state, reactants, products, sbi, ri)) {    // if it's critical
 				// skip if the specie spi is involved in the reaction
-				skip = skip || (reactants[GET_COEFF(spi, ri)] > 0);
+				//printf("> subv %d, specie %d, reaction %d is critical\n", sbi, spi, ri);
+				skip_r = skip_r || (reactants[GET_COEFF(spi, ri)] > 0);
 			}
 		}
 
 		// check for critical diffusion events
-		skip = skip || is_critical_diffusion(state, sbi, spi);
+		bool skip_d = is_critical_diffusion(state, sbi, spi);
 
-		if (skip) {
+		if (skip_r && skip_d) {
 			continue;
 		}
 		// spi is not involved in any critical event.
 
 		float tau = compute_tau_sp(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
-
+		//printf("subv %d, specie %d, tau = %f\n", sbi, spi, tau);
 		min_tau = min(min_tau, tau);
 	}
 
@@ -270,11 +278,13 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 
 	float tau_ncr = compute_tau_ncr(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
+	//printf("subv %d, cr = %f, nc = %f\n", sbi, tau_cr, tau_ncr);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we can't leap.
 	// Also prevent leap if tau_ncr is too small.
 	bool leap_here = true;
-	if (isinf(tau_ncr) || (tau_ncr < 2.0 / rate_matrix[GET_RATE(2, sbi)])) {
+	if (isinf(tau_ncr) /*|| (tau_ncr < 10.0 / rate_matrix[GET_RATE(2, sbi)])*/) {
+		//printf("set SSA_FA in %d because fuck you %d\n", sbi, isinf(tau_ncr));
 		leap[sbi] = SSA_FF;    // We start with fast-forward enabled. If someone diffuses
 							   // to us, they will need disable it by setting the state to SSA.
 		leap_here = false;
