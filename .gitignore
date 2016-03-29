@@ -6,7 +6,3 @@
 *.fatbin
 
 # ignore build dirs
-
-nsm/Debug/*
-nsm/Testing/*
-nsm/Release/*
