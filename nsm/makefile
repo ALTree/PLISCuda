@@ -39,7 +39,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cu
 
 # build object file for main.cpp 
 $(OBJDIR)/main.o: $(SRCDIR)/main.cpp
-	c++ $(GCCFLAGS) -c $< -o $@
+	$(NVCC) --compile -x c++ $(GCCFLAGS) -c $< -o $@
 
 clean:
 	@echo "Cleaning up..."
