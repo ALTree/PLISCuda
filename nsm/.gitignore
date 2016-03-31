@@ -1,6 +1,5 @@
-/Debug
-/Test
-/Testing
-/TestingCUDA
-/Release
-/.ptp-sync
+
+/build
+PLISCuda
+
+

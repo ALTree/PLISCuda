@@ -1,4 +1,4 @@
-#include "../../include/cuda/ssa.cuh"
+#include "../include/cuda/ssa.cuh"
 
 __device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_array, float rand)
 {

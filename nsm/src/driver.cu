@@ -1,12 +1,4 @@
-#include "../../include/cuda/driver.cuh"
-
-__constant__ unsigned int SBC;
-__constant__ int SPC;
-__constant__ int RC;
-__constant__ int NC;
-__constant__ float EPSILON;
-__constant__ int * REACTANTS;
-__constant__ bool LOG_EVENTS;
+#include "../include/cuda/driver.cuh"
 
 namespace NSMCuda {
 

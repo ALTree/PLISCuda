@@ -1,4 +1,4 @@
-#include "../../include/cuda/leap.cuh"
+#include "../include/cuda/leap.cuh"
 
 __device__ bool is_critical_reaction(int * state, int * reactants, int * products, int sbi, int ri)
 {

@@ -1,4 +1,4 @@
-#include "../../include/cuda/log.cuh"
+#include "../include/cuda/log.cuh"
 
 #include <stdio.h>
 

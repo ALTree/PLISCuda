@@ -1,4 +1,4 @@
-#include "../../include/cuda/rates.cuh"
+#include "../include/cuda/rates.cuh"
 
 __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float * rrc)
 {
