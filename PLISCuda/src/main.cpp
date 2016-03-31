@@ -1,24 +1,44 @@
 #include <fstream>
 #include <iostream>
+#include <map>
 
 #include "../include/cpp/State.hpp"
 #include "../include/cpp/Reactions.hpp"
 #include "../include/cpp/Topology.hpp"
+#include "../include/cpp/Configuration.hpp"
 
 #include "../include/cpp/validation.hpp"
 #include "../include/cuda/driver.cuh"
 
 #include "../include/cuda/constants.cuh"
 
+
+
 int main(int argc, char * argv[])
 {
-	if (argc < 8) {
-		std::cout
-				<< "Usage: ./nsm topology_file state_file reactions_file steps to_log subv_constants_file [constants_file]+ \n";
+	if (argc < 2) {
+		std::cout << "Usage: ./pliscuda <configuration file>\n";
+		return 1;
+	} else {
+		std::cout << "\n    **   PLISCuda  **    \n\n";
+	}
+
+	// open and parse configuration file
+	std::ifstream cf(argv[1]);
+	if(!cf.good()) {
+		std::cerr << "Couldn't load configuration file\n";
 		return 1;
 	}
 
-	std::cout << "\n    **   PLISCuda  **    \n\n";
+	try {
+		std::cerr << "  processing configuration file...\n";
+		NSMCuda::Configuration configuration(cf);
+	} catch (std::invalid_argument &e) {
+		std::cerr << "\tParsing of configuration file failed with\n";
+		std::cerr << "\t" << e.what() << "\n";
+	}
+	
+	return 1;
 
 	int nd;
 	cudaGetDeviceCount(&nd);
