@@ -1,3 +1,0 @@
-every: 0.25
-subvolumes: 0 1 7 9
-species: 1 2
