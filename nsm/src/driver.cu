@@ -19,13 +19,11 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	
 	int threads = 512;
 	int blocks = ceil(sbc / 512.0);
-	std::cout << "  [using " << threads << " threads and " << blocks << " blocks]\n\n";
+	std::cout << "  [using " << threads << " threads and " << blocks << " block(s)]\n\n";
 
 	int nc = 10;    // threshold for critical/non-critical event
 	float epsilon = 0.05;    // the epsilon parameter in the computation of the leap tau
 							 // see [Cao06], formula 33
-
-	bool log_events = false;
 
 	std::cout << "  moving constants to Device...\n";
 
@@ -138,8 +136,13 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMemset(d_leap, 0, sbc * sizeof(char)));
 	gpuErrchk(cudaMemset(d_log_data, 0, to_log.subv_len * to_log.spc_len * MAX_LOG * sizeof(int)));
 
-	int * d_log_data_start = d_log_data;
+	std::cout.precision(5);
 
+#ifdef LOG
+	// da fuck is this?
+	int * d_log_data_start = d_log_data;
+#endif
+	
 	std::cout << "\n  computing initial rates...\n\n";
 	
 	compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
@@ -274,31 +277,31 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	print_state(h_state, spc, sbc);
 	std::cout << "Final simulation time: " << h_current_time << "\n";
 
-	if (log_events) {
-		std::cout << "\n\n--- Log Data ---\n";
-		int * h_log_data = new int[log_counter * to_log.spc_len * to_log.subv_len];
-		gpuErrchk(
-				cudaMemcpy(h_log_data, d_log_data_start, log_counter * to_log.spc_len * to_log.subv_len * sizeof(int),
-						cudaMemcpyDeviceToHost));
-
-		for (int i = 0; i < 100; i++)
-			std::cout << h_log_data[i] << " ";
-		std::cout << "\n";
-
-		for (int t = 0; t < log_counter; t++) {
-			std::cout << "--- time ~ " << t * to_log.freq << "\n";
-			for (int spi = 0; spi < to_log.spc_len; spi++) {
-				std::cout << "\tlogged specie " << spi << "\n\t\t";
-				for (int sbi = 0; sbi < to_log.subv_len; sbi++) {
-					std::cout << h_log_data[spi * to_log.spc_len + sbi] << " ";
-				}
-				std::cout << "\n";
-
+#ifdef LOG
+	std::cout << "\n\n--- Log Data ---\n";
+	int * h_log_data = new int[log_counter * to_log.spc_len * to_log.subv_len];
+	gpuErrchk(
+		cudaMemcpy(h_log_data, d_log_data_start, log_counter * to_log.spc_len * to_log.subv_len * sizeof(int),
+				   cudaMemcpyDeviceToHost));
+	
+	for (int i = 0; i < 100; i++)
+		std::cout << h_log_data[i] << " ";
+	std::cout << "\n";
+	
+	for (int t = 0; t < log_counter; t++) {
+		std::cout << "--- time ~ " << t * to_log.freq << "\n";
+		for (int spi = 0; spi < to_log.spc_len; spi++) {
+			std::cout << "\tlogged specie " << spi << "\n\t\t";
+			for (int sbi = 0; sbi < to_log.subv_len; sbi++) {
+				std::cout << h_log_data[spi * to_log.spc_len + sbi] << " ";
 			}
-			h_log_data = &h_log_data[to_log.spc_len * to_log.subv_len];
 			std::cout << "\n";
+			
 		}
+		h_log_data = &h_log_data[to_log.spc_len * to_log.subv_len];
+		std::cout << "\n";
 	}
+#endif
 
 }
 
@@ -346,9 +349,11 @@ void print_leap_array(char * d_leap, int sbc)
 {
 	std::cout << "--- [leap array] ---\n";
 	char * h_leap = new char[sbc];
+	std::vector<std::string> to_print = {"LEAP_CR", "LEAP_NOCR", "SSA", "SSA_FF"};
 	gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(char), cudaMemcpyDeviceToHost));
 	for (int i = 0; i < sbc; i++) {
-		std::cout << "sbi " << i << "] " << "leap: " << h_leap[i] << "\n";		
+		std::cout << "sbi " << i << "] " << "leap: " <<
+			to_print[h_leap[i] - LEAP_CR] << "\n";		
 	}
 	std::cout << "-------------------\n\n";
 }

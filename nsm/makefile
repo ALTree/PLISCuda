@@ -10,12 +10,19 @@ objs = $(OBJDIR)/leap.o $(OBJDIR)/rates.o $(OBJDIR)/log.o \
 
 ##  build configurations  ##
 
+# relase simulates the system (no print-logging)
 release: NVCCFLAGS += -O3
 release: GCCFLAGS += -O3
 release: all
 
-debug: NVCCFLAGS += -O0 --compiler-options -Wall -DLOG
-debug: GCCFLAGS += -O0 -Wall -DLOG
+# log simulates while print-logging ALL events
+log: NVCCFLAGS += -O2 -DLOG
+log: GCCFLAGS += -O2 -DLOG
+log: all
+
+# debugs logs everything and prints all the internal data
+debug: NVCCFLAGS += -O0 --compiler-options -Wall -DLOG -DDEBUG
+debug: GCCFLAGS += -O0 -Wall -DLOG -DDEBUG
 debug: all
 
 
