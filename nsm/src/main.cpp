@@ -31,12 +31,12 @@ int main(int argc, char * argv[])
     cudaGetDeviceProperties(&prop, 0);
 	std::cout << "-- CUDA-capable device detected -- \n\n";
 	std::cout << "  Device name: " << prop.name << "\n";
-	std::cout << "  Total global memory: " << prop.totalGlobalMem / (1024*1024) << "MB\n";
-	std::cout << "  Total shared memory per block: " << prop.sharedMemPerBlock / (1024)<< "KB\n";
+	std::cout << "  Total global memory: " << prop.totalGlobalMem / (1024*1024) << " MB\n";
+	std::cout << "  Total shared memory per block: " << prop.sharedMemPerBlock / (1024)<< " KB\n";
 	std::cout << "  Total registers per block: " <<  prop.regsPerBlock << "\n";
 	std::cout << "  Number of multiprocessors: " << prop.multiProcessorCount << "\n\n";
 	
-	std::cout << "-- Parsing input files -- ";
+	std::cout << "-- Parsing input files -- \n\n";
 
 	// ---------- open and parse topology_file ----------
 	std::ifstream topology_file(argv[1]);
@@ -123,10 +123,11 @@ int main(int argc, char * argv[])
 
 	NSMCuda::is_consistent(topology, initial_state, reactions);
 
-#if LOG
-	std::cout << "--- Consistency check... done!" << "\n\n";
-#endif
-
+	std::cout << "  Parsed system:\n";
+	std::cout << "    " << topology.getN() << " subvolumes\n";
+	std::cout << "    " << reactions.getS() << " specie(s)\n";
+	std::cout << "    " << reactions.getR() << " reaction(s)\n\n";
+	
 	NSMCuda::run_simulation(topology, initial_state, reactions, reaction_rates_constants, diffusion_rates_constants,
 			steps, constants_files_count, subv_constants, to_log);
 

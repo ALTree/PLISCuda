@@ -42,6 +42,7 @@ int h_get_min_tau(thrust::device_vector<float> &tau);
 void print_state(int * h_state, int spc, int sbc);
 void print_rate_matrix(float * h_rate_matrix, int sbc);
 void print_tau(thrust::device_vector<float>, int sbc);
+void print_leap_array(char * d_leap, int sbc);
 
 }
 

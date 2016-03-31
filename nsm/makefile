@@ -14,7 +14,7 @@ release: NVCCFLAGS += -O3
 release: GCCFLAGS += -O3
 release: all
 
-debug: NVCCFLAGS += -O0 --compiler-options -Wall -DLOG -DLOGSTEPS -DLOGEVENTS
+debug: NVCCFLAGS += -O0 --compiler-options -Wall -DLOG
 debug: GCCFLAGS += -O0 -Wall -DLOG
 debug: all
 

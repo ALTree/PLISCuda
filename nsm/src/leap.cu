@@ -206,7 +206,6 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 
 			if (is_critical_reaction(state, reactants, products, sbi, ri)) {    // if it's critical
 				// skip if the specie spi is involved in the reaction
-				//printf("> subv %d, specie %d, reaction %d is critical\n", sbi, spi, ri);
 				skip_r = skip_r || (reactants[GET_COEFF(spi, ri)] > 0);
 			}
 		}
@@ -220,7 +219,6 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 		// spi is not involved in any critical event.
 
 		float tau = compute_tau_sp(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
-		//printf("subv %d, specie %d, tau = %f\n", sbi, spi, tau);
 		min_tau = min(min_tau, tau);
 	}
 
@@ -270,21 +268,17 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	//       one and we didn't get to act. We can't fast-forward (that
 	//       would bring tau to zero), so just recompute a new tau.
 	if (leap[sbi] == SSA_FF && !isinf(tau[sbi]) && min_tau > 0.0 && min_tau != tau[sbi]) {
-		// printf("----------> subv %d was fast forwared from tau = %f to tau = %f (min_tau = %f)\n", sbi, tau[sbi],
-		// tau[sbi] - min_tau, min_tau);
 		tau[sbi] -= min_tau;
 		return;
 	}
 
 	float tau_ncr = compute_tau_ncr(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
-	//printf("subv %d, cr = %f, nc = %f\n", sbi, tau_cr, tau_ncr);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we can't leap.
 	// Also prevent leap if tau_ncr is too small.
 	bool leap_here = true;
 	if (isinf(tau_ncr) /*|| (tau_ncr < 10.0 / rate_matrix[GET_RATE(2, sbi)])*/) {
-		//printf("set SSA_FA in %d because fuck you %d\n", sbi, isinf(tau_ncr));
 		leap[sbi] = SSA_FF;    // We start with fast-forward enabled. If someone diffuses
 							   // to us, they will need disable it by setting the state to SSA.
 		leap_here = false;
@@ -330,9 +324,11 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		unsigned int k;    // how many times it fires
 		k = curand_poisson(&prngstate[sbi], min_tau * react_rates_array[GET_RR(ri, sbi)]);
 
-		if (LOG_EVENTS && k > 0)
+#ifdef LOG
+		if(k > 0)
 			printf("(%f) [subv %d] fire reaction %d for %d times\n", *current_time, sbi, ri, k);
-
+#endif
+		
 		// update state
 		for (int spi = 0; spi < SPC; spi++) {
 			int new_state = k * (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
@@ -357,13 +353,12 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			atomicSub(&state[GET_SPI(spi, sbi)], k);
 			if (leap[topology[sbi * 6 + ngb]] == SSA_FF) {
 				leap[topology[sbi * 6 + ngb]] = SSA;    // set the OP of the receiver to SSA
-				// printf("-----> subv %d set %d to SSA\n", sbi, topology[sbi * 6 + ngb]);
 			}
 
-#ifdef LOGEVENTS
+#ifdef LOG
 			if (k > 0)
-				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k, spi,
-						topology[sbi * 6 + ngb]);
+				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d\n",
+					   *current_time, sbi, k, spi, topology[sbi * 6 + ngb]);
 #endif
 		}
 
@@ -440,8 +435,9 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 			state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
 		}
 
-		if(LOG_EVENTS)
-			printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
+#ifdef LOG
+		printf("(%f) [subv %d] fire reaction %d (critical)\n", *current_time, sbi, ri);
+#endif
 
 	} else {    // diffusion
 
@@ -490,8 +486,9 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 				leap[topology[rdi]] = SSA;    // set the OP of the receiver to SSA
 		}
 
-		if(LOG_EVENTS)
-			printf("(%f) [subv %d] diffuse specie %d to %d (critical)\n", *current_time, sbi, spi, rdi);
+#ifdef LOG
+		printf("(%f) [subv %d] diffuse specie %d to %d (critical)\n", *current_time, sbi, spi, rdi);
+#endif
 	}
 
 }

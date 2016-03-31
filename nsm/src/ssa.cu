@@ -76,9 +76,10 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 	if (rand < rate_matrix[GET_RATE(0, sbi)] / rate_matrix[GET_RATE(2, sbi)]) {    // reaction
 
 		int ri = choose_rand_reaction(rate_matrix, react_rates_array, rand);
-		if(LOG_EVENTS)
-			printf("(%f) [subv %d][SSA] fire reaction %d\n", *current_time, sbi, ri);
-
+#ifdef LOG
+		printf("(%f) [subv %d] fire reaction %d  [SSA]\n", *current_time, sbi, ri);
+#endif
+			
 		// fire reaction and update the state of the system
 		// if sbi = min_sbi then it should be guaranteed that ri != -1
 		for (int i = 0; i < SPC; i++)
@@ -92,7 +93,6 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 		int spi = choose_rand_specie(topology, rate_matrix, diff_rates_array, rand);
 
 		// choose a random destination
-		// TODO: we need to re-use the rand we already have.
 		int rdi;
 		do {
 			rdi = (int) (curand_uniform(&s[sbi]) * 6);
@@ -101,9 +101,10 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 		// get index of neighbour #rdi (overwrite rdi, whatever)
 		rdi = topology[sbi * 6 + rdi];
 
-		if(LOG_EVENTS)
-			printf("(%f) [subv %d][SSA] diffuse specie %d in subvolume %d\n", *current_time, sbi, spi, rdi);
-
+#ifdef LOG
+		printf("(%f) [subv %d] diffuse specie %d in subvolume %d  [SSA]\n", *current_time, sbi, spi, rdi);
+#endif
+			
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
 		if (rdi != sbi) {
 			atomicSub(&state[GET_SPI(spi, sbi)], 1);
