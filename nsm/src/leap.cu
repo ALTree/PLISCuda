@@ -360,9 +360,11 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 				// printf("-----> subv %d set %d to SSA\n", sbi, topology[sbi * 6 + ngb]);
 			}
 
-			if (LOG_EVENTS && k > 0)
+#ifdef LOGEVENTS
+			if (k > 0)
 				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d \n", *current_time, sbi, k, spi,
 						topology[sbi * 6 + ngb]);
+#endif
 		}
 
 	}

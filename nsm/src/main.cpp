@@ -18,10 +18,25 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-#if LOG
-	std::cout << "\n   ***   Start setup log   ***   \n\n";
-	std::cout << "--- Parsing input files... ";
-#endif
+	std::cout << "\n    **   PLISCuda  **    \n\n";
+
+	int nd;
+	cudaGetDeviceCount(&nd);
+	if(nd == 0) {
+		std::cout << "No CUDA-capable device detected.\n";
+			return 1;
+	}
+
+	cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+	std::cout << "-- CUDA-capable device detected -- \n\n";
+	std::cout << "  Device name: " << prop.name << "\n";
+	std::cout << "  Total global memory: " << prop.totalGlobalMem / (1024*1024) << "MB\n";
+	std::cout << "  Total shared memory per block: " << prop.sharedMemPerBlock / (1024)<< "KB\n";
+	std::cout << "  Total registers per block: " <<  prop.regsPerBlock << "\n";
+	std::cout << "  Number of multiprocessors: " << prop.multiProcessorCount << "\n\n";
+	
+	std::cout << "-- Parsing input files -- ";
 
 	// ---------- open and parse topology_file ----------
 	std::ifstream topology_file(argv[1]);
@@ -105,10 +120,6 @@ int main(int argc, char * argv[])
 		NSMCuda::read_rates_constants(constants_file, &reaction_rates_constants[i * reactions.getR()],
 				&diffusion_rates_constants[i * reactions.getS()], reactions.getR(), reactions.getS());
 	}
-
-#if LOG
-	std::cout << " done!\n";
-#endif
 
 	NSMCuda::is_consistent(topology, initial_state, reactions);
 

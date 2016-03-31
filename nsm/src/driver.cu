@@ -1,5 +1,12 @@
 #include "../include/cuda/driver.cuh"
 
+__constant__ unsigned int SBC;
+__constant__ int SPC;
+__constant__ int RC;
+__constant__ int NC;
+__constant__ float EPSILON;
+__constant__ bool LOG_EVENTS;
+
 namespace NSMCuda {
 
 void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps,
@@ -32,7 +39,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 	bool log_events = false;
 
-#if LOG
+#ifdef LOG
 	std::cout << "\n   ***   Start simulation log   ***   \n\n";
 #endif
 
@@ -44,7 +51,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMemcpyToSymbol(EPSILON, &epsilon, sizeof(float)));
 	gpuErrchk(cudaMemcpyToSymbol(LOG_EVENTS, &log_events, sizeof(bool)));
 
-#if LOG
+#ifdef LOG
 	std::cout << "--- Allocating GPU memory... ";
 #endif
 
@@ -136,7 +143,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 	int * d_log_data_start = d_log_data;
 
-#if LOG
+#ifdef LOG
 	std::cout << "done!\n";
 	std::cout << "--- Initializing rate matrix... ";
 #endif
@@ -144,25 +151,25 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
 			d_react_rates_array, d_diff_rates_array);
 
-#if LOG
+#ifdef LOG
 	std::cout << "done!\n";
 #endif
 
-#if LOG
+#ifdef LOG
 	float * h_rate_matrix;
 	h_rate_matrix = new float[3 * sbc];
 	gpuErrchk(cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost));
 	print_rate_matrix(h_rate_matrix, sbc);
 #endif
 
-#if LOG
+#ifdef LOG
 	std::cout << "--- Fill initial next_event array... ";
 #endif
 
 	fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
 			d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
 
-#if LOG
+#ifdef LOG
 	print_tau(tau, sbc);
 
 	char * h_leap = new char[sbc];
@@ -172,11 +179,11 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	}
 #endif
 
-#if LOG
+#ifdef LOG
 	std::cout << "done!\n";
 #endif
 
-#if LOG
+#ifdef LOG
 	print_tau(tau, sbc);
 	std::cout << "--- Start simulation.\n\n";
 #endif
@@ -189,7 +196,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 			break;
 		}
 
-#if LOGSTEPS
+#ifdef LOGSTEPS
 		std::cout << "\n----- [step " << step << "] -----\n\n";
 #endif
 
@@ -231,7 +238,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		check_state<<<blocks, threads>>>(d_state, thrust::raw_pointer_cast(revert.data()));
 		bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<bool>());
 		if (revert_state) {
-#if LOGSTEPS
+#ifdef LOGSTEPS
 			std::cout << "\n--------------- REVERT STATE ---------------\n\n";
 			std::cout << "----- old tau = " << min_tau << "time was = " << h_current_time << "\n";
 			std::cout << "----- new tau = " << min_tau / 2.0 << " ";
@@ -241,7 +248,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 			h_current_time = h_current_time - min_tau + min_tau / 2.0;
 			min_tau = min_tau / 2.0;
-#if LOGSTEPS
+#ifdef LOGSTEPS
 			std::cout << "time is  = " << h_current_time << "\n";
 			gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 #endif
@@ -270,11 +277,11 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 				d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau, d_leap,
 				d_prngstate);
 
-#if LOG
+#ifdef LOG
 		std::cout << "\n";
 #endif
 
-#if LOGSTEPS
+#ifdef LOGSTEPS
 
 		// print system state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
@@ -301,7 +308,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 	gpuErrchk(cudaDeviceSynchronize());
 
-#if LOG
+#ifdef LOG
 	std::cout << "\n--- End simulation.\n\n";
 #endif
 
