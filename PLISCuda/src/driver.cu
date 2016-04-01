@@ -8,8 +8,8 @@ __constant__ float EPSILON;
 
 namespace NSMCuda {
 
-void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, int steps,
-		int constants_files_count, int * subv_constants, struct ToLog to_log)
+void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, float endTime,
+		int compartments_count, int * subv_constants, float log_freq)
 {
 	unsigned int sbc = t.getN();
 	int spc = s.getS();
@@ -63,10 +63,10 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	// ----- allocate and memcpy rrc and drc -----
 	float * d_rrc;
 	float * d_drc;
-	gpuErrchk(cudaMalloc(&d_rrc, rc * sizeof(float) * constants_files_count));
-	gpuErrchk(cudaMalloc(&d_drc, spc * sizeof(float) * constants_files_count));
-	gpuErrchk(cudaMemcpy(d_rrc, h_rrc, rc * sizeof(float) * constants_files_count, cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(d_drc, h_drc, spc * sizeof(float) * constants_files_count, cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMalloc(&d_rrc, rc * sizeof(float) * compartments_count));
+	gpuErrchk(cudaMalloc(&d_drc, spc * sizeof(float) * compartments_count));
+	gpuErrchk(cudaMemcpy(d_rrc, h_rrc, rc * sizeof(float) * compartments_count, cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMemcpy(d_drc, h_drc, spc * sizeof(float) * compartments_count, cudaMemcpyHostToDevice));
 
 	std::cout << "    reactions require         " <<
 		(2*spc*rc*sizeof(int) + (rc+spc)*sizeof(float)) / (1024.0 * 1024.0) << " MB\n";
@@ -114,35 +114,15 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	char * d_leap;
 	gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(char)));
 
-	// ----- allocate and initialize log arrays
-	unsigned int * d_sbv_to_log;
-	bool * d_spc_to_log;
-	gpuErrchk(cudaMalloc(&d_sbv_to_log, to_log.subv_len * sizeof(unsigned int)));
-	gpuErrchk(cudaMalloc(&d_spc_to_log, spc * sizeof(bool)));
-	gpuErrchk(cudaMemcpy(d_sbv_to_log, to_log.subv, to_log.subv_len * sizeof(unsigned int), cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(d_spc_to_log, to_log.spc, spc * sizeof(bool), cudaMemcpyHostToDevice));
-
-	// TODO: log array require...
-
-	int MAX_LOG = 1000;
-	int * d_log_data;
-	gpuErrchk(cudaMalloc(&d_log_data, to_log.subv_len * to_log.spc_len * MAX_LOG * sizeof(int)));
-
 	// zero GPU memory, just to be sure
 	// TODO: remove(?) or check that we are zeroing everything
 	gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
 	gpuErrchk(cudaMemset(d_leap, 0, sbc * sizeof(char)));
-	gpuErrchk(cudaMemset(d_log_data, 0, to_log.subv_len * to_log.spc_len * MAX_LOG * sizeof(int)));
 
 	std::cout.precision(5);
 
-#ifdef LOG
-	// da fuck is this?
-	int * d_log_data_start = d_log_data;
-#endif
-	
 	std::cout << "\n  computing initial rates...\n\n";
 	
 	compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
@@ -165,17 +145,13 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	print_leap_array(d_leap, sbc);
 #endif
 
-
 	std::cout << "-- Begin Iterations -- \n\n";
 
-	int log_counter = 0;
-	float time_since_last_log = 0.0;
-	for (int step = 1; step <= steps; step++) {
+	int step = 0;
+	while(h_current_time < endTime) {
 
-		if(h_current_time > 1000.0) {
-			break;
-		}
-
+		step++;
+		
 #ifdef LOG
 		std::cout << "  -- [step " << step << "] -- \n\n";
 #endif
@@ -186,7 +162,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		// get min tau from device
 		int min_tau_sbi = h_get_min_tau(tau);
 		if (isinf(tau[min_tau_sbi]) || tau[min_tau_sbi] < 0.0) {
-			printf("\n\n---------- WARNING: min(tau) = +Inf or < 0 - abort simulation ----------\n\n");
+			printf("\n -- WARNING: min(tau) = +Inf or < 0 - abort simulation --\n");
 			break;
 		}
 
@@ -224,16 +200,6 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 			gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 #endif
 			goto REPEAT;
-		}
-
-		if (time_since_last_log >= to_log.freq && log_counter < MAX_LOG) {
-			log_data<<<blocks, threads>>>(d_state, d_sbv_to_log, to_log.subv_len, d_spc_to_log, to_log.spc_len,
-					d_log_data);
-			time_since_last_log = 0.0;
-			d_log_data = &d_log_data[to_log.spc_len * to_log.subv_len];
-			log_counter++;
-		} else {
-			time_since_last_log += min_tau;
 		}
 
 		// update rates
@@ -275,33 +241,8 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 
 	print_state(h_state, spc, sbc);
-	std::cout << "Final simulation time: " << h_current_time << "\n";
 
-#ifdef LOG
-	std::cout << "\n\n--- Log Data ---\n";
-	int * h_log_data = new int[log_counter * to_log.spc_len * to_log.subv_len];
-	gpuErrchk(
-		cudaMemcpy(h_log_data, d_log_data_start, log_counter * to_log.spc_len * to_log.subv_len * sizeof(int),
-				   cudaMemcpyDeviceToHost));
-	
-	for (int i = 0; i < 100; i++)
-		std::cout << h_log_data[i] << " ";
-	std::cout << "\n";
-	
-	for (int t = 0; t < log_counter; t++) {
-		std::cout << "--- time ~ " << t * to_log.freq << "\n";
-		for (int spi = 0; spi < to_log.spc_len; spi++) {
-			std::cout << "\tlogged specie " << spi << "\n\t\t";
-			for (int sbi = 0; sbi < to_log.subv_len; sbi++) {
-				std::cout << h_log_data[spi * to_log.spc_len + sbi] << " ";
-			}
-			std::cout << "\n";
-			
-		}
-		h_log_data = &h_log_data[to_log.spc_len * to_log.subv_len];
-		std::cout << "\n";
-	}
-#endif
+	std::cout << "Final simulation time: " << h_current_time << "\n";
 
 }
 

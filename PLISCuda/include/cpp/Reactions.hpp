@@ -124,6 +124,8 @@ inline std::ostream& operator<<(std::ostream& os, Reactions& r)
 		os << r.getProducts()[i] << " ";
 	}
 
+	std::cout << "\n";
+	
 	return os;
 }
 
