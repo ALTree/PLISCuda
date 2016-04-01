@@ -2,33 +2,25 @@
 #include <iostream>
 #include <map>
 
-#include "../include/cpp/State.hpp"
-#include "../include/cpp/Reactions.hpp"
-#include "../include/cpp/Topology.hpp"
 #include "../include/cpp/Configuration.hpp"
-
-#include "../include/cpp/validation.hpp"
 #include "../include/cuda/driver.cuh"
-
-#include "../include/cuda/constants.cuh"
-
-
 
 int main(int argc, char * argv[])
 {
 	if (argc < 2) {
 		std::cout << "Usage: ./pliscuda <configuration file>\n";
 		return 1;
-	} else {
-		std::cout << "\n    **   PLISCuda  **    \n\n";
-	}
+	} 
+
+	std::cout << "\n    **   PLISCuda  **    \n\n";
+	
 
 	// check for CUDA enabled Device and print some info
 	int nd;
 	cudaGetDeviceCount(&nd);
-	if(nd == 0) {
+	if(nd == 0 || nd > 99) { // sanity check 
 		std::cout << "No CUDA-capable device detected.\n";
-			return 1;
+		return 1;
 	}
 
 	cudaDeviceProp prop;
@@ -71,8 +63,9 @@ int main(int argc, char * argv[])
 			);
 		
 	} catch (std::invalid_argument &e) {
-		std::cerr << "\tParsing of configuration file failed with msg:\n";
+		std::cerr << "  parsing of configuration file failed with msg:\n";
 		std::cerr << "\t" << e.what() << "\n";
 	}
+
 }
 

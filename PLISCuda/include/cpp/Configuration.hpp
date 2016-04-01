@@ -4,6 +4,8 @@
 #include <map>
 
 #include "Topology.hpp"
+#include "State.hpp"
+#include "Reactions.hpp"
 
 namespace PLISCuda {
 

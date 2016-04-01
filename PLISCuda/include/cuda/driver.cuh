@@ -1,6 +1,8 @@
 #ifndef NSM_DRIVER_HPP_
 #define NSM_DRIVER_HPP_
 
+#include <ctime>
+#include <fstream>
 #include <cuda_runtime.h>
 #include <thrust/device_vector.h>
 #include <thrust/logical.h>
@@ -39,7 +41,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 int h_get_min_tau(thrust::device_vector<float> &tau);
 
 // Print utils for logging
-void print_state(int * h_state, int spc, int sbc);
+void print_state(int * h_state, int spc, int sbc, float current_time);
 void print_rate_matrix(float * h_rate_matrix, int sbc);
 void print_tau(thrust::device_vector<float>, int sbc);
 void print_leap_array(char * d_leap, int sbc);

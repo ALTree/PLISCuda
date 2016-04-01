@@ -145,6 +145,15 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	print_leap_array(d_leap, sbc);
 #endif
 
+#ifndef LOG // we are in RELEASE mode
+	std::ofstream out_file;
+	float last_log_time = 0.0;
+	if(log_freq > 0) { // we need to create the output file
+		std::time_t t = std::time(0); // get timestamp to use in filename
+		out_file.open("sim" + std::to_string(t) + ".data");
+	}
+#endif
+
 	std::cout << "-- Begin Iterations -- \n\n";
 
 	int step = 0;
@@ -171,6 +180,14 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		h_current_time += min_tau;
 		gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 
+#ifdef LOG
+		std::cout << "    tau = " << min_tau << "\n\n";
+#endif
+
+#ifndef LOG
+		
+#endif
+		
 		REPEAT:
 		// first we leap, with tau = min_tau, in every subvolume that has leap enabled
 		leap_step<<<blocks, threads>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
@@ -185,20 +202,27 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		check_state<<<blocks, threads>>>(d_state, thrust::raw_pointer_cast(revert.data()));
 		bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<bool>());
 		if (revert_state) {
+
 #ifdef LOG
-			std::cout << "\n--------------- REVERT STATE ---------------\n\n";
-			std::cout << "----- old tau = " << min_tau << "time was = " << h_current_time << "\n";
-			std::cout << "----- new tau = " << min_tau / 2.0 << " ";
+			std::cout << "\n -- WARNING: need to revert state --\n";
+			std::cout << "\t old tau = " << min_tau << ", time was = " << h_current_time << "\n";
+			std::cout << "\t new tau = " << min_tau / 2.0 << ", ";
 #endif
+
 			// restore state from the copy
 			gpuErrchk(cudaMemcpy(d_state, d_state2, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
 
+			// halven tau
 			h_current_time = h_current_time - min_tau + min_tau / 2.0;
 			min_tau = min_tau / 2.0;
+
 #ifdef LOG
 			std::cout << "time is  = " << h_current_time << "\n";
-			gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 #endif
+
+			// send the new tau to the Device
+			gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
+
 			goto REPEAT;
 		}
 
@@ -217,46 +241,61 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 #ifdef LOG
 		// print system state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
-		print_state(h_state, spc, sbc);
+		print_state(h_state, spc, sbc, h_current_time);
 #endif
 		
 #ifdef DEBUG
-		// print rate matrix
 		h_rate_matrix = new float[3 * sbc];
-
 		gpuErrchk(cudaMemcpy(h_rate_matrix, d_rate_matrix, 3 * sbc * sizeof(float), cudaMemcpyDeviceToHost));
 		print_rate_matrix(h_rate_matrix, sbc);
 
-		// print tau array
 		print_tau(tau, sbc);
 		print_leap_array(d_leap, sbc);
 #endif
 
+#ifndef LOG // only using logFreq when in RELEASE mode
+		if(log_freq > 0 && (h_current_time - last_log_time) >= log_freq) {
+			last_log_time = h_current_time;
+			gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+			std::string s = "";
+			s += "-- state at " + std::to_string(h_current_time) + "\n";
+			for (int i = 0; i < sbc; i++) {
+				s += "sbv " + std::to_string(i) + ": ";
+				for (int j = 0; j < spc; j++)
+					s +=  std::to_string(h_state[j * sbc + i]) + " ";
+				s += "\n";
+			}
+			s += "\n";
+			out_file << s;
+		}
+#endif
+		
 	}
 
+	out_file.close();
+	
 	gpuErrchk(cudaDeviceSynchronize());
 
 	std::cout << "-- Simulation Complete -- \n";
 
 	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+	print_state(h_state, spc, sbc, h_current_time);
 
-	print_state(h_state, spc, sbc);
-
-	std::cout << "Final simulation time: " << h_current_time << "\n";
+	std::cout << "  final simulation time: " << h_current_time << "\n";
 
 }
 
 int h_get_min_tau(thrust::device_vector<float> &tau)
-{
+	{
 	thrust::device_vector<float>::iterator iter = thrust::min_element(tau.begin(), tau.end());
 	return iter - tau.begin();
 }
 
 // ----- print utils stuff -----
 
-void print_state(int * h_state, int spc, int sbc)
+void print_state(int * h_state, int spc, int sbc, float current_time)
 {
-	std::cout << "\n--- [system state] ---\n";
+	std::cout << "\n--- [state at t = " << current_time << "] ---\n";
 	for (int i = 0; i < sbc; i++) {
 		std::cout << "sbv " << i << ": ";
 		for (int j = 0; j < spc; j++)
