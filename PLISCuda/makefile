@@ -41,4 +41,4 @@ $(OBJDIR)/main.o: $(SRCDIR)/main.cpp
 clean:
 	@echo "Cleaning up..."
 	rm -f $(OBJDIR)/*
-	rm -f PLISCuda
+	rm -f pliscuda
