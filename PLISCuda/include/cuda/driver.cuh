@@ -28,7 +28,7 @@ struct ToLog {
 	float freq;
 };
 
-namespace NSMCuda {
+namespace PLISCuda {
 
 // Run a simulation with the given topology, initial state, set of reactions, and
 // react and diffusion rates constants, until simulation time exceeds *endTime*.

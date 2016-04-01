@@ -51,14 +51,14 @@ int main(int argc, char * argv[])
 	
 	try {
 		std::cerr << "  processing configuration file...\n";
-		NSMCuda::Configuration conf(cf);
+		PLISCuda::Configuration conf(cf);
 
 #ifdef DEBUG
 		std::cout << conf << "\n";
 #endif
 
 		// start simulation
-		NSMCuda::run_simulation(
+		PLISCuda::run_simulation(
 			conf.getTopology(),
 			conf.getState(),
 			conf.getReactions(),

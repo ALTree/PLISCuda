@@ -7,9 +7,9 @@
 #include "Topology.hpp"
 #include "Reactions.hpp"
 
-namespace NSMCuda {
+namespace PLISCuda {
 
-inline void is_consistent(NSMCuda::Topology t, NSMCuda::State s, NSMCuda::Reactions r)
+inline void is_consistent(PLISCuda::Topology t, PLISCuda::State s, PLISCuda::Reactions r)
 {
 	// checks on subvolumes number
 	assert(t.getN() == s.getN());

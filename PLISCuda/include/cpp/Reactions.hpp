@@ -7,7 +7,7 @@
 
 #include "cpp_utils.hpp"
 
-namespace NSMCuda {
+namespace PLISCuda {
 
 class Reactions {
 

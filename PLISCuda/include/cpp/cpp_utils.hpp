@@ -7,7 +7,7 @@
 
 #include <cuda_runtime.h>
 
-namespace NSMCuda {
+namespace PLISCuda {
 
 inline std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
 {
@@ -32,13 +32,13 @@ inline void read_rates_constants(std::istream& is, float * reaction_rates_consta
 	std::string line;
 
 	std::getline(is, line);
-	std::vector<std::string> rate_constants = NSMCuda::split(line, ' ');
+	std::vector<std::string> rate_constants = PLISCuda::split(line, ' ');
 	for (int i = 0; i < reactions_count; i++) {
 		reaction_rates_constants[i] = std::stof(rate_constants.at(i));
 	}
 
 	std::getline(is, line);
-	rate_constants = NSMCuda::split(line, ' ');
+	rate_constants = PLISCuda::split(line, ' ');
 	for (int i = 0; i < species_count; i++) {
 		diffusion_rates_constants[i] = std::stof(rate_constants.at(i));
 	}
@@ -68,7 +68,7 @@ inline float read_log_data(std::istream& is, unsigned int * log_subv, int * log_
 	// parse subvolumes line
 	std::getline(is, line, ' ');
 	std::getline(is, line);
-	std::vector<std::string> subv = NSMCuda::split(line, ' ');
+	std::vector<std::string> subv = PLISCuda::split(line, ' ');
 	int count = 0;
 	for (auto &i : subv) {
 		log_subv[count] = std::stoi(i);
@@ -80,7 +80,7 @@ inline float read_log_data(std::istream& is, unsigned int * log_subv, int * log_
 	// parse species line
 	std::getline(is, line, ' ');
 	std::getline(is, line);
-	std::vector<std::string> spc = NSMCuda::split(line, ' ');
+	std::vector<std::string> spc = PLISCuda::split(line, ' ');
 	count = 0;
 	for (auto &i : spc) {
 		log_specie[std::stoi(i)] = true;

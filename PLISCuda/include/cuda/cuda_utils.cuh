@@ -1,7 +1,7 @@
-#include "constants.cuh"
-
 #ifndef CUDA_UTILS_CUH_
 #define CUDA_UTILS_CUH_
+
+#include "constants.cuh"
 
 // get specie_count index from state using specie index, subvolume index and subvolume count
 // use like

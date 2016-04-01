@@ -6,7 +6,7 @@ __constant__ int RC;
 __constant__ int NC;
 __constant__ float EPSILON;
 
-namespace NSMCuda {
+namespace PLISCuda {
 
 void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, float endTime,
 		int compartments_count, int * subv_constants, float log_freq)

@@ -5,7 +5,7 @@
 
 #include "Topology.hpp"
 
-namespace NSMCuda {
+namespace PLISCuda {
 
 class Configuration {
 
@@ -107,7 +107,7 @@ public:
 
 			int subvs = topology.getN();
 			comp_array = new int[subvs];
-			NSMCuda::read_subv_constants(fs, comp_array, subvs);
+			PLISCuda::read_subv_constants(fs, comp_array, subvs);
 			fs.close(); fs.clear();
 		} else {
 			// generate faux compartmentsFile on the fly
@@ -133,7 +133,7 @@ public:
 				throw std::invalid_argument("file " + line + " not found");
 			}
 
-			NSMCuda::read_rates_constants(fs,
+			PLISCuda::read_rates_constants(fs,
 										  &reactions_constants[i * rcount],
 										  &diffusion_constants[i * scount],
 										  rcount, scount);
