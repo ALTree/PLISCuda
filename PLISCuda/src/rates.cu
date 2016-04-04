@@ -4,41 +4,38 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 {
 	// search for the first specie in the reactions array that
 	// does have a positive coefficent
-	int index1 = ri;
-	int specie_index = 0;
-	while (reactants[index1] == 0) {
-		index1 += RC;
-		specie_index++;
+	int i = ri;
+	int spi1 = 0;
+	while (reactants[i] == 0) {
+		i += RC;
+		spi1++;
 	}
 
-	if (reactants[index1] == 2) {    // bi_same reaction type
-		// get specie count for that specie in the current subvolume
-		// int specie_count = state[specie_index * subvolumes_count + subvolume_index];
-		int specie_count = state[GET_SPI(specie_index, sbi)];
-		return 0.5 * specie_count * (specie_count - 1) * rrc[ri];
+	if (reactants[i] == 2) {    // bi_same reaction type
+		int sp_count = state[GET_SPI(spi1, sbi)];
+		return 0.5 * sp_count * (sp_count - 1) * rrc[ri];
 	}
 
-	// if specie_index == # of species we are in a uni reaction
-	if (specie_index != SPC - 1) {
-
-		// search for a possibile other specie with positive coefficient
-		int index2 = index1 + RC;
-		int specie_index2 = specie_index + 1;
-		while (reactants[index2] == 0 && index2 < (SPC * RC - 1)) {
-			index2 += RC;
-			specie_index2++;
+	// if we didn't look at all the species yet, search
+	// for a possible second positive value
+	if (spi1 != SPC - 1) {
+		int j = i + RC; // start from the next specie
+		int spi2 = spi1 + 1;
+		while (reactants[j] == 0 && j < (SPC * RC - 1)) {
+			j += RC;
+			spi2++;
 		}
 
-		if (reactants[index2] != 0) {    // bi_diff reaction type
-			int specie1_count = state[GET_SPI(specie_index, sbi)];
-			int specie2_count = state[GET_SPI(specie_index2, sbi)];
-			return (rrc[ri] * specie1_count) * specie2_count;
+		if (reactants[j] != 0) {    // bi_diff reaction type
+			int sp1_count = state[GET_SPI(spi1, sbi)];
+			int sp2_count = state[GET_SPI(spi2, sbi)];
+			return (rrc[ri] * sp1_count) * sp2_count; // careful with overflow
 		}
 	}
 
 	// uni reaction type
-	int specie_count = state[GET_SPI(specie_index, sbi)];
-	return specie_count * rrc[ri];
+	int sp_count = state[GET_SPI(spi1, sbi)];
+	return sp_count * rrc[ri];
 }
 
 __device__ void react_rates(int * state, int * reactants, float * rrc, float * react_rates_array)
@@ -89,7 +86,6 @@ __device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix,
 
 	diff_sum *= neigh_count;
 
-	// write data into rate matrix
 	rate_matrix[GET_RATE(0, sbi)] = react_sum;
 	rate_matrix[GET_RATE(1, sbi)] = diff_sum;
 	rate_matrix[GET_RATE(2, sbi)] = react_sum + diff_sum;

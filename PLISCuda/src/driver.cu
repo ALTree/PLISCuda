@@ -15,7 +15,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 	int spc = s.getS();
 	int rc = r.getR();
 
-	std::cout << "-- Starting Simulation -- \n\n";
+	std::cout << "\n-- Starting Simulation -- \n\n";
 	
 	int threads = 512;
 	int blocks = ceil(sbc / 512.0);
@@ -201,7 +201,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		thrust::device_vector<bool> revert(sbc);
 		check_state<<<blocks, threads>>>(d_state, thrust::raw_pointer_cast(revert.data()));
 		bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<bool>());
-		if (revert_state) {
+		if(revert_state) {
 
 #ifdef LOG
 			std::cout << "\n -- WARNING: need to revert state --\n";
@@ -212,7 +212,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 			// restore state from the copy
 			gpuErrchk(cudaMemcpy(d_state, d_state2, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
 
-			// halven tau
+			// halven tau and update current time 
 			h_current_time = h_current_time - min_tau + min_tau / 2.0;
 			min_tau = min_tau / 2.0;
 
@@ -239,7 +239,6 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 				d_prngstate);
 
 #ifdef LOG
-		// print system state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 		print_state(h_state, spc, sbc, h_current_time);
 #endif
@@ -253,7 +252,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		print_leap_array(d_leap, sbc);
 #endif
 
-#ifndef LOG // only using logFreq when in RELEASE mode
+#ifndef LOG // log to file only when in RELEASE mode
 		if(log_freq > 0 && (h_current_time - last_log_time) >= log_freq) {
 			last_log_time = h_current_time;
 			gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
@@ -278,6 +277,7 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 
 	std::cout << "-- Simulation Complete -- \n";
 
+	// print final state no matter which mode we are using
 	gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 	print_state(h_state, spc, sbc, h_current_time);
 

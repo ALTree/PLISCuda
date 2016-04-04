@@ -23,7 +23,6 @@ __device__ bool is_critical_diffusion(int * state, int sbi, int spi)
 
 __device__ float compute_g(int * state, int * reactants, int sbi, int spi)
 {
-
 	int hor = HOR(reactants, spi);
 
 	int x = 0;
