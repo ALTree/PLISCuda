@@ -28,7 +28,7 @@ public:
 	State(const State& other)
 			: n(other.n), s(other.s), state(new int[n * s])
 	{
-		for (int i = 0; i < n * s; i++) {
+		for (uint i = 0; i < n * s; i++) {
 			state[i] = other.state[i];
 		}
 	}
@@ -185,7 +185,7 @@ inline std::istream& operator>>(std::istream& is, State& state)
 
 		std::vector<std::string> coeffs = split(subvolume_line, ' ');
 
-		if (coeffs.size() != s) {
+		if (coeffs.size() != (uint)s) {
 			throw std::invalid_argument("Parse of subvolume line failed "
 					"(subvolume " + subvolume_line + ") has wrong length");
 		}

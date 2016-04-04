@@ -185,7 +185,7 @@ inline std::istream& operator>>(std::istream& is, Reactions& rs)
 	while (std::getline(is, reaction_line)) {
 
 		std::vector<std::string> coeffs = split(reaction_line, ' ');
-		if (coeffs.size() != (2 * s + 1)) {
+		if (coeffs.size() != (2 * (uint)s + 1)) {
 			throw std::invalid_argument("Parse of reactions line failed "
 					"(reaction " + std::to_string(current_reaction) + ")");
 		}

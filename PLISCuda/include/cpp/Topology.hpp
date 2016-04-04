@@ -133,7 +133,7 @@ inline std::istream& operator>>(std::istream& is, Topology& t)
 
 		// check if subvolume number is what we expect
 		try {
-			if (counter == std::stoi(subvolume)) {
+			if (counter == (uint)std::stoi(subvolume)) {
 				counter++;
 			} else {
 				// no. abort parsing.
@@ -158,7 +158,7 @@ inline std::istream& operator>>(std::istream& is, Topology& t)
 		for (auto& subv : neighbours) {
 
 			// first try to parse the number
-			int sub;
+			uint sub;
 			try {
 				sub = std::stoi(subv);
 			} catch (std::invalid_argument &) {

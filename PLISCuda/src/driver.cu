@@ -271,8 +271,10 @@ void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_d
 		
 	}
 
+#ifndef LOG
 	out_file.close();
-	
+#endif
+
 	gpuErrchk(cudaDeviceSynchronize());
 
 	std::cout << "-- Simulation Complete -- \n";

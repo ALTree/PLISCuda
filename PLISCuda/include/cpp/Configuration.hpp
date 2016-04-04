@@ -212,7 +212,7 @@ inline std::ostream& operator<<(std::ostream& os, Configuration& c)
 	int comp = c.getCompartments();
 	os << "  compartments = " << comp << "\n";
 	if(c.getCompartments() > 1) {
-		for (int i = 0; i < c.getTopology().getN(); i++) {
+		for (uint i = 0; i < c.getTopology().getN(); i++) {
 			os << c.getCompArray()[i] << " ";
 		}
 		os << "\n";

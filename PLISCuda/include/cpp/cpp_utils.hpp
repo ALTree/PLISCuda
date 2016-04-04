@@ -48,7 +48,7 @@ inline void read_subv_constants(std::istream& is, int * subv_constants, uint sbc
 {
 	std::string line;
 
-	for (int i = 0; i < sbc; i++) {
+	for (uint i = 0; i < sbc; i++) {
 		std::getline(is, line, ':');
 		std::getline(is, line);
 		subv_constants[i] = std::stoi(line);
