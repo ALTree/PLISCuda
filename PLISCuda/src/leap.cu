@@ -4,12 +4,21 @@ __device__ bool is_critical_reaction(int * state, int * reactants, int * product
 {
 	bool crit = false;
 	for (int spi = 0; spi < SPC; spi++) {
+		// if state == 0 and the reactions requires specie
+		// spi, it's obviously critical
 		if(reactants[GET_COEFF(spi, ri)] > 0 && state[GET_SPI(spi, sbi)] == 0){
 			return true;
 		}
+
+		// delta is the net variation in population spi
+		// after NC firings of the reaction
 		int delta = (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]) * NC;
-		if(delta > 0)
-			continue;
+		if(delta >= 0) // the reaction actually *increases* (or leave unchanged) the
+			continue;  // current specie popolation, so it's obviously not critical
+
+		// Now delta < 0 and abs(delta) is the decrease in specie spi
+		// population caused by the reaction. If abs(delta) > population,
+		// the reaction is critical.
 		crit = crit || (abs(delta) > state[GET_SPI(spi, sbi)]);
 	}
 
@@ -50,11 +59,11 @@ __device__ int HOR(int * reactants, int spi)
 	int max_hor = 0;
 	bool is_bi_reaction = false;
 
-	for (int i = 0; i < RC; i++) {
+	for (int ri = 0; ri < RC; ri++) {
 
 		// if spi is not a reactant of the current
 		// reaction, continue with the next one.
-		if (reactants[GET_COEFF(spi, i)] == 0) {
+		if (reactants[GET_COEFF(spi, ri)] == 0) {
 			continue;
 		}
 
@@ -62,7 +71,7 @@ __device__ int HOR(int * reactants, int spi)
 		// reaction to compute its order.
 		int hor = 0;
 		for (int j = 0; j < SPC; j++) {
-			int c = reactants[GET_COEFF(j, i)];
+			int c = reactants[GET_COEFF(j, ri)];
 			hor += c;
 			// check if ri requires 2 molecules of spi
 			if (j == spi && c == 2) {
@@ -100,15 +109,23 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 		mu += v * react_rates_array[GET_RR(i, sbi)];
 	}
 
-	// add propensities of outgoing diffusions for specie spi.
-	// We should sum the diffusion propensities over all the
-	// neighbours, but diff_rates_array already has the
-	// overall diffusion propensity.
-	mu += diff_rates_array[GET_DR(spi, sbi)];
+	if(is_critical_diffusion(state, sbi, spi)) {
+		// if spi is critical in this subvolume, don't
+		// sum propensities of outgoing diffusions
+	} else {
+		// Add propensities of outgoing diffusions for specie spi.
+		// We should sum the diffusion propensities over all the
+		// neighbours, but diff_rates_array already has the
+		// overall diffusion propensity.
+		mu += diff_rates_array[GET_DR(spi, sbi)];
+	}
 
-	// add propensities of incoming diffusions for specie spi.
+	// add propensities of incoming diffusions for specie spi
 	for (int i = 0; i < 6; i++) {    // loop over the neighbours
 		unsigned int ni = topology[sbi * 6 + i];    // neighbour index
+		if(ni == sbi) {
+			continue;
+		}
 
 		// first we need to compute how many neighbours ni has
 		int nni = 0;
@@ -119,7 +136,7 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 		}
 
 		// now we subtract from mu the propensity of specie spi in
-		// subvolume ni divided by nni (i.e. we sum a negative value).
+		// subvolume ni divided by nni (i.e. we sum a negative value)
 		mu -= (diff_rates_array[GET_DR(spi, ni)]) / nni;
 
 	}
@@ -132,6 +149,7 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 {
 	float sigma2 = 0.0;
 
+	// sum propensities for the reactions
 	for (int i = 0; i < RC; i++) {
 
 		// when computing sigma2 we only sum over non-critical reactions
@@ -145,16 +163,24 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 		sigma2 += (v * v) * react_rates_array[GET_RR(i, sbi)];
 	}
 
-	// add propensities of outgoing diffusions for specie spi.
-	// We should sum the diffusion propensities over all the
-	// neighbours, but diff_rates_array already has the
-	// overall diffusion propensity.
-	sigma2 += diff_rates_array[GET_DR(spi, sbi)];
+	if(is_critical_diffusion(state, sbi, spi)) {
+		// if spi is critical in this subvolume, don't
+		// sum propensities of outgoing diffusions
+	} else {
+		// Add propensities of outgoing diffusions for specie spi.
+		// We should sum the diffusion propensities over all the
+		// neighbours, but diff_rates_array already has the
+		// overall diffusion propensity.
+		sigma2 += diff_rates_array[GET_DR(spi, sbi)];
+	}
 
 	// add propensities of incoming diffusions for specie spi.
 	for (int i = 0; i < 6; i++) {    // loop over the neighbours
 		unsigned int ni = topology[sbi * 6 + i];    // neighbour index
-
+		if(ni == sbi) {
+			continue;
+		}
+		
 		// first we need to compute how many neighbours ni has
 		int nni = 0;
 		for (int j = 0; j < 6; j++) {
@@ -163,10 +189,10 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 			}
 		}
 
-		// now we add to mu the propensity of specie spi in
+		// Now we add to mu the propensity of specie spi in
 		// subvolume ni divided by nni. No need to square since
 		// the coeff. is always -1, just sum 1.
-		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / max(nni, 1);    // TODO: fix?
+		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / nni;    
 
 	}
 
@@ -212,7 +238,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 		// check for critical diffusion events
 		bool skip_d = is_critical_diffusion(state, sbi, spi);
 
-		if (skip_r && skip_d) {
+		if (skip_r && skip_d) { // ??? should be ||
 			continue;
 		}
 		// spi is not involved in any critical event.

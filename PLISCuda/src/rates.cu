@@ -6,14 +6,14 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 	// does have a positive coefficent
 	int i = ri;
 	int spi1 = 0;
-	while (reactants[i] == 0) {
+	while (reactants[i] == 0 && spi1 < SPC) {
 		i += RC;
 		spi1++;
 	}
 
 	if (reactants[i] == 2) {    // bi_same reaction type
 		int sp_count = state[GET_SPI(spi1, sbi)];
-		return 0.5 * sp_count * (sp_count - 1) * rrc[ri];
+		return 0.5 * (rrc[ri] *  sp_count) * (sp_count - 1); // careful with overflow
 	}
 
 	// if we didn't look at all the species yet, search
@@ -21,7 +21,7 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 	if (spi1 != SPC - 1) {
 		int j = i + RC; // start from the next specie
 		int spi2 = spi1 + 1;
-		while (reactants[j] == 0 && j < (SPC * RC - 1)) {
+		while (reactants[j] == 0 && spi2 < SPC) {
 			j += RC;
 			spi2++;
 		}
@@ -32,8 +32,8 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 			return (rrc[ri] * sp1_count) * sp2_count; // careful with overflow
 		}
 	}
-
 	// uni reaction type
+
 	int sp_count = state[GET_SPI(spi1, sbi)];
 	return sp_count * rrc[ri];
 }
@@ -98,6 +98,8 @@ __global__ void compute_rates(int * state, int * reactants, unsigned int * topol
 	if (sbi >= SBC)
 		return;
 
+	// find the position of the constants set we
+	// have to use (bc compartimentation support)
 	float * rrcp = &rrc[d_subv_consts[sbi]*RC];
 	float * drcp = &drc[d_subv_consts[sbi]*SPC];
 
