@@ -37,12 +37,12 @@ int main(int argc, char * argv[])
 	std::cout << "-- Parsing input files -- \n\n";
 	std::ifstream cf(argv[1]);
 	if(!cf.good()) {
-		std::cerr << "Couldn't load configuration file\n";
+		std::cout << "Couldn't load configuration file\n";
 		return 1;
 	}
 	
 	try {
-		std::cerr << "  processing configuration file...\n";
+		std::cout << "  processing configuration file...\n";
 		PLISCuda::Configuration conf(cf);
 
 #ifdef DEBUG
@@ -63,8 +63,8 @@ int main(int argc, char * argv[])
 			);
 		
 	} catch (std::invalid_argument &e) {
-		std::cerr << "  parsing of configuration file failed with msg:\n";
-		std::cerr << "\t" << e.what() << "\n";
+		std::cout << "  parsing of configuration file failed with msg:\n";
+		std::cout << "\t" << e.what() << "\n";
 	}
 
 }
