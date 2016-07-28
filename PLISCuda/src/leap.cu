@@ -91,7 +91,7 @@ __device__ int HOR(int * reactants, int spi)
 }
 
 __device__ float compute_mu(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-		float * react_rates_array, float * diff_rates_array)
+							float * react_rates_array, float * diff_rates_array)
 {
 	float mu = 0.0;
 
@@ -145,7 +145,7 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 }
 
 __device__ float compute_sigma2(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-		float * react_rates_array, float * diff_rates_array)
+								float * react_rates_array, float * diff_rates_array)
 {
 	float sigma2 = 0.0;
 
@@ -200,7 +200,7 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 }
 
 __device__ float compute_tau_sp(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-		float * react_rates_array, float * diff_rates_array)
+								float * react_rates_array, float * diff_rates_array)
 {
 	float g = compute_g(state, reactants, sbi, spi);
 	int x = state[GET_SPI(spi, sbi)];
@@ -216,7 +216,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 }
 
 __device__ float compute_tau_ncr(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
-		float * react_rates_array, float * diff_rates_array)
+								 float * react_rates_array, float * diff_rates_array)
 {
 	float min_tau = INFINITY;
 
@@ -251,14 +251,14 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 }
 
 __device__ float compute_tau_cr(int * state, int * reactants, int * products, int sbi, float * react_rates_array,
-		float * diff_rates_array, curandStateMRG32k3a * s)
+								float * diff_rates_array, curandStateMRG32k3a * s)
 {
 	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
 	float diff_rates_sum_cr = 0.0;     // sum of diffusion rates of critical diffusion events
 
 	for (int ri = 0; ri < RC; ri++) {
 		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)]
-				* is_critical_reaction(state, reactants, products, sbi, ri));
+							   * is_critical_reaction(state, reactants, products, sbi, ri));
 	}
 
 	for (int spi = 0; spi < SPC; spi++) {
@@ -273,8 +273,8 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 }
 
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, float min_tau,
-		char * leap, curandStateMRG32k3a * s)
+									float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, float min_tau,
+									char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -326,8 +326,8 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 }
 
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
-		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
-		float * current_time, char * leap, curandStateMRG32k3a * prngstate)
+						  float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
+						  float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC || leap[sbi] == SSA || leap[sbi] == SSA_FF)
@@ -433,7 +433,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		int ric = 0;
 		while (partial_sum <= scaled_sum) {
 			partial_sum += react_rates_array[GET_RR(ric, sbi)]
-					* is_critical_reaction(state, reactants, products, sbi, ric);
+				* is_critical_reaction(state, reactants, products, sbi, ric);
 			ric++;
 		}
 		// We'll fire the ric-nth critical reactions.

@@ -200,7 +200,7 @@ namespace PLISCuda {
 				std::cout << "\t old tau = " << min_tau << ", time was = " << h_current_time << "\n";
 				std::cout << "\t new tau = " << min_tau / 2.0 << ", ";
 #endif
-
+				
 				// restore state from the copy
 				gpuErrchk(cudaMemcpy(d_state, d_state2, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
 
@@ -308,7 +308,7 @@ namespace PLISCuda {
 		return s;
 	}
 
-		void print_rate_matrix(float * h_rate_matrix, int sbc)
+	void print_rate_matrix(float * h_rate_matrix, int sbc)
 	{
 		std::cout << "--- [rate matrix] ---\n";
 		for (int i = 0; i < sbc; i++) {

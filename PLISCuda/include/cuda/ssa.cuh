@@ -32,7 +32,7 @@ __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, 
 // It updates the state of the neighbours, if necessary.
 // It does NOT update tau or the current time.
 __global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
-		float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, char * leap,
-		curandStateMRG32k3a * s);
+						 float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, char * leap,
+						 curandStateMRG32k3a * s);
 
 #endif /* NSM_CUH_ */

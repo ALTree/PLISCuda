@@ -64,8 +64,8 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 }
 
 __global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
-		float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, char * leap,
-		curandStateMRG32k3a * s)
+						 float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, char * leap,
+						 curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC || leap[sbi] == LEAP_CR || leap[sbi] == LEAP_NOCR || min_sbi != sbi)

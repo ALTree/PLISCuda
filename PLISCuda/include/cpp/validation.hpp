@@ -9,14 +9,14 @@
 
 namespace PLISCuda {
 
-inline void is_consistent(PLISCuda::Topology t, PLISCuda::State s, PLISCuda::Reactions r)
-{
-	// checks on subvolumes number
-	assert(t.getN() == s.getN());
+	inline void is_consistent(PLISCuda::Topology t, PLISCuda::State s, PLISCuda::Reactions r)
+	{
+		// checks on subvolumes number
+		assert(t.getN() == s.getN());
 
-	// check on species number
-	assert(s.getS() == r.getS());
-}
+		// check on species number
+		assert(s.getS() == r.getS());
+	}
 
 }
 

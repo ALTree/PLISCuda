@@ -31,13 +31,13 @@ __device__ int HOR(int * reactants, int spi);
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32a),
 // for specie spi in subvolume sbi
 __device__ float compute_mu(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-		float * react_rates_array, float * diff_rates_array);
+							float * react_rates_array, float * diff_rates_array);
 
 // compute sigma2 (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 32b),
 // for specie spi in subvolume sbi
 __device__ float compute_sigma2(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-		float * react_rates_array, float * diff_rates_array);
+								float * react_rates_array, float * diff_rates_array);
 
 // compute the tau time (as defined in Cao, Gillespie, Petzold - Efficient step size selection
 // for the tau-leaping simulation method, J chem Phys 124, 044109, page 7, formula 33) for
@@ -45,23 +45,23 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 // Diffusion events are taken into account(so it's not really [Tao06], it's che modified version
 // found in [Harris10]
 __device__ float compute_tau_sp(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-		float * react_rates_array, float * diff_rates_array);
+								float * react_rates_array, float * diff_rates_array);
 
 // compute the subvolume tau time (i.e. the min of the tau_sp over all the species), in subvolume sbi.
 // The min has to be taken over the reactant species NOT involved in critical reactions.
 // If every reaction is critical, returns +Inf.
 __device__ float compute_tau_ncr(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
-		float * react_rates_array, float * diff_rates_array);
+								 float * react_rates_array, float * diff_rates_array);
 
 // compute the subvolume tau_cr time (i.e. the tau for the critical reactions).
 // Returns +Inf if every reaction is non-critical.
 __device__ float compute_tau_cr(int * state, int * reactants, int * products, int sbi, float * react_rates_array,
-		float * diff_rates_array, curandStateMRG32k3a * s);
+								float * diff_rates_array, curandStateMRG32k3a * s);
 
 // Fill the tau array with taus computed as [Cao06]
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-		float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, float min_tau,
-		char * leap, curandStateMRG32k3a * s);
+									float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, float min_tau,
+									char * leap, curandStateMRG32k3a * s);
 
 // Performs a single leap step.
 // Returns immediately if:
@@ -72,8 +72,8 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 // leaping. If not, it does not fire any reaction).
 // It does NOT update tau or the current time.
 __global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
-		float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
-		float * current_time, char * leap, curandStateMRG32k3a * prngstate);
+						  float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
+						  float * current_time, char * leap, curandStateMRG32k3a * prngstate);
 
 __global__ void check_state(int * state, bool * revert);
 
