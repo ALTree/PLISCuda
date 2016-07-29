@@ -266,10 +266,15 @@ namespace PLISCuda {
 
 		std::cout << "-- Simulation Complete -- \n";
 
-		// print final state no matter which mode we are using
+#ifndef LOG // when logging to file, remember to print the final state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
-		print_state(h_state, spc, sbc, h_current_time);
 
+		std::ofstream log_file;
+		log_file.open("sim" + std::to_string(tstamp) + "_" + std::to_string(h_current_time) +".dat");
+		log_file << print_state_snapshot(h_state, spc, sbc, h_current_time);
+		log_file.close();
+#endif
+		
 		std::cout << "  final simulation time: " << h_current_time << "\n";
 
 	}
