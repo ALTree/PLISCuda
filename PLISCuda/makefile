@@ -18,7 +18,7 @@ log: NVCCFLAGS += -O2 -DLOG
 log: all
 
 # debugs logs everything and prints all the internal data
-debug: NVCCFLAGS += -O0 --compiler-options -Wall -DLOG -DDEBUG
+debug: NVCCFLAGS += -O0 -g -G --compiler-options -Wall -DLOG -DDEBUG
 debug: all
 
 
