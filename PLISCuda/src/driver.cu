@@ -275,7 +275,7 @@ namespace PLISCuda {
 		log_file.close();
 #endif
 		
-		std::cout << "  final simulation time: " << h_current_time << "\n";
+		std::cout << "\n  final simulation time: " << h_current_time << "\n";
 
 	}
 

@@ -2,7 +2,7 @@
 NVCC = nvcc
 OBJDIR = build
 SRCDIR = src
-NVCCFLAGS = -std=c++11 -rdc=true -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20
+NVCCFLAGS = -std=c++11 -rdc=true -gencode arch=compute_35,code=compute_35 -gencode arch=compute_35,code=sm_35
 
 objs = $(OBJDIR)/leap.o $(OBJDIR)/rates.o $(OBJDIR)/log.o \
 	$(OBJDIR)/ssa.o $(OBJDIR)/driver.o $(OBJDIR)/main.o
@@ -20,7 +20,6 @@ log: all
 # debugs logs everything and prints all the internal data
 debug: NVCCFLAGS += -O0 --compiler-options -Wall -DLOG -DDEBUG
 debug: all
-
 
 
 
