@@ -267,7 +267,7 @@ namespace PLISCuda {
 
 		std::clock_t sim_end = std::clock();
 
-		std::cout << "-- Simulation Complete -- \n";
+		std::cout << "-- Simulation Complete -- \n\n";
 
 #ifndef LOG // when logging to file, remember to print the final state
 		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
@@ -278,11 +278,14 @@ namespace PLISCuda {
 		log_file.close();
 #endif
 
-		// print some final infos to stdout
-		std::cout << "  final simulation time: " << h_current_time << "\n";
+		// print some final info to stdout
+		std::cout << "  final simulation time:  " << h_current_time << "s\n";
 		float eltime = float(sim_end - sim_start) / CLOCKS_PER_SEC;
 		print_eltime(eltime);
-		
+		std::cout << "  simulation steps:       " << step << "\n";
+		std::cout << "  steps/second:           " << step/eltime << "\n";
+
+		std::cout << "\n";
 	} 
 
 	
@@ -296,12 +299,13 @@ namespace PLISCuda {
 
 	void print_eltime(float secs)
 	{
-		std::cout << "  elapsed time:          ";
-		time_t time = (time_t) secs;
-		struct tm * tme = localtime(&time);
-		char buf[30];
-		strftime(buf, sizeof(buf), "%H%M%S", tme);
-		std::cout << std::string(buf) << "\n";
+		std::cout << "  elapsed time:           ";
+		int hrs = secs / 3600;
+		int mts = (secs - hrs*3600)/60;
+		float scs = secs - (hrs*3600 + mts*60);
+		std::cout << hrs << "h ";
+		std::cout << mts << "m ";
+		std::cout << scs << "s " << "\n";
 	}
 	
 	void print_state(int * h_state, int spc, int sbc, float current_time)
