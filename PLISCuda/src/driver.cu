@@ -152,6 +152,8 @@ namespace PLISCuda {
 
 		std::cout << "-- Begin Iterations -- \n\n";
 
+		std::clock_t sim_start = std::clock();
+
 		int step = 0;
 		while(h_current_time < endTime) {
 
@@ -193,8 +195,8 @@ namespace PLISCuda {
 			thrust::device_vector<bool> revert(sbc);
 			check_state<<<blocks, threads>>>(d_state, thrust::raw_pointer_cast(revert.data()));
 			bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<bool>());
-			if(revert_state) {
 
+			if(revert_state) {
 #ifdef LOG
 				std::cout << "\n -- WARNING: need to revert state --\n";
 				std::cout << "\t old tau = " << min_tau << ", time was = " << h_current_time << "\n";
@@ -216,7 +218,7 @@ namespace PLISCuda {
 				gpuErrchk(cudaMemcpy(d_current_time, &h_current_time, sizeof(float), cudaMemcpyHostToDevice));
 
 				goto REPEAT;
-			}
+			} // end if(revert_state)
 
 			// update rates
 			// TODO: the computed values are not used if the subvolume
@@ -259,10 +261,11 @@ namespace PLISCuda {
 			}
 #endif
 		
-		}
-
+		} // end while(h_current_time < endTime)
 
 		gpuErrchk(cudaDeviceSynchronize());
+
+		std::clock_t sim_end = std::clock();
 
 		std::cout << "-- Simulation Complete -- \n";
 
@@ -274,19 +277,33 @@ namespace PLISCuda {
 		log_file << print_state_snapshot(h_state, spc, sbc, h_current_time);
 		log_file.close();
 #endif
-		
+
+		// print some final infos to stdout
 		std::cout << "  final simulation time: " << h_current_time << "\n";
+		float eltime = float(sim_end - sim_start) / CLOCKS_PER_SEC;
+		print_eltime(eltime);
+		
+	} 
 
-	}
-
+	
+	// ----- utils functions for printing and other stuff -----
+  
 	int h_get_min_tau(thrust::device_vector<float> &tau)
 	{
 		thrust::device_vector<float>::iterator iter = thrust::min_element(tau.begin(), tau.end());
 		return iter - tau.begin();
 	}
 
-	// ----- print utils stuff -----
-
+	void print_eltime(float secs)
+	{
+		std::cout << "  elapsed time:          ";
+		time_t time = (time_t) secs;
+		struct tm * tme = localtime(&time);
+		char buf[30];
+		strftime(buf, sizeof(buf), "%H%M%S", tme);
+		std::cout << std::string(buf) << "\n";
+	}
+	
 	void print_state(int * h_state, int spc, int sbc, float current_time)
 	{
 		std::cout << "\n--- [state at t = " << current_time << "] ---\n";
@@ -347,3 +364,4 @@ namespace PLISCuda {
 	}
 
 }
+ 
