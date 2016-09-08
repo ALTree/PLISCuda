@@ -73,7 +73,7 @@ namespace PLISCuda {
 		gpuErrchk(cudaMemcpy(d_drc, h_drc, spc * sizeof(float) * compartments_count, cudaMemcpyHostToDevice));
 
 		std::cout << "    reactions require         " <<
-			(2*spc*rc*sizeof(int) + (rc+spc)*sizeof(float)) / (1024.0 * 1024.0) << " MB\n";
+			(2*spc*rc*sizeof(int) + (rc+spc)*sizeof(float) + (spc*sizeof(int))) / (1024.0 * 1024.0) << " MB\n";
 	
 		// ----- allocate and memcpy topology array -----
 		unsigned int * h_topology = t.getNeighboursArray();
@@ -118,6 +118,11 @@ namespace PLISCuda {
 		char * d_leap;
 		gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(char)));
 
+		// ----- allocate and initialize HORs array ------
+		int * d_hors;
+		gpuErrchk(cudaMalloc(&d_hors, spc*sizeof(int)));
+		initialize_hors_array<<<1, 1>>>(d_hors, d_reactants, spc);
+
 		// zero GPU memory, just to be sure
 		// TODO: remove(?) or check that we are zeroing everything
 		gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
@@ -141,7 +146,7 @@ namespace PLISCuda {
 
 		std::cout << "  computing initial taus...\n\n";
 
-		fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
+		fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_hors, d_topology, d_rate_matrix,
 												 d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
 
 #ifdef DEBUG
@@ -235,9 +240,9 @@ namespace PLISCuda {
 #ifdef PROFILE
 			cudaProfilerStart();
 #endif
-			fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
-													 d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau, d_leap,
-													 d_prngstate);
+			fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_hors, d_topology, d_rate_matrix,
+													 d_react_rates_array, d_diff_rates_array, 
+													 thrust::raw_pointer_cast(tau.data()), min_tau, d_leap, d_prngstate);
 #ifdef PROFILE
 			cudaProfilerStop();
 #endif

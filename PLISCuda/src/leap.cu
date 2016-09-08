@@ -30,9 +30,9 @@ __device__ bool is_critical_diffusion(int * state, int sbi, int spi)
 	return state[GET_SPI(spi, sbi)] < NC;
 }
 
-__device__ float compute_g(int * state, int * reactants, int sbi, int spi)
+__device__ float compute_g(int * state, int * reactants, int * hors, int sbi, int spi)
 {
-	int hor = HOR(reactants, spi);
+	int hor = hors[spi];
 
 	int x = 0;
 	switch (hor) {
@@ -199,10 +199,10 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 	return sigma2;
 }
 
-__device__ float compute_tau_sp(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
+__device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, unsigned int * topology, int sbi, int spi,
 								float * react_rates_array, float * diff_rates_array)
 {
-	float g = compute_g(state, reactants, sbi, spi);
+	float g = compute_g(state, reactants, hors, sbi, spi);
 	int x = state[GET_SPI(spi, sbi)];
 
 	float mu = compute_mu(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
@@ -215,7 +215,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, un
 	return min(t1, t2);
 }
 
-__device__ float compute_tau_ncr(int * state, int * reactants, int * products, unsigned int * topology, int sbi,
+__device__ float compute_tau_ncr(int * state, int * reactants, int * products, int * hors, unsigned int * topology, int sbi,
 								 float * react_rates_array, float * diff_rates_array)
 {
 	float min_tau = INFINITY;
@@ -243,7 +243,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, u
 		}
 		// spi is not involved in any critical event.
 
-		float tau = compute_tau_sp(state, reactants, products, topology, sbi, spi, react_rates_array, diff_rates_array);
+		float tau = compute_tau_sp(state, reactants, products, hors, topology, sbi, spi, react_rates_array, diff_rates_array);
 		min_tau = min(min_tau, tau);
 	}
 
@@ -272,9 +272,9 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, in
 	return -logf(rand) / (react_rates_sum_cr + diff_rates_sum_cr);
 }
 
-__global__ void fill_tau_array_leap(int * state, int * reactants, int * products, unsigned int * topology,
-									float * rate_matrix, float * react_rates_array, float * diff_rates_array, float * tau, float min_tau,
-									char * leap, curandStateMRG32k3a * s)
+__global__ void fill_tau_array_leap(int * state, int * reactants, int * products, int * hors, unsigned int * topology,
+									float * rate_matrix, float * react_rates_array, float * diff_rates_array, 
+									float * tau, float min_tau, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -297,7 +297,7 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 		return;
 	}
 
-	float tau_ncr = compute_tau_ncr(state, reactants, products, topology, sbi, react_rates_array, diff_rates_array);
+	float tau_ncr = compute_tau_ncr(state, reactants, products, hors, topology, sbi, react_rates_array, diff_rates_array);
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we can't leap.
@@ -531,3 +531,13 @@ __global__ void check_state(int * state, bool * revert)
 	revert[sbi] = _revert;
 }
 
+
+__global__ void initialize_hors_array(int * hors, int * reactants, int spc)
+{
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi != 0)
+		return;
+
+	for (int spi = 0; spi < spc; spi++)
+		hors[spi] = HOR(reactants, spi);
+}
