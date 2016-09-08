@@ -2,7 +2,7 @@
 NVCC = nvcc
 OBJDIR = build
 SRCDIR = src
-NVCCFLAGS = -std=c++11 -rdc=true -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20
+NVCCFLAGS = -std=c++11 -rdc=true -arch=sm_30
 
 objs = $(OBJDIR)/leap.o $(OBJDIR)/rates.o $(OBJDIR)/log.o \
 	$(OBJDIR)/ssa.o $(OBJDIR)/driver.o $(OBJDIR)/main.o
