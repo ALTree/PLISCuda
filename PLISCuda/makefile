@@ -9,7 +9,7 @@ objs = $(OBJDIR)/leap.o $(OBJDIR)/rates.o $(OBJDIR)/log.o \
 
 ##  build configurations  ##
 
-# relase simulates the system (no print-logging)
+# release simulates the system (no print-logging)
 release: NVCCFLAGS += -O3
 release: all
 
@@ -21,7 +21,9 @@ log: all
 debug: NVCCFLAGS += -O0 --compiler-options -Wall -DLOG -DDEBUG
 debug: all
 
-
+# profile is the same as release but with a few profile flags
+profile: NVCCFLAGS += -O3 -DPROFILE -lineinfo
+profile: all
 
 
 ##  rules  ##

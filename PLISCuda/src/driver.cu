@@ -1,4 +1,5 @@
 #include "../include/cuda/driver.cuh"
+#include <cuda_profiler_api.h>
 
 __constant__ unsigned int SBC;
 __constant__ int SPC;
@@ -19,6 +20,9 @@ namespace PLISCuda {
 	
 		int threads = 512;
 		int blocks = ceil(sbc / 512.0);
+		if (blocks == 1) {
+			threads = ((sbc / 32) + 1)*32;
+		}
 		std::cout << "  [using " << threads << " threads and " << blocks << " block(s)]\n\n";
 
 		int nc = 10;             // threshold for critical/non-critical event
@@ -228,9 +232,15 @@ namespace PLISCuda {
 											   d_react_rates_array, d_diff_rates_array);
 
 			// update tau array
+#ifdef PROFILE
+			cudaProfilerStart();
+#endif
 			fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix,
 													 d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), min_tau, d_leap,
 													 d_prngstate);
+#ifdef PROFILE
+			cudaProfilerStop();
+#endif
 
 #ifdef LOG
 			gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
