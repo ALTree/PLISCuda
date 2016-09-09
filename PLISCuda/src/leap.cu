@@ -4,21 +4,25 @@ __device__ bool is_critical_reaction(int * state, int * reactants, int * product
 {
 	bool crit = false;
 	for (int spi = 0; spi < SPC; spi++) {
-		// if state == 0 and the reactions requires specie
-		// spi, it's obviously critical
+		// if state == 0 and the reactions requires specie spi, it's
+		// obviously critical
 		if(reactants[GET_COEFF(spi, ri)] > 0 && state[GET_SPI(spi, sbi)] == 0){
 			return true;
 		}
 
-		// delta is the net variation in population spi
-		// after NC firings of the reaction
+		// delta is the net variation in population spi after NC
+		// firings of the reaction
 		int delta = (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]) * NC;
-		if(delta >= 0) // the reaction actually *increases* (or leave unchanged) the
-			continue;  // current specie popolation, so it's obviously not critical
+		if(delta >= 0) {
+			// the reaction actually *increases* (or leave unchanged)
+			// the current specie popolation, so it's obviously not
+			// critical
+			continue;
+		}
 
 		// Now delta < 0 and abs(delta) is the decrease in specie spi
-		// population caused by the reaction. If abs(delta) > population,
-		// the reaction is critical.
+		// population caused by the reaction. 
+		// If abs(delta) > population, the reaction is critical.
 		crit = crit || (abs(delta) > state[GET_SPI(spi, sbi)]);
 	}
 
@@ -47,48 +51,14 @@ __device__ float compute_g(int * state, int * reactants, int * hors, int sbi, in
 		}
 		return 2.0 + 1.0 / (x - 1);
 	default:
-		// HOR(spi) == 0 if spi does not appear as reactant in any reaction.
-		// Return +Inf so that when we divide by g we get 0 and the procedure
-		// takes max(0, 1) = 1 as g.
+		// HOR(spi) == 0 if spi does not appear as reactant in any
+		// reaction.  Return +Inf so that when we divide by g we get 0
+		// and the procedure takes max(0, 1) = 1 as g.
 		return INFINITY;
 	}
 }
 
-__device__ int HOR(int * reactants, int spi)
-{
-	int max_hor = 0;
-	bool is_bi_reaction = false;
 
-	for (int ri = 0; ri < RC; ri++) {
-
-		// if spi is not a reactant of the current
-		// reaction, continue with the next one.
-		if (reactants[GET_COEFF(spi, ri)] == 0) {
-			continue;
-		}
-
-		// sum all the coeff. of the current
-		// reaction to compute its order.
-		int hor = 0;
-		for (int j = 0; j < SPC; j++) {
-			int c = reactants[GET_COEFF(j, ri)];
-			hor += c;
-			// check if ri requires 2 molecules of spi
-			if (j == spi && c == 2) {
-				is_bi_reaction = true;    // TODO: replace with branchless code
-			}
-		}
-
-		max_hor = max(hor, max_hor);
-	}
-
-	if (is_bi_reaction) {
-		max_hor = 3;
-	}
-
-	return max_hor;
-
-}
 
 __device__ float compute_mu(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
 							float * react_rates_array, float * diff_rates_array)
@@ -110,13 +80,13 @@ __device__ float compute_mu(int * state, int * reactants, int * products, unsign
 	}
 
 	if(is_critical_diffusion(state, sbi, spi)) {
-		// if spi is critical in this subvolume, don't
-		// sum propensities of outgoing diffusions
+		// if spi is critical in this subvolume, don't sum
+		// propensities of outgoing diffusions
 	} else {
-		// Add propensities of outgoing diffusions for specie spi.
-		// We should sum the diffusion propensities over all the
-		// neighbours, but diff_rates_array already has the
-		// overall diffusion propensity.
+		// Add propensities of outgoing diffusions for specie spi.  We
+		// should sum the diffusion propensities over all the
+		// neighbours, but diff_rates_array already has the overall
+		// diffusion propensity.
 		mu += diff_rates_array[GET_DR(spi, sbi)];
 	}
 
@@ -157,20 +127,20 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 			continue;
 		}
 
-		// sigma2 is the sum of (change_vector)^2 * (reaction_rate) over
-		// non-critical reactions.
+		// sigma2 is the sum of (change_vector)² * (reaction_rate)
+		// over non-critical reactions.
 		int v = products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)];
 		sigma2 += (v * v) * react_rates_array[GET_RR(i, sbi)];
 	}
 
 	if(is_critical_diffusion(state, sbi, spi)) {
-		// if spi is critical in this subvolume, don't
-		// sum propensities of outgoing diffusions
+		// if spi is critical in this subvolume, don't sum
+		// propensities of outgoing diffusions
 	} else {
-		// Add propensities of outgoing diffusions for specie spi.
-		// We should sum the diffusion propensities over all the
-		// neighbours, but diff_rates_array already has the
-		// overall diffusion propensity.
+		// Add propensities of outgoing diffusions for specie spi.  We
+		// should sum the diffusion propensities over all the
+		// neighbours, but diff_rates_array already has the overall
+		// diffusion propensity.
 		sigma2 += diff_rates_array[GET_DR(spi, sbi)];
 	}
 
@@ -189,9 +159,9 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 			}
 		}
 
-		// Now we add to mu the propensity of specie spi in
-		// subvolume ni divided by nni. No need to square since
-		// the coeff. is always -1, just sum 1.
+		// Now we add to mu the propensity of specie spi in subvolume
+		// ni divided by nni. No need to square since the coeff. is
+		// always -1, just sum 1.
 		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / nni;    
 
 	}
@@ -280,17 +250,17 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	if (sbi >= SBC)
 		return;
 
-	// If on the previous step nobody changed our state from
-	// SSA_FF to SSA, it means that no molecule entered here
-	// and we can fast-forward time without recomputing anything.
-	// Set tau = old_tau - min_tau and return.
+	// If on the previous step nobody changed our state from SSA_FF to
+	// SSA, it means that no molecule entered here and we can
+	// fast-forward time without recomputing anything.  Set tau =
+	// old_tau - min_tau and return.
 	//
 	// Check:
 	//     - If min_tau == 0.0 we are setting up the simulation, so pass.
 	//     - If tau[sbi] is +Inf no event can happen here, so pass.
-	//     - If min_tau == tau[sbi], it means that we have the same tau
-	//       as the subvolume that has the min_tau, but he was the lucky
-	//       one and we didn't get to act. We can't fast-forward (that
+	//     - If min_tau == tau[sbi], it means that we have the same
+	//       tau as the subvolume with the min_tau, but he was the one
+	//       and we didn't get to act. We can't fast-forward (that
 	//       would bring tau to zero), so just recompute a new tau.
 	if (leap[sbi] == SSA_FF && !isinf(tau[sbi]) && min_tau > 0.0 && min_tau != tau[sbi]) {
 		tau[sbi] -= min_tau;
@@ -300,24 +270,25 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	float tau_ncr = compute_tau_ncr(state, reactants, products, hors, topology, sbi, react_rates_array, diff_rates_array);
 	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
 
-	// If tau_ncr is +Inf then every reaction is critical, and we can't leap.
-	// Also prevent leap if tau_ncr is too small.
+	// If tau_ncr is +Inf then every reaction is critical, and we
+	// can't leap.  Also prevent leap if tau_ncr is too small.
 	bool leap_here = true;
 	if (isinf(tau_ncr) /*|| (tau_ncr < 10.0 / rate_matrix[GET_RATE(2, sbi)])*/) {
-		leap[sbi] = SSA_FF;    // We start with fast-forward enabled. If someone diffuses
-							   // to us, they will need disable it by setting the state to SSA.
+		// We start with fast-forward enabled. If someone diffuses to
+		// us, they will need disable it by setting the state to SSA.
+		leap[sbi] = SSA_FF;    
 		leap_here = false;
 	}
 
 	if (tau_ncr < tau_cr) {
-		// no critical event will happen, we'll leap with
-		// all the non-critical events
+		// no critical event will happen, we'll leap with all the
+		// non-critical events
 		tau[sbi] = tau_ncr;
 		if (leap_here)
 			leap[sbi] = LEAP_NOCR;
 	} else {
-		// a single critical event will happen, all the
-		// non-critical events will leap with tau = tau_cr
+		// a single critical event will happen, all the non-critical
+		// events will leap with tau = tau_cr
 		tau[sbi] = tau_cr;
 		if (leap_here)
 			leap[sbi] = LEAP_CR;
@@ -333,8 +304,8 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	if (sbi >= SBC || leap[sbi] == SSA || leap[sbi] == SSA_FF)
 		return;
 
-	// Count the neighbours of the current subvolume. We'll need the value later.
-	// TODO: remove when issue #26 is fixed
+	// Count the neighbours of the current subvolume. We'll need the
+	// value later.  TODO: remove when issue #26 is fixed
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
 		neigh_count += (topology[sbi * 6 + i] != sbi);
@@ -392,23 +363,27 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	if (leap[sbi] != LEAP_CR)
 		return;
 
-	// Problem: in the following we use the old react_rates_array (we'll
-	// update it later, in another kernel call), but it can happen that a
-	// reaction has rate > 0 even if we can't fire it (for example because
-	// we had 2 molecules at the start of this step, but the leap diffusion
-	// phase we just executed removed one of them).
-	// To avoid negative population, we choose the random reaction as usual,
-	// but we only fire it if we have enough molecules in the subvolume.
-	// Note that it's possibile that something has entered from a neighbour
-	// during the leap phase, so checking the state is a good pragmatic
-	// way to ensure that we'll fire everytime is possibile.
+	// Problem: in the following we use the old react_rates_array
+	// (we'll update it later, in another kernel call), but it can
+	// happen that a reaction has rate > 0 even if we can't fire it
+	// (for example because we had 2 molecules at the start of this
+	// step, but the leap diffusion phase we just executed removed one
+	// of them).
+	// 
+	// To avoid negative population, we choose the random reaction as
+	// usual, but we only fire it if we have enough molecules in the
+	// subvolume.  Note that it's possibile that something has entered
+	// from a neighbour during the leap phase, so checking the state
+	// is a good pragmatic way to ensure that we'll fire everytime is
+	// possibile.
 
 	__syncthreads();
 
 	// fire a single critical event
 	float rand = curand_uniform(&prngstate[sbi]);
 
-	// first we have to choose if we'll fire a reaction or we'll diffuse a molecule
+	// first we have to choose if we'll fire a reaction or we'll
+	// diffuse a molecule
 
 	// sum the reaction rates of critical reactions
 	float rr_sum = 0.0;
@@ -446,8 +421,8 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		}
 		ri = ri - 1;
 
-		// Check if the current state lets us fire reaction ri
-		// (see comment above).
+		// Check if the current state lets us fire reaction ri (see
+		// comment above).
 		bool fire = true;
 		for (int spi = 0; spi < SPC; spi++) {
 			fire = fire && (state[GET_SPI(spi, sbi)] >= reactants[GET_COEFF(spi, ri)]);
@@ -484,14 +459,14 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		}
 		spi = spi - 1;
 
-		// Check if the current state lets us diffuse specie spi
-		// (see comment above).
+		// Check if the current state lets us diffuse specie spi (see
+		// comment above).
 		bool fire = state[GET_SPI(spi, sbi)] > 0;
 
 		if (!fire)
 			return;
 
-		// choose a random destination
+		// Choose a random destination.
 		// We should re-use the rand we already have, but it doesn't
 		// really matter, since we are using rejection sampling to
 		// choose the random destination.
@@ -540,4 +515,36 @@ __global__ void initialize_hors_array(int * hors, int * reactants, int spc)
 
 	for (int spi = 0; spi < spc; spi++)
 		hors[spi] = HOR(reactants, spi);
+}
+
+__device__ int HOR(int * reactants, int spi)
+{
+	int max_hor = 0;
+	bool is_bi_reaction = false;
+
+	for (int ri = 0; ri < RC; ri++) {
+		// if spi is not a reactant of the current reaction, continue
+		// with the next one.
+		if (reactants[GET_COEFF(spi, ri)] == 0)
+			continue;
+
+		// sum all the coeff. of the current reaction to compute its
+		// order.
+		int hor = 0;
+		for (int j = 0; j < SPC; j++) {
+			int c = reactants[GET_COEFF(j, ri)];
+			hor += c;
+			// check if ri requires 2 molecules of spi
+			if (j == spi && c == 2) {
+				is_bi_reaction = true;    // TODO: replace with branchless code
+			}
+		}
+
+		max_hor = max(hor, max_hor);
+	}
+
+	if (is_bi_reaction)
+		max_hor = 3;
+
+	return max_hor;
 }
