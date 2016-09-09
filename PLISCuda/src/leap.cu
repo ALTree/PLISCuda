@@ -58,116 +58,6 @@ __device__ float compute_g(int * state, int * reactants, int * hors, int sbi, in
 	}
 }
 
-
-__device__ float compute_mu(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-							float * react_rates_array, float * diff_rates_array)
-{
-	float mu = 0.0;
-
-	// sum propensities for the reactions
-	for (int i = 0; i < RC; i++) {
-
-		// when computing mu we only sum over non-critical reactions
-		if (is_critical_reaction(state, reactants, products, sbi, i)) {
-			continue;
-		}
-
-		// mu is the sum of (change_vector) * (reaction_rate) over
-		// non-critical reactions.
-		int v = products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)];
-		mu += v * react_rates_array[GET_RR(i, sbi)];
-	}
-
-	if(is_critical_diffusion(state, sbi, spi)) {
-		// if spi is critical in this subvolume, don't sum
-		// propensities of outgoing diffusions
-	} else {
-		// Add propensities of outgoing diffusions for specie spi.  We
-		// should sum the diffusion propensities over all the
-		// neighbours, but diff_rates_array already has the overall
-		// diffusion propensity.
-		mu += diff_rates_array[GET_DR(spi, sbi)];
-	}
-
-	// add propensities of incoming diffusions for specie spi
-	for (int i = 0; i < 6; i++) {    // loop over the neighbours
-		unsigned int ni = topology[sbi * 6 + i];    // neighbour index
-		if(ni == sbi) {
-			continue;
-		}
-
-		// first we need to compute how many neighbours ni has
-		int nni = 0;
-		for (int j = 0; j < 6; j++) {
-			if (topology[ni * 6 + j] != ni) {
-				nni++;
-			}
-		}
-
-		// now we subtract from mu the propensity of specie spi in
-		// subvolume ni divided by nni (i.e. we sum a negative value)
-		mu -= (diff_rates_array[GET_DR(spi, ni)]) / nni;
-
-	}
-
-	return mu;
-}
-
-__device__ float compute_sigma2(int * state, int * reactants, int * products, unsigned int * topology, int sbi, int spi,
-								float * react_rates_array, float * diff_rates_array)
-{
-	float sigma2 = 0.0;
-
-	// sum propensities for the reactions
-	for (int i = 0; i < RC; i++) {
-
-		// when computing sigma2 we only sum over non-critical reactions
-		if (is_critical_reaction(state, reactants, products, sbi, i)) {
-			continue;
-		}
-
-		// sigma2 is the sum of (change_vector)² * (reaction_rate)
-		// over non-critical reactions.
-		int v = products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)];
-		sigma2 += (v * v) * react_rates_array[GET_RR(i, sbi)];
-	}
-
-	if(is_critical_diffusion(state, sbi, spi)) {
-		// if spi is critical in this subvolume, don't sum
-		// propensities of outgoing diffusions
-	} else {
-		// Add propensities of outgoing diffusions for specie spi.  We
-		// should sum the diffusion propensities over all the
-		// neighbours, but diff_rates_array already has the overall
-		// diffusion propensity.
-		sigma2 += diff_rates_array[GET_DR(spi, sbi)];
-	}
-
-	// add propensities of incoming diffusions for specie spi.
-	for (int i = 0; i < 6; i++) {    // loop over the neighbours
-		unsigned int ni = topology[sbi * 6 + i];    // neighbour index
-		if(ni == sbi) {
-			continue;
-		}
-		
-		// first we need to compute how many neighbours ni has
-		int nni = 0;
-		for (int j = 0; j < 6; j++) {
-			if (topology[ni * 6 + j] != ni) {
-				nni++;
-			}
-		}
-
-		// Now we add to sigma2 the propensity of specie spi in subvolume
-		// ni divided by nni. No need to square since the coeff. is
-		// always -1, just sum 1.
-		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / nni;    
-
-	}
-
-	return sigma2;
-}
-
 __device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, 
 								bool crit_r[MAXREACTIONS], unsigned int * topology,
 								int sbi, int spi, 
@@ -255,7 +145,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products,
 		bool skip_r = false;
 
 		// check for critical reaction events
-		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
+		for (int ri = 0; ri < RC; ri++) {
 			if (crit_r[ri]) {
 				// skip if the specie spi is involved in the reaction
 				skip_r = skip_r || (reactants[GET_COEFF(spi, ri)] > 0);
@@ -324,7 +214,8 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 		return;
 	}
 
-	bool crit_r[MAXREACTIONS];
+	// crit_r[ri] == TRUE if ri is critical in this subvolume
+	bool crit_r[MAXREACTIONS]; 
 	for (int ri = 0; ri < RC; ri++) {
 		crit_r[ri] = is_critical_reaction(state, reactants, products, sbi, ri);
 	}
