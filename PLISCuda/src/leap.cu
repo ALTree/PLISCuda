@@ -168,7 +168,9 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 	return sigma2;
 }
 
-__device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, unsigned int * topology, int sbi, int spi,
+__device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, 
+								bool crit_r[MAXREACTIONS], unsigned int * topology,
+								int sbi, int spi, 
 								float * react_rates_array, float * diff_rates_array)
 {
 	float g = compute_g(state, reactants, hors, sbi, spi);
@@ -179,10 +181,10 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 	float sigma2 = 0.0;
 
 	// sum propensities for the reactions
-	for (int i = 0; i < RC; i++) {
+	for (int ri = 0; ri < RC; ri++) {
 
 		// when computing mu we only sum over non-critical reactions
-		if (is_critical_reaction(state, reactants, products, sbi, i)) {
+		if (crit_r[ri]) {
 			continue;
 		}
 
@@ -191,9 +193,9 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 		// 
 		// sigma2 is the sum of (change_vector)² * (reaction_rate)
 		// over non-critical reactions.
-		int v = products[GET_COEFF(spi, i)] - reactants[GET_COEFF(spi, i)];
-		mu += v * react_rates_array[GET_RR(i, sbi)];
-		sigma2 += (v * v) * react_rates_array[GET_RR(i, sbi)];
+		int v = products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)];
+		mu += v * react_rates_array[GET_RR(ri, sbi)];
+		sigma2 += (v * v) * react_rates_array[GET_RR(ri, sbi)];
 	}
 
 	if(is_critical_diffusion(state, sbi, spi)) {
@@ -240,8 +242,9 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 	return min(t1, t2);
 }
 
-__device__ float compute_tau_ncr(int * state, int * reactants, int * products, int * hors, unsigned int * topology, int sbi,
-								 float * react_rates_array, float * diff_rates_array)
+__device__ float compute_tau_ncr(int * state, int * reactants, int * products, 
+								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
+								 int sbi, float * react_rates_array, float * diff_rates_array)
 {
 	float min_tau = INFINITY;
 
@@ -253,8 +256,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, i
 
 		// check for critical reaction events
 		for (int ri = 0; ri < RC; ri++) {    // iterate over reactions
-
-			if (is_critical_reaction(state, reactants, products, sbi, ri)) {    // if it's critical
+			if (crit_r[ri]) {
 				// skip if the specie spi is involved in the reaction
 				skip_r = skip_r || (reactants[GET_COEFF(spi, ri)] > 0);
 			}
@@ -268,22 +270,22 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products, i
 		}
 		// spi is not involved in any critical event.
 
-		float tau = compute_tau_sp(state, reactants, products, hors, topology, sbi, spi, react_rates_array, diff_rates_array);
+		float tau = compute_tau_sp(state, reactants, products, hors, crit_r, topology, sbi, spi, react_rates_array, diff_rates_array);
 		min_tau = min(min_tau, tau);
 	}
 
 	return min_tau;
 }
 
-__device__ float compute_tau_cr(int * state, int * reactants, int * products, int sbi, float * react_rates_array,
-								float * diff_rates_array, curandStateMRG32k3a * s)
+__device__ float compute_tau_cr(int * state, int * reactants, int * products, bool crit_r[MAXREACTIONS],
+								int sbi, float * react_rates_array, float * diff_rates_array, 
+								curandStateMRG32k3a * s)
 {
 	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
 	float diff_rates_sum_cr = 0.0;     // sum of diffusion rates of critical diffusion events
 
 	for (int ri = 0; ri < RC; ri++) {
-		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)]
-							   * is_critical_reaction(state, reactants, products, sbi, ri));
+		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)] * crit_r[ri]);
 	}
 
 	for (int spi = 0; spi < SPC; spi++) {
@@ -322,8 +324,13 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 		return;
 	}
 
-	float tau_ncr = compute_tau_ncr(state, reactants, products, hors, topology, sbi, react_rates_array, diff_rates_array);
-	float tau_cr = compute_tau_cr(state, reactants, products, sbi, react_rates_array, diff_rates_array, s);
+	bool crit_r[MAXREACTIONS];
+	for (int ri = 0; ri < RC; ri++) {
+		crit_r[ri] = is_critical_reaction(state, reactants, products, sbi, ri);
+	}
+
+	float tau_ncr = compute_tau_ncr(state, reactants, products, hors, crit_r, topology, sbi, react_rates_array, diff_rates_array);
+	float tau_cr = compute_tau_cr(state, reactants, products, crit_r, sbi, react_rates_array, diff_rates_array, s);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we
 	// can't leap.  Also prevent leap if tau_ncr is too small.

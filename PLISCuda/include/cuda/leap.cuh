@@ -44,19 +44,23 @@ __device__ float compute_sigma2(int * state, int * reactants, int * products, un
 // a single specie, in subvolume sbi.
 // Diffusion events are taken into account(so it's not really [Tao06], it's che modified version
 // found in [Harris10]
-__device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, unsigned int * topology, 
-								int sbi, int spi, float * react_rates_array, float * diff_rates_array);
+__device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, 
+								bool crit_r[MAXREACTIONS], unsigned int * topology,
+								int sbi, int spi, 
+								float * react_rates_array, float * diff_rates_array);
 	
 // compute the subvolume tau time (i.e. the min of the tau_sp over all the species), in subvolume sbi.
 // The min has to be taken over the reactant species NOT involved in critical reactions.
 // If every reaction is critical, returns +Inf.
-__device__ float compute_tau_ncr(int * state, int * reactants, int * products, int * hors, unsigned int * topology, 
+__device__ float compute_tau_ncr(int * state, int * reactants, int * products, 
+								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
 								 int sbi, float * react_rates_array, float * diff_rates_array);
 
 // compute the subvolume tau_cr time (i.e. the tau for the critical reactions).
 // Returns +Inf if every reaction is non-critical.
-__device__ float compute_tau_cr(int * state, int * reactants, int * products, int sbi, float * react_rates_array,
-								float * diff_rates_array, curandStateMRG32k3a * s);
+__device__ float compute_tau_cr(int * state, int * reactants, int * products, bool crit_r[MAXREACTIONS],
+								int sbi, float * react_rates_array, float * diff_rates_array, 
+								curandStateMRG32k3a * s);
 
 // Fill the tau array with taus computed as [Cao06]
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, int * hors, unsigned int * topology,
