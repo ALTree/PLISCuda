@@ -2,7 +2,7 @@
 
 PLISCUDA="/galileo/home/userinternal/adonizet/progetto-PLISCuda/PLISCuda/PLISCuda/pliscuda"
 
-# run tests on system contained in folder $1
+# run tests on folder $1
 function run_tests {
 	echo -e "====" $1 "====\n"
 
@@ -49,6 +49,4 @@ for D in *; do
 		echo -e "  Done ("$( echo -e "scale=4; ($e - $s)/1000000000" | bc -l ) "s)\n"
     fi
 done
-
-
 

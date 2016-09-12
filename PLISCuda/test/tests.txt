@@ -18,8 +18,7 @@
    topology: 8x8x1
    species: 2
    reactions: 0
-   100000 mols at sbv 0
-   100000 mols at sbv 63
+   100000 mols at sbv {0, 63}
 
 == react-64
    
@@ -28,3 +27,9 @@
    reactions: 1
    100 mols at sbv {0..63}
 
+== diff-9
+   
+   topology: 9x1x1
+   species: 3
+   reactions: 2
+   100 mols at sbv {0..8}
