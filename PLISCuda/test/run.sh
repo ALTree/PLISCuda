@@ -6,6 +6,8 @@ PLISCUDA="/galileo/home/userinternal/adonizet/progetto-PLISCuda/PLISCuda/PLISCud
 function run_tests {
 	echo -e "====" $1 "====\n"
 
+	rm -f sim* # cleanup 
+
 	echo -n "  Running simulation.. "
 	cd $1
 	$PLISCUDA conf.txt > /dev/null
@@ -14,9 +16,12 @@ function run_tests {
 	echo -n "  == populations test.. "
 	pop_test
 
+	echo -n "  == memcheck test.. "
+	memcheck_test
+
 	# cleanup
 	echo -e ""
-	rm sim*
+	rm -f sim*
 	cd ..
 }
 
@@ -34,6 +39,26 @@ function pop_test {
 		echo "    want: |$P2|"
 		echo "    got:  |$P1|"
 	fi
+}
+
+# run simulation with cuda-memcheck
+function memcheck_test {
+	# change entTime to 0.01 or it will take ages
+	cat conf.txt | sed 's/endTime=.*/endTime=0.01/' > conf_t.txt
+
+	# run memcheck and capture output
+	MCHECKOUT=`cuda-memcheck $PLISCUDA conf_t.txt`
+
+	if [[ $MCHECKOUT == *"ERROR SUMMARY: 0 errors"* ]]
+	then
+		echo "PASS.";
+	else
+		echo "FAIL!"
+		echo "     cuda-memcheck output was written to mcheck-fail.txt"
+		echo "$MCHECKOUT" > mcheck-fail.txt
+	fi
+
+	rm -f conf_t.txt
 }
 
 
