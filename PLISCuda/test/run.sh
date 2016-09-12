@@ -1,6 +1,7 @@
 #!/bin/sh
 
 PLISCUDA="/galileo/home/userinternal/adonizet/progetto-PLISCuda/PLISCuda/PLISCuda/pliscuda"
+FAILURES=""
 
 # run tests on folder $1
 function run_tests {
@@ -38,6 +39,7 @@ function pop_test {
 		echo "FAIL!"
 		echo "    want: |$P2|"
 		echo "    got:  |$P1|"
+		FAILURES="FAIL" 
 	fi
 }
 
@@ -56,6 +58,7 @@ function memcheck_test {
 		echo "FAIL!"
 		echo "     cuda-memcheck output was written to mcheck-fail.txt"
 		echo "$MCHECKOUT" > mcheck-fail.txt
+		FAILURES="FAIL" 
 	fi
 
 	rm -f conf_t.txt
@@ -74,4 +77,13 @@ for D in *; do
 		echo -e "  Done ("$( echo -e "scale=4; ($e - $s)/1000000000" | bc -l ) "s)\n"
     fi
 done
+
+
+echo -e "========================\n"
+if [[ -z $FAILURES ]]; then
+	echo -e "    ALL TESTS PASSED\n"
+else
+	echo -e "    FUCK! SOME TEST FAILED!\n"
+fi
+
 
