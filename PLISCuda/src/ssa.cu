@@ -60,7 +60,12 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 	if (sbi >= SBC)
 		return;
 
+#ifndef TEST
 	curand_init(clock64() * sbi, 0, 0, &prngstate[sbi]);
+#else 
+	curand_init(sbi, 0, 0, &prngstate[sbi]);
+#endif
+
 }
 
 __global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,

@@ -25,6 +25,10 @@ debug: all
 profile: NVCCFLAGS += -O3 -DPROFILE -lineinfo
 profile: all
 
+# test defines the TEST preprocessor variable
+test: NVCCFLAGS += -O2 --compiler-options -Wall -DTEST
+test: all
+
 
 ##  rules  ##
 
