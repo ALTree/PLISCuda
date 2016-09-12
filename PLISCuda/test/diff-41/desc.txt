@@ -1,4 +1,0 @@
-41x1x1
-1 specie
-0 reactions
-100000 mols at (20,0,0)
