@@ -1,0 +1,7 @@
+topology=topology.txt
+reactions=reactions.txt
+initialState=state.txt
+endTime=5
+logFreq=0
+compartments=1
+constants=constants.txt

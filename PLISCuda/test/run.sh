@@ -23,7 +23,7 @@ function run_tests {
 # count global popolation of each specie in the simulation output
 # file, then compare with the expected populations from pops.txt
 function pop_test {
-	AWKSUM='{for (i=1;i<=NF;i++) a[i]+=$i} END {for (i=1;i<=NF;i++) printf a[i]; printf "\n"}'
+	AWKSUM='{for (i=1;i<=NF;i++) a[i]+=$i} END {for (i=1;i<=NF;i++) {printf a[i]; printf " "} printf "\n"}'
 	P1=$(tail -n +5 sim* | awk "$AWKSUM")
 	P2=$(cat golden/pops.txt)
 
@@ -43,7 +43,7 @@ echo -e "\n### Running PLISCuda tests ###\n"
 
 for D in *; do
     if [ -d "${D}" ]; then
-        s=`date +%s%N`
+		s=`date +%s%N`
 		run_tests ${D}
 		e=`date +%s%N`
 		echo -e "  Done ("$( echo -e "scale=4; ($e - $s)/1000000000" | bc -l ) "s)\n"

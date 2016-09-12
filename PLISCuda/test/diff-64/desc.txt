@@ -1,0 +1,5 @@
+8x8x1
+2 species
+0 reactions
+100000 mols s0 at (0,0,0)
+100000 mols s1 at (7,7,0)
