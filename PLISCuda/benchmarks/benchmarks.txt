@@ -1,0 +1,8 @@
+
+== diff-64
+   
+   topology: 8x8x1
+   species: 2
+   reactions: 0
+   100000 mols at sbv {0, 63}
+

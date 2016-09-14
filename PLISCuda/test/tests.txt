@@ -27,7 +27,7 @@
    reactions: 1
    100 mols at sbv {0..63}
 
-== diff-9
+== react-9
    
    topology: 9x1x1
    species: 3
