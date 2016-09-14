@@ -1,18 +1,18 @@
 #include "../include/cuda/leap.cuh"
 
-__device__ bool is_critical_reaction(int * state, int * reactants, int * products, int sbi, int ri)
+__device__ bool is_critical_reaction(int * state, reactions reactions, int sbi, int ri)
 {
 	bool crit = false;
 	for (int spi = 0; spi < SPC; spi++) {
 		// if state == 0 and the reactions requires specie spi, it's
 		// obviously critical
-		if(reactants[GET_COEFF(spi, ri)] > 0 && state[GET_SPI(spi, sbi)] == 0){
+		if(reactions.r[GET_COEFF(spi, ri)] > 0 && state[GET_SPI(spi, sbi)] == 0){
 			return true;
 		}
 
 		// delta is the net variation in population spi after NC
 		// firings of the reaction
-		int delta = (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]) * NC;
+		int delta = (reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)]) * NC;
 		if(delta >= 0) {
 			// the reaction actually *increases* (or leave unchanged)
 			// the current specie popolation, so it's obviously not
@@ -34,7 +34,7 @@ __device__ bool is_critical_diffusion(int * state, int sbi, int spi)
 	return state[GET_SPI(spi, sbi)] < NC;
 }
 
-__device__ float compute_g(int * state, int * reactants, int * hors, int sbi, int spi)
+__device__ float compute_g(int * state, reactions reactions, int * hors, int sbi, int spi)
 {
 	int hor = hors[spi];
 
@@ -58,11 +58,11 @@ __device__ float compute_g(int * state, int * reactants, int * hors, int sbi, in
 	}
 }
 
-__device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, 
+__device__ float compute_tau_sp(int * state, reactions reactions, int * hors, 
 								bool crit_r[MAXREACTIONS], unsigned int * topology,
 								int sbi, int spi, rates rates) 
 {
-	float g = compute_g(state, reactants, hors, sbi, spi);
+	float g = compute_g(state, reactions, hors, sbi, spi);
 	int x = state[GET_SPI(spi, sbi)];
 
 	// compute mu and sigma2
@@ -92,7 +92,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 		// 
 		// sigma2 is the sum of (change_vector)² * (reaction_rate)
 		// over non-critical reactions.
-		int v = products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)];
+		int v = reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)];
 		mu += v * rates.reaction[GET_RR(ri, sbi)];
 		sigma2 += (v * v) * rates.reaction[GET_RR(ri, sbi)];
 	}
@@ -141,7 +141,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 	return min(t1, t2);
 }
 
-__device__ float compute_tau_ncr(int * state, int * reactants, int * products, 
+__device__ float compute_tau_ncr(int * state, reactions reactions, 
 								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
 								 int sbi, rates rates)
 {
@@ -157,7 +157,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products,
 		for (int ri = 0; ri < RC; ri++) {
 			if (crit_r[ri]) {
 				// skip if the specie spi is involved in the reaction
-				skip_r = skip_r || (reactants[GET_COEFF(spi, ri)] > 0);
+				skip_r = skip_r || (reactions.r[GET_COEFF(spi, ri)] > 0);
 			}
 		}
 
@@ -169,14 +169,14 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products,
 		}
 		// spi is not involved in any critical event.
 
-		float tau = compute_tau_sp(state, reactants, products, hors, crit_r, topology, sbi, spi, rates);
+		float tau = compute_tau_sp(state, reactions, hors, crit_r, topology, sbi, spi, rates);
 		min_tau = min(min_tau, tau);
 	}
 
 	return min_tau;
 }
 
-__device__ float compute_tau_cr(int * state, int * reactants, int * products, bool crit_r[MAXREACTIONS],
+__device__ float compute_tau_cr(int * state, reactions reactions, bool crit_r[MAXREACTIONS],
 								int sbi, rates rates, curandStateMRG32k3a * s)
 {
 	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
@@ -197,7 +197,7 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, bo
 	return -logf(rand) / (react_rates_sum_cr + diff_rates_sum_cr);
 }
 
-__global__ void fill_tau_array_leap(int * state, int * reactants, int * products, int * hors, unsigned int * topology,
+__global__ void fill_tau_array_leap(int * state, reactions reactions, int * hors, unsigned int * topology,
 									rates rates,
 									float * tau, float min_tau, char * leap, curandStateMRG32k3a * s)
 {
@@ -225,11 +225,11 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 	// crit_r[ri] == TRUE if ri is critical in this subvolume
 	bool crit_r[MAXREACTIONS]; 
 	for (int ri = 0; ri < RC; ri++) {
-		crit_r[ri] = is_critical_reaction(state, reactants, products, sbi, ri);
+		crit_r[ri] = is_critical_reaction(state, reactions, sbi, ri);
 	}
 
-	float tau_ncr = compute_tau_ncr(state, reactants, products, hors, crit_r, topology, sbi, rates);
-	float tau_cr = compute_tau_cr(state, reactants, products, crit_r, sbi, rates, s);
+	float tau_ncr = compute_tau_ncr(state, reactions, hors, crit_r, topology, sbi, rates);
+	float tau_cr = compute_tau_cr(state, reactions, crit_r, sbi, rates, s);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we
 	// can't leap.  Also prevent leap if tau_ncr is too small.
@@ -257,7 +257,7 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 
 }
 
-__global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
+__global__ void leap_step(int * state, reactions reactions, unsigned int * topology,
 						  rates rates, float min_tau,
 						  float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
@@ -274,7 +274,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, unsigned
 	// fire all the non-critical reaction events
 	for (int ri = 0; ri < RC; ri++) {
 
-		if (is_critical_reaction(state, reactants, products, sbi, ri)) {
+		if (is_critical_reaction(state, reactions, sbi, ri)) {
 			continue;
 		}
 
@@ -288,7 +288,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, unsigned
 		
 		// update state
 		for (int spi = 0; spi < SPC; spi++) {
-			int new_state = k * (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
+			int new_state = k * (reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)]);
 			atomicAdd(&state[GET_SPI(spi, sbi)], new_state);
 		}
 
@@ -349,7 +349,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, unsigned
 	// sum the reaction rates of critical reactions
 	float rr_sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
-		rr_sum += rates.reaction[GET_RR(ri, sbi)] * is_critical_reaction(state, reactants, products, sbi, ri);
+		rr_sum += rates.reaction[GET_RR(ri, sbi)] * is_critical_reaction(state, reactions, sbi, ri);
 
 	// sum the diffusion rates of critical diffusion events
 	float dr_sum = 0.0;
@@ -369,14 +369,14 @@ __global__ void leap_step(int * state, int * reactants, int * products, unsigned
 		int ric = 0;
 		while (partial_sum <= scaled_sum) {
 			partial_sum += rates.reaction[GET_RR(ric, sbi)]
-				* is_critical_reaction(state, reactants, products, sbi, ric);
+				* is_critical_reaction(state, reactions, sbi, ric);
 			ric++;
 		}
 		// We'll fire the ric-nth critical reactions.
 
 		int ri;
 		for (ri = 0; ri < RC && ric > 0; ri++) {
-			if (is_critical_reaction(state, reactants, products, sbi, ri)) {
+			if (is_critical_reaction(state, reactions, sbi, ri)) {
 				ric--;
 			}
 		}
@@ -386,14 +386,14 @@ __global__ void leap_step(int * state, int * reactants, int * products, unsigned
 		// comment above).
 		bool fire = true;
 		for (int spi = 0; spi < SPC; spi++) {
-			fire = fire && (state[GET_SPI(spi, sbi)] >= reactants[GET_COEFF(spi, ri)]);
+			fire = fire && (state[GET_SPI(spi, sbi)] >= reactions.r[GET_COEFF(spi, ri)]);
 		}
 
 		if (!fire)
 			return;
 
 		for (int spi = 0; spi < SPC; spi++) {
-			int delta = products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)];
+			int delta = reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)];
 			atomicAdd(&state[GET_SPI(spi, sbi)], delta);
 		}
 
@@ -469,17 +469,17 @@ __global__ void check_state(int * state, bool * revert)
 }
 
 
-__global__ void initialize_hors_array(int * hors, int * reactants, int spc)
+__global__ void initialize_hors_array(int * hors, reactions reactions, int spc)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi != 0)
 		return;
 
 	for (int spi = 0; spi < spc; spi++)
-		hors[spi] = HOR(reactants, spi);
+		hors[spi] = HOR(reactions, spi);
 }
 
-__device__ int HOR(int * reactants, int spi)
+__device__ int HOR(reactions reactions, int spi)
 {
 	int max_hor = 0;
 	bool is_bi_reaction = false;
@@ -487,14 +487,14 @@ __device__ int HOR(int * reactants, int spi)
 	for (int ri = 0; ri < RC; ri++) {
 		// if spi is not a reactant of the current reaction, continue
 		// with the next one.
-		if (reactants[GET_COEFF(spi, ri)] == 0)
+		if (reactions.r[GET_COEFF(spi, ri)] == 0)
 			continue;
 
 		// sum all the coeff. of the current reaction to compute its
 		// order.
 		int hor = 0;
 		for (int j = 0; j < SPC; j++) {
-			int c = reactants[GET_COEFF(j, ri)];
+			int c = reactions.r[GET_COEFF(j, ri)];
 			hor += c;
 			// check if ri requires 2 molecules of spi
 			if (j == spi && c == 2) {

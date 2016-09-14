@@ -68,7 +68,7 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 
 }
 
-__global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, rates rates,
+__global__ void ssa_step(int * state, reactions reactions, unsigned int * topology, rates rates,
 						 int min_sbi, float * current_time, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -87,7 +87,7 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 		// fire reaction and update the state of the system
 		// if sbi = min_sbi then it should be guaranteed that ri != -1
 		for (int spi = 0; spi < SPC; spi++) {
-			int delta = products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)];
+			int delta = reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)];
 			atomicAdd(&state[GET_SPI(spi, sbi)], delta);
 		}
 
