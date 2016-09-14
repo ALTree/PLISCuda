@@ -10,16 +10,18 @@ extern __constant__ int NC;
 extern __constant__ float EPSILON;
 
 enum op: char {
-  LEAP_CR,      // leap, then trigger a critical event
-	LEAP_NOCR,    // leap
-	SSA,          // plain SSA, tau is re-computed
-	SSA_FF        // Fast-forwarded SSA, new_tau is old_tau - min_tau
-	};
+	LEAP_CR,          // leap, then trigger a critical event
+		LEAP_NOCR,    // leap
+		SSA,          // plain SSA, tau is re-computed
+		SSA_FF        // Fast-forwarded SSA, new_tau is old_tau - min_tau
+		};
 
 typedef struct s_rates {
-	float * reaction;
-	float * diffusion;
-	float * matrix;
+	float * reaction;  // reaction  rates (rr)
+	float * diffusion; // diffusion rates (dr)
+	float * matrix;    // rates matrix {sum(rr), sum(dr), sum(rr) + sum(dr)}
+	float * rc;        // reaction  constants
+	float * dc;        // diffusion constants
 } rates;
 
 #endif /* CONSTANTS_CUH_ */

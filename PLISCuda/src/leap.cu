@@ -258,7 +258,7 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 }
 
 __global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
-						  rates rates, float * rrc, float * drc, float min_tau,
+						  rates rates, float min_tau,
 						  float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;

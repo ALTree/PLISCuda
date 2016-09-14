@@ -50,21 +50,21 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, bo
 								int sbi, rates rates, curandStateMRG32k3a * s);
 
 // Fill the tau array with taus computed as [Cao06]
-__global__ void fill_tau_array_leap(int * state, int * reactants, int * products, int * hors, unsigned int * topology,
-									rates rates,
-									float * tau, float min_tau, char * leap, curandStateMRG32k3a * s);
+__global__ void fill_tau_array_leap(int * state, int * reactants, int * products, int * hors, 
+									unsigned int * topology, rates rates, float * tau, 
+									float min_tau, char * leap, curandStateMRG32k3a * s);
 
 // Performs a single leap step.
 // Returns immediately if:
 //     - the current thread is associated with a sbv not marked as leap
 //
-// The kernel fire all non-critical reactions and diffuse all the species, and then
-// it fires ONE critical reaction (if it is enabled in the current state, after the
-// leaping. If not, it does not fire any reaction).
-// It does NOT update tau or the current time.
+// The kernel fire all non-critical reactions and diffuse all the
+// species, and then it fires ONE critical reaction (if it is enabled
+// in the current state, after the leaping. If not, it does not fire
+// any reaction).  It does NOT update tau or the current time.
 __global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
-						  rates rates, float * rrc, float * drc, float min_tau,
-						  float * current_time, char * leap, curandStateMRG32k3a * prngstate);
+						  rates rates, float min_tau, float * current_time, 
+						  char * leap, curandStateMRG32k3a * prngstate);
 
 __global__ void check_state(int * state, bool * revert);
 
