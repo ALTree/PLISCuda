@@ -11,7 +11,7 @@ function run_tests {
 	rm -f sim* # cleanup 
 
 	echo -n "  Running simulation.. "
-	$PLISCUDA conf.txt > /dev/null
+	CUDA_VISIBLE_DEVICES="1" $PLISCUDA conf.txt > /dev/null
 	echo -e "done.\n"
 
 	echo -n "  == populations test.. "
@@ -74,11 +74,11 @@ function endstate_test {
 
 # run simulation with cuda-memcheck
 function memcheck_test {
-	# change entTime to 0.05 or it will take ages
+	# change entTime to 0.01 or it will take ages
 	cat conf.txt | sed 's/endTime=.*/endTime=0.01/' > conf_t.txt
 
 	# run memcheck and capture output
-	MCHECKOUT=`cuda-memcheck $PLISCUDA conf_t.txt`
+	MCHECKOUT=`CUDA_VISIBLE_DEVICES="1" cuda-memcheck $PLISCUDA conf_t.txt`
 
 	if [[ $MCHECKOUT == *"ERROR SUMMARY: 0 errors"* ]]
 	then
