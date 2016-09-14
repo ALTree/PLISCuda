@@ -8,8 +8,6 @@
 #include <stdio.h>
 
 #include "constants.cuh"
-#include "cuda_utils.cuh"
-
 
 // returns true iff reaction ri is critical in subvolume sbi
 __device__ bool is_critical_reaction(int * state, reactions reactions, int sbi, int ri);

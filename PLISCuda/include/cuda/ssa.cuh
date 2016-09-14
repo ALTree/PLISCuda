@@ -6,7 +6,6 @@
 #include <thrust/device_vector.h>
 #include <thrust/extrema.h>
 
-#include "cuda_utils.cuh"
 #include "rates.cuh"
 #include "constants.cuh"
 

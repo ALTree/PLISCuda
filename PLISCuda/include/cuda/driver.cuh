@@ -15,20 +15,11 @@
 
 #include "../cpp/cpp_utils.hpp"
 
-#include "cuda_utils.cuh"
 #include "rates.cuh"
 #include "ssa.cuh"
 #include "leap.cuh"
 #include "constants.cuh"
 #include "log.cuh"
-
-struct ToLog {
-  unsigned int * subv;
-  int subv_len;
-  bool * spc;
-  int spc_len;
-  float freq;
-};
 
 namespace PLISCuda {
 

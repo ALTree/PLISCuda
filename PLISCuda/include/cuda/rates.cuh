@@ -4,7 +4,6 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
-#include "cuda_utils.cuh"
 #include "constants.cuh"
 
 // computes the react_rate of a single reaction (in one subvolume)

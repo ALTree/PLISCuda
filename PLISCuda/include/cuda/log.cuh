@@ -3,7 +3,6 @@
 
 #include <cuda_runtime.h>
 
-#include "cuda_utils.cuh"
 #include "constants.cuh"
 
 __global__ void log_data(int * state, unsigned int * sbv_to_log, int sbv_to_log_len, bool * spc_to_log,
