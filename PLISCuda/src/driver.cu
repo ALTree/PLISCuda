@@ -158,7 +158,9 @@ namespace PLISCuda {
 
 		std::cout << "  computing initial taus...\n\n";
 
-		fill_tau_array_leap<<<blocks, threads>>>(d_state, reactions, d_hors, d_topology, rates, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
+		compute_taus<<<blocks, threads>>>(d_state, reactions, d_hors, d_topology, rates, 
+										  thrust::raw_pointer_cast(tau.data()), 0.0, 
+										  d_leap, d_prngstate);
 
 #ifdef DEBUG
 		print_tau(tau, sbc);
@@ -250,7 +252,9 @@ namespace PLISCuda {
 #ifdef PROFILE
 			cudaProfilerStart();
 #endif
-			fill_tau_array_leap<<<blocks, threads>>>(d_state, reactions, d_hors, d_topology, rates, thrust::raw_pointer_cast(tau.data()), min_tau, d_leap, d_prngstate);
+			compute_taus<<<blocks, threads>>>(d_state, reactions, d_hors, d_topology, rates, 
+											  thrust::raw_pointer_cast(tau.data()), min_tau, 
+											  d_leap, d_prngstate);
 
 #ifdef PROFILE
 			cudaProfilerStop();

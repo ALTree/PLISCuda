@@ -5,7 +5,8 @@ SRCDIR = src
 NVCCFLAGS = -std=c++11 -rdc=true -arch=sm_30
 
 objs = $(OBJDIR)/leap.o $(OBJDIR)/rates.o $(OBJDIR)/log.o \
-	$(OBJDIR)/ssa.o $(OBJDIR)/driver.o $(OBJDIR)/main.o
+	$(OBJDIR)/ssa.o $(OBJDIR)/tau.o $(OBJDIR)/driver.o \
+	$(OBJDIR)/main.o 
 
 ##  build configurations  ##
 

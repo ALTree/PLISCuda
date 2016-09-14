@@ -8,54 +8,7 @@
 #include <stdio.h>
 
 #include "constants.cuh"
-
-// returns true iff reaction ri is critical in subvolume sbi
-__device__ bool is_critical_reaction(int * state, reactions reactions, int sbi, int ri);
-
-// returns true iff specie spi is critical in subvolume sbi
-__device__ bool is_critical_diffusion(int * state, int sbi, int spi);
-
-// returns g (as defined in Cao, Gillespie, Petzold - Efficient step
-// size selection for the tau-leaping simulation method, J chem Phys
-// 124, 044109, page 6) for specie spi in reaction ri inside subvolume
-// sbi
-__device__ float compute_g(int * state, int * hors, int sbi, int spi);
-
-
-// compute the tau time (as defined in Cao, Gillespie, Petzold -
-// Efficient step size selection for the tau-leaping simulation
-// method, J chem Phys 124, 044109, page 7, formula 33) for a single
-// specie, in subvolume sbi.
-// 
-// Diffusion events are taken into account(so it's not really [Tao06],
-// it's che modified version found in [Harris10]
-__device__ float compute_tau_sp(int * state, reactions reactions, int * hors, 
-								bool crit_r[MAXREACTIONS], unsigned int * topology,
-								int sbi, int spi, rates rates);
-	
-// compute the subvolume tau time (i.e. the min of the tau_sp over all
-// the species), in subvolume sbi.  The min has to be taken over the
-// reactant species NOT involved in critical reactions.  If every
-// reaction is critical, returns +Inf.
-__device__ float compute_tau_ncr(int * state, reactions reactions, 
-								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
-								 int sbi, rates rates);
-
-// compute the subvolume tau_cr time (i.e. the tau for the critical
-// reactions).  Returns +Inf if every reaction is non-critical.
-__device__ float compute_tau_cr(int * state, bool crit_r[MAXREACTIONS],
-								int sbi, rates rates, curandStateMRG32k3a * s);
-
-// returns HOR(spi). Well, actually it returns
-// 1 for HOR(spi) = 1
-// 2 for HOR(spi) = 2 and is a "1 1" reaction
-// 3 for HOR(spi) = 3 and is a "2" reaction
-__device__ int HOR(reactions reactions, int spi);
-
-// Fill the tau array with taus computed as [Cao06]
-__global__ void fill_tau_array_leap(int * state, reactions reactions, int * hors, 
-									unsigned int * topology, rates rates, float * tau, 
-									float min_tau, char * leap, curandStateMRG32k3a * s);
+#include "tau.cuh"
 
 // Performs a single leap step.
 // Returns immediately if:
@@ -71,8 +24,14 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 
 __global__ void check_state(int * state, bool * revert);
 
-__global__ void initialize_hors_array(int * hors, reactions reactions, int spc);
 
+// returns HOR(spi). Well, actually it returns
+// 1 for HOR(spi) = 1
+// 2 for HOR(spi) = 2 and is a "1 1" reaction
+// 3 for HOR(spi) = 3 and is a "2" reaction
+__device__ int HOR(reactions reactions, int spi);
+
+__global__ void initialize_hors_array(int * hors, reactions reactions, int spc);
 
 
 #endif /* LEAP_CUH_ */

@@ -17,6 +17,7 @@
 
 #include "rates.cuh"
 #include "ssa.cuh"
+#include "tau.cuh"
 #include "leap.cuh"
 #include "constants.cuh"
 #include "log.cuh"
