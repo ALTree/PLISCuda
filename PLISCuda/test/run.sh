@@ -21,7 +21,7 @@ function run_tests {
 	endstate_test
 
 	echo -n "  == memcheck test.. "
-	# memcheck_test
+	memcheck_test
 
 	# cleanup
 	echo -e ""
@@ -32,6 +32,11 @@ function run_tests {
 # count global popolation of each specie in the simulation output
 # file, then compare with the expected populations from pops.txt
 function pop_test {
+	if [ ! -e golden/pops.txt ]; then
+		echo "SKIPPED."
+		return
+	fi
+
 	AWKSUM='{for (i=1;i<=NF;i++) a[i]+=$i} END {for (i=1;i<=NF;i++) {printf a[i]; printf " "} printf "\n"}'
 	P1=$(tail -n +5 sim* | awk "$AWKSUM")
 	P2=$(cat golden/pops.txt)
@@ -46,7 +51,14 @@ function pop_test {
 	fi
 }
 
+# check if the end state is equal to the expected one in
+# golden/endstate.txt
 function endstate_test {
+	if [ ! -e golden/endstate.txt ]; then
+		echo "SKIPPED."
+		return
+	fi
+
 	F1=$(cat sim*)
 	F2=$(cat golden/endstate.txt)
 	
@@ -56,14 +68,13 @@ function endstate_test {
 		echo "FAIL!"
 		echo "    want: |$F2|" | head -n4
 		echo "    got:  |$F1|" | head -n4
-		# diff sim* golden/endstate.txt
 		FAILURES="FAIL" 
 	fi
 }
 
 # run simulation with cuda-memcheck
 function memcheck_test {
-	# change entTime to 0.01 or it will take ages
+	# change entTime to 0.05 or it will take ages
 	cat conf.txt | sed 's/endTime=.*/endTime=0.01/' > conf_t.txt
 
 	# run memcheck and capture output
