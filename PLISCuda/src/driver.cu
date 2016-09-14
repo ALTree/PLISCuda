@@ -133,9 +133,9 @@ namespace PLISCuda {
 		std::cout.precision(5);
 
 		std::cout << "\n  computing initial rates...\n\n";
-	
-		compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
-										   d_react_rates_array, d_diff_rates_array);
+
+		rates rates = {d_react_rates_array, d_diff_rates_array, d_rate_matrix};
+		compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, rates, d_rrc, d_drc, d_subv_consts);
 
 #ifdef DEBUG
 		float * h_rate_matrix;
@@ -146,8 +146,7 @@ namespace PLISCuda {
 
 		std::cout << "  computing initial taus...\n\n";
 
-		fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_hors, d_topology, d_rate_matrix,
-												 d_react_rates_array, d_diff_rates_array, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
+		fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_hors, d_topology, rates, thrust::raw_pointer_cast(tau.data()), 0.0, d_leap, d_prngstate);
 
 #ifdef DEBUG
 		print_tau(tau, sbc);
@@ -193,12 +192,12 @@ namespace PLISCuda {
 
 		REPEAT:
 			// first we leap, with tau = min_tau, in every subvolume that has leap enabled
-			leap_step<<<blocks, threads>>>(d_state, d_reactants, d_products, d_rate_matrix, d_topology, d_react_rates_array,
-										   d_diff_rates_array, d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_prngstate);
+			leap_step<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, rates,
+										   d_rrc, d_drc, tau[min_tau_sbi], d_current_time, d_leap, d_prngstate);
 
 			// now we do a single ssa step, if min_tau was in a subvolume with leap not enabled
-			ssa_step<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, d_rate_matrix, d_react_rates_array,
-										  d_diff_rates_array, min_tau_sbi, d_current_time, d_leap, d_prngstate);
+			ssa_step<<<blocks, threads>>>(d_state, d_reactants, d_products, d_topology, rates,
+										  min_tau_sbi, d_current_time, d_leap, d_prngstate);
 
 			// check if we need to revert this step
 			thrust::device_vector<bool> revert(sbc);
@@ -233,16 +232,14 @@ namespace PLISCuda {
 			// TODO: the computed values are not used if the subvolume
 			// is tagged as SSA_FF, so we should avoid doing the
 			// computation
-			compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, d_rate_matrix, d_rrc, d_drc, d_subv_consts,
-											   d_react_rates_array, d_diff_rates_array);
+			compute_rates<<<blocks, threads>>>(d_state, d_reactants, d_topology, rates, d_rrc, d_drc, d_subv_consts);
 
 			// update tau array
 #ifdef PROFILE
 			cudaProfilerStart();
 #endif
-			fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_hors, d_topology, d_rate_matrix,
-													 d_react_rates_array, d_diff_rates_array, 
-													 thrust::raw_pointer_cast(tau.data()), min_tau, d_leap, d_prngstate);
+			fill_tau_array_leap<<<blocks, threads>>>(d_state, d_reactants, d_products, d_hors, d_topology, rates, thrust::raw_pointer_cast(tau.data()), min_tau, d_leap, d_prngstate);
+
 #ifdef PROFILE
 			cudaProfilerStop();
 #endif

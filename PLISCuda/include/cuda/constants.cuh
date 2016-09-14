@@ -16,4 +16,10 @@ enum op: char {
 	SSA_FF        // Fast-forwarded SSA, new_tau is old_tau - min_tau
 	};
 
+typedef struct s_rates {
+	float * reaction;
+	float * diffusion;
+	float * matrix;
+} rates;
+
 #endif /* CONSTANTS_CUH_ */

@@ -60,14 +60,23 @@ __device__ float compute_g(int * state, int * reactants, int * hors, int sbi, in
 
 __device__ float compute_tau_sp(int * state, int * reactants, int * products, int * hors, 
 								bool crit_r[MAXREACTIONS], unsigned int * topology,
-								int sbi, int spi, 
-								float * react_rates_array, float * diff_rates_array)
+								int sbi, int spi, rates rates) 
 {
 	float g = compute_g(state, reactants, hors, sbi, spi);
 	int x = state[GET_SPI(spi, sbi)];
 
 	// compute mu and sigma2
+
+	// compute mu (as defined in Cao, Gillespie, Petzold - Efficient
+	// step size selection for the tau-leaping simulation method, J
+	// chem Phys 124, 044109, page 7, formula 32a), for specie spi in
+	// subvolume sbi
 	float mu = 0.0;
+
+	// compute sigma2 (as defined in Cao, Gillespie, Petzold -
+	// Efficient step size selection for the tau-leaping simulation
+	// method, J chem Phys 124, 044109, page 7, formula 32b), for
+	// specie spi in subvolume sbi
 	float sigma2 = 0.0;
 
 	// sum propensities for the reactions
@@ -84,8 +93,8 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 		// sigma2 is the sum of (change_vector)² * (reaction_rate)
 		// over non-critical reactions.
 		int v = products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)];
-		mu += v * react_rates_array[GET_RR(ri, sbi)];
-		sigma2 += (v * v) * react_rates_array[GET_RR(ri, sbi)];
+		mu += v * rates.reaction[GET_RR(ri, sbi)];
+		sigma2 += (v * v) * rates.reaction[GET_RR(ri, sbi)];
 	}
 
 	if(is_critical_diffusion(state, sbi, spi)) {
@@ -96,8 +105,8 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 		// should sum the diffusion propensities over all the
 		// neighbours, but diff_rates_array already has the overall
 		// diffusion propensity.
-		mu += diff_rates_array[GET_DR(spi, sbi)];
-		sigma2 += diff_rates_array[GET_DR(spi, sbi)];
+		mu += rates.diffusion[GET_DR(spi, sbi)];
+		sigma2 += rates.diffusion[GET_DR(spi, sbi)];
 	}
 
 	// add propensities of incoming diffusions for specie spi
@@ -117,12 +126,12 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 
 		// Subtract from mu the propensity of specie spi in subvolume
 		// ni divided by nni (i.e. we sum a negative value).
-		mu -= (diff_rates_array[GET_DR(spi, ni)]) / nni;
+		mu -= (rates.diffusion[GET_DR(spi, ni)]) / nni;
 
 		// Add to sigma2 the propensity of specie spi in subvolume ni
 		// divided by nni. No need to square since the coeff. is
 		// always -1, just sum 1.
-		sigma2 += (diff_rates_array[GET_DR(spi, ni)]) / nni;    
+		sigma2 += (rates.diffusion[GET_DR(spi, ni)]) / nni;    
 	}
 
 	float m = max(EPSILON * x / g, 1.0f);
@@ -134,7 +143,7 @@ __device__ float compute_tau_sp(int * state, int * reactants, int * products, in
 
 __device__ float compute_tau_ncr(int * state, int * reactants, int * products, 
 								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
-								 int sbi, float * react_rates_array, float * diff_rates_array)
+								 int sbi, rates rates)
 {
 	float min_tau = INFINITY;
 
@@ -160,7 +169,7 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products,
 		}
 		// spi is not involved in any critical event.
 
-		float tau = compute_tau_sp(state, reactants, products, hors, crit_r, topology, sbi, spi, react_rates_array, diff_rates_array);
+		float tau = compute_tau_sp(state, reactants, products, hors, crit_r, topology, sbi, spi, rates);
 		min_tau = min(min_tau, tau);
 	}
 
@@ -168,18 +177,17 @@ __device__ float compute_tau_ncr(int * state, int * reactants, int * products,
 }
 
 __device__ float compute_tau_cr(int * state, int * reactants, int * products, bool crit_r[MAXREACTIONS],
-								int sbi, float * react_rates_array, float * diff_rates_array, 
-								curandStateMRG32k3a * s)
+								int sbi, rates rates, curandStateMRG32k3a * s)
 {
 	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
 	float diff_rates_sum_cr = 0.0;     // sum of diffusion rates of critical diffusion events
 
 	for (int ri = 0; ri < RC; ri++) {
-		react_rates_sum_cr += (react_rates_array[GET_RR(ri, sbi)] * crit_r[ri]);
+		react_rates_sum_cr += (rates.reaction[GET_RR(ri, sbi)] * crit_r[ri]);
 	}
 
 	for (int spi = 0; spi < SPC; spi++) {
-		diff_rates_sum_cr += (diff_rates_array[GET_DR(spi, sbi)] * is_critical_diffusion(state, sbi, spi));
+		diff_rates_sum_cr += (rates.diffusion[GET_DR(spi, sbi)] * is_critical_diffusion(state, sbi, spi));
 	}
 
 	if (react_rates_sum_cr == 0.0 && diff_rates_sum_cr == 0.0)
@@ -190,7 +198,7 @@ __device__ float compute_tau_cr(int * state, int * reactants, int * products, bo
 }
 
 __global__ void fill_tau_array_leap(int * state, int * reactants, int * products, int * hors, unsigned int * topology,
-									float * rate_matrix, float * react_rates_array, float * diff_rates_array, 
+									rates rates,
 									float * tau, float min_tau, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -220,13 +228,13 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 		crit_r[ri] = is_critical_reaction(state, reactants, products, sbi, ri);
 	}
 
-	float tau_ncr = compute_tau_ncr(state, reactants, products, hors, crit_r, topology, sbi, react_rates_array, diff_rates_array);
-	float tau_cr = compute_tau_cr(state, reactants, products, crit_r, sbi, react_rates_array, diff_rates_array, s);
+	float tau_ncr = compute_tau_ncr(state, reactants, products, hors, crit_r, topology, sbi, rates);
+	float tau_cr = compute_tau_cr(state, reactants, products, crit_r, sbi, rates, s);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we
 	// can't leap.  Also prevent leap if tau_ncr is too small.
 	bool leap_here = true;
-	if (isinf(tau_ncr) /*|| (tau_ncr < 10.0 / rate_matrix[GET_RATE(2, sbi)])*/) {
+	if (isinf(tau_ncr) /*|| (tau_ncr < 10.0 / rates.matrix[GET_RATE(2, sbi)])*/) {
 		// We start with fast-forward enabled. If someone diffuses to
 		// us, they will need disable it by setting the state to SSA.
 		leap[sbi] = SSA_FF;    
@@ -249,8 +257,8 @@ __global__ void fill_tau_array_leap(int * state, int * reactants, int * products
 
 }
 
-__global__ void leap_step(int * state, int * reactants, int * products, float * rate_matrix, unsigned int * topology,
-						  float * react_rates_array, float * diff_rates_array, float * rrc, float * drc, float min_tau,
+__global__ void leap_step(int * state, int * reactants, int * products, unsigned int * topology,
+						  rates rates, float * rrc, float * drc, float min_tau,
 						  float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -271,7 +279,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		}
 
 		unsigned int k;    // how many times it fires
-		k = curand_poisson(&prngstate[sbi], min_tau * react_rates_array[GET_RR(ri, sbi)]);
+		k = curand_poisson(&prngstate[sbi], min_tau * rates.reaction[GET_RR(ri, sbi)]);
 
 #ifdef LOG
 		if(k > 0)
@@ -297,7 +305,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 		// diffuse to each neighbour
 		for (unsigned int ngb = 0; ngb < neigh_count; ngb++) {
-			unsigned int k = curand_poisson(&prngstate[sbi], min_tau * diff_rates_array[GET_DR(spi, sbi)]);
+			unsigned int k = curand_poisson(&prngstate[sbi], min_tau * rates.diffusion[GET_DR(spi, sbi)]);
 			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
 			atomicSub(&state[GET_SPI(spi, sbi)], k);
 			if (leap[topology[sbi * 6 + ngb]] == SSA_FF) {
@@ -341,12 +349,12 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 	// sum the reaction rates of critical reactions
 	float rr_sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
-		rr_sum += react_rates_array[GET_RR(ri, sbi)] * is_critical_reaction(state, reactants, products, sbi, ri);
+		rr_sum += rates.reaction[GET_RR(ri, sbi)] * is_critical_reaction(state, reactants, products, sbi, ri);
 
 	// sum the diffusion rates of critical diffusion events
 	float dr_sum = 0.0;
 	for (int spi = 0; spi < SPC; spi++)
-		dr_sum += diff_rates_array[GET_DR(spi, sbi)] * is_critical_diffusion(state, sbi, spi);
+		dr_sum += rates.diffusion[GET_DR(spi, sbi)] * is_critical_diffusion(state, sbi, spi);
 
 	// if the sum is zero we can't fire or diffuse anything
 	if (rr_sum + dr_sum == 0.0) {
@@ -360,7 +368,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 		int ric = 0;
 		while (partial_sum <= scaled_sum) {
-			partial_sum += react_rates_array[GET_RR(ric, sbi)]
+			partial_sum += rates.reaction[GET_RR(ric, sbi)]
 				* is_critical_reaction(state, reactants, products, sbi, ric);
 			ric++;
 		}
@@ -400,7 +408,7 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 		int spic = 0;
 		while (partial_sum <= scaled_sum) {
-			partial_sum += diff_rates_array[GET_DR(spic, sbi)] * is_critical_diffusion(state, sbi, spic);
+			partial_sum += rates.diffusion[GET_DR(spic, sbi)] * is_critical_diffusion(state, sbi, spic);
 			spic++;
 		}
 		// We'll diffuse the spic-nth critical specie.

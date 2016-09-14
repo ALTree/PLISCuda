@@ -38,30 +38,29 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 	return sp_count * rrc[ri];
 }
 
-__device__ void react_rates(int * state, int * reactants, float * rrc, float * react_rates_array)
+__device__ void react_rates(int * state, int * reactants, float * rrc, rates rates)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
 	for (int ri = 0; ri < RC; ri++) {
-		react_rates_array[GET_RR(ri, sbi)] = react_rate(state, reactants, sbi, ri, rrc);
+		rates.reaction[GET_RR(ri, sbi)] = react_rate(state, reactants, sbi, ri, rrc);
 	}
 }
 
-__device__ void diff_rates(int * state, float * drc, float * diff_rates_array)
+__device__ void diff_rates(int * state, float * drc, rates rates)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
 	for (int spi = 0; spi < SPC; spi++) {
-		diff_rates_array[GET_DR(spi, sbi)] = drc[spi] * state[GET_SPI(spi, sbi)];
+		rates.diffusion[GET_DR(spi, sbi)] = drc[spi] * state[GET_SPI(spi, sbi)];
 	}
 }
 
-__device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix, float * react_rates_array,
-								   float * diff_rates_array)
+__device__ void update_rate_matrix(unsigned int * topology, rates rates)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -70,12 +69,12 @@ __device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix,
 	// sum reaction rates
 	float react_sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
-		react_sum += react_rates_array[GET_RR(ri, sbi)];
+		react_sum += rates.reaction[GET_RR(ri, sbi)];
 
 	// sum diffusion rates
 	float diff_sum = 0.0;
 	for (int spi = 0; spi < SPC; spi++)
-		diff_sum += diff_rates_array[GET_DR(spi, sbi)];
+		diff_sum += rates.diffusion[GET_DR(spi, sbi)];
 
 	// count subvolume neighbours (since diff_rate = #neighbours x diff_sum)
 	// TODO: write # of neighbours somewhere and use it so we can remove the
@@ -86,13 +85,13 @@ __device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix,
 
 	diff_sum *= neigh_count;
 
-	rate_matrix[GET_RATE(0, sbi)] = react_sum;
-	rate_matrix[GET_RATE(1, sbi)] = diff_sum;
-	rate_matrix[GET_RATE(2, sbi)] = react_sum + diff_sum;
+	rates.matrix[GET_RATE(0, sbi)] = react_sum;
+	rates.matrix[GET_RATE(1, sbi)] = diff_sum;
+	rates.matrix[GET_RATE(2, sbi)] = react_sum + diff_sum;
 }
 
-__global__ void compute_rates(int * state, int * reactants, unsigned int * topology, float * rate_matrix, float * rrc,
-							  float * drc, int * d_subv_consts, float * react_rates_array, float * diff_rates_array)
+__global__ void compute_rates(int * state, int * reactants, unsigned int * topology, rates rates, float * rrc,
+							  float * drc, int * d_subv_consts)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -103,7 +102,7 @@ __global__ void compute_rates(int * state, int * reactants, unsigned int * topol
 	float * rrcp = &rrc[d_subv_consts[sbi]*RC];
 	float * drcp = &drc[d_subv_consts[sbi]*SPC];
 
-	react_rates(state, reactants, rrcp, react_rates_array);
-	diff_rates(state, drcp, diff_rates_array);
-	update_rate_matrix(topology, rate_matrix, react_rates_array, diff_rates_array);
+	react_rates(state, reactants, rrcp, rates);
+	diff_rates(state, drcp, rates);
+	update_rate_matrix(topology, rates);
 }

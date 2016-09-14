@@ -12,18 +12,17 @@ __device__ float react_rate(int * state, int * reactants, int sbi, int ri, float
 
 // computes the reactions rates of all the reactions (in all the subvolumes)
 // writes the result (RC * SBC float values) at the address in global memory pointed by react_rates_array
-__device__ void react_rates(int * state, int * reactants, float * rrc, float * react_rates_array);
+__device__ void react_rates(int * state, int * reactants, float * rrc, rates rates);
 
 // computes the diffusion rates of all the reactions (in all the subvolumes)
 // writes the result (RC * SPC float values) at the address in global memory pointed by diff_rates_array
-__device__ void diff_rates(int * state, float * drc, float * diff_rates_array);
+__device__ void diff_rates(int * state, float * drc, rates rates);
 
 // updates the whole rate matrix
-__device__ void update_rate_matrix(unsigned int * topology, float * rate_matrix, float * react_rates_array,
-								   float * diff_rates_array);
+__device__ void update_rate_matrix(unsigned int * topology, rates rates);
 
 // call react_rates, diff_rates and update_rate_matrix in the correct way
-__global__ void compute_rates(int * state, int * reactants, unsigned int * topology, float * rate_matrix, float * rrc,
-							  float * drc, int * d_subv_consts, float * react_rates_array, float * diff_rates_array);
+__global__ void compute_rates(int * state, int * reactants, unsigned int * topology, rates rates, float * rrc,
+							  float * drc, int * d_subv_consts);
 
 #endif /* RATES_CUH_ */

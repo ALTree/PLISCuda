@@ -1,6 +1,6 @@
 #include "../include/cuda/ssa.cuh"
 
-__device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_array, float rand)
+__device__ int choose_rand_reaction(rates rates, float rand)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -8,23 +8,23 @@ __device__ int choose_rand_reaction(float * rate_matrix, float * react_rates_arr
 
 	// if R (the sum of the reaction rates) is zero,
 	// we can't fire any reaction
-	if (rate_matrix[GET_RATE(0, sbi)] == 0)
+	if (rates.matrix[GET_RATE(0, sbi)] == 0)
 		return -1;
 
-	float sum = rate_matrix[sbi];
+	float sum = rates.matrix[sbi];
 	float scaled_sum = sum * rand;
 	float partial_sum = 0;
 
 	int ri = 0;
 	while (partial_sum <= scaled_sum) {
-		partial_sum += react_rates_array[GET_RR(ri, sbi)];
+		partial_sum += rates.reaction[GET_RR(ri, sbi)];
 		ri++;
 	}
 
 	return ri - 1;
 }
 
-__device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, float * diff_rates_array, float rand)
+__device__ int choose_rand_specie(unsigned int * topology, rates rates, float rand)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -32,7 +32,7 @@ __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, 
 
 	// if D (the sum of the diffusion rates) is zero,
 	// we can't diffuse any specie
-	if (rate_matrix[GET_RATE(1, sbi)] == 0)
+	if (rates.matrix[GET_RATE(1, sbi)] == 0)
 		return -1;
 
 	int neigh_count = 0;
@@ -41,13 +41,13 @@ __device__ int choose_rand_specie(unsigned int * topology, float * rate_matrix, 
 
 	// we need to scale back rate_matrix[2][sbi] before performing
 	// the linear scaling
-	float sum = rate_matrix[SBC * 1 + sbi] / neigh_count;
+	float sum = rates.matrix[SBC * 1 + sbi] / neigh_count;
 	float scaled_sum = sum * rand;
 	float partial_sum = 0;
 
 	int spi = 0;
 	while (partial_sum <= scaled_sum) {
-		partial_sum += diff_rates_array[GET_DR(spi, sbi)];
+		partial_sum += rates.diffusion[GET_DR(spi, sbi)];
 		spi++;
 	}
 
@@ -68,9 +68,8 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 
 }
 
-__global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, float * rate_matrix,
-						 float * react_rates_array, float * diff_rates_array, int min_sbi, float * current_time, char * leap,
-						 curandStateMRG32k3a * s)
+__global__ void ssa_step(int * state, int * reactants, int * products, unsigned int * topology, rates rates,
+						 int min_sbi, float * current_time, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC || leap[sbi] == LEAP_CR || leap[sbi] == LEAP_NOCR || min_sbi != sbi)
@@ -78,9 +77,9 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 
 	float rand = curand_uniform(&s[sbi]);
 
-	if (rand < rate_matrix[GET_RATE(0, sbi)] / rate_matrix[GET_RATE(2, sbi)]) {    // reaction
+	if (rand < rates.matrix[GET_RATE(0, sbi)] / rates.matrix[GET_RATE(2, sbi)]) {    // reaction
 
-		int ri = choose_rand_reaction(rate_matrix, react_rates_array, rand);
+		int ri = choose_rand_reaction(rates, rand);
 #ifdef LOG
 		printf("(%f) [subv %d] fire reaction %d  [SSA]\n", *current_time, sbi, ri);
 #endif
@@ -97,7 +96,7 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 
 	} else {    // diffusion
 
-		int spi = choose_rand_specie(topology, rate_matrix, diff_rates_array, rand);
+		int spi = choose_rand_specie(topology, rates, rand);
 
 		// choose a random destination
 		int rdi;
