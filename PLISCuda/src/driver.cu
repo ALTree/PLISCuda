@@ -114,7 +114,7 @@ namespace PLISCuda {
 
 		std::cout << "    prng array require        " << (sbc*sizeof(curandStateMRG32k3a)) / (1024.0 * 1024.0) << " MB\n";
 
-		// ----- allocate leap and cr arrays
+		// ----- allocate leap array
 		char * d_leap;
 		gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(char)));
 

@@ -384,8 +384,9 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 		if (!fire)
 			return;
 
-		for (int spi = 0; spi < SPC; spi++) {    // TODO: atomic add?
-			state[GET_SPI(spi, sbi)] += (products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)]);
+		for (int spi = 0; spi < SPC; spi++) {
+			int delta = products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)];
+			atomicAdd(&state[GET_SPI(spi, sbi)], delta);
 		}
 
 #ifdef LOG
@@ -433,9 +434,9 @@ __global__ void leap_step(int * state, int * reactants, int * products, float * 
 
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
 		if (rdi != sbi) {
-			atomicAdd(&state[GET_SPI(spi, sbi)], -1);
+			atomicSub(&state[GET_SPI(spi, sbi)], 1);
 			atomicAdd(&state[GET_SPI(spi, rdi)], 1);
-			if (leap[topology[rdi]] == SSA_FF)
+			if (leap[topology[rdi]] == SSA_FF) // TODO: atomic?
 				leap[topology[rdi]] = SSA;    // set the OP of the receiver to SSA
 		}
 

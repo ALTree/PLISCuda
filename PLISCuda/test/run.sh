@@ -7,18 +7,21 @@ FAILURES=""
 function run_tests {
 	echo -e "====" $1 "====\n"
 
+	cd $1
 	rm -f sim* # cleanup 
 
 	echo -n "  Running simulation.. "
-	cd $1
 	$PLISCUDA conf.txt > /dev/null
 	echo -e "done.\n"
 
 	echo -n "  == populations test.. "
 	pop_test
 
+	echo -n "  == endstate test.. "
+	endstate_test
+
 	echo -n "  == memcheck test.. "
-	memcheck_test
+	# memcheck_test
 
 	# cleanup
 	echo -e ""
@@ -39,6 +42,21 @@ function pop_test {
 		echo "FAIL!"
 		echo "    want: |$P2|"
 		echo "    got:  |$P1|"
+		FAILURES="FAIL" 
+	fi
+}
+
+function endstate_test {
+	F1=$(cat sim*)
+	F2=$(cat golden/endstate.txt)
+	
+	if [ "$F1" == "$F2" ]; then
+		echo "PASS."
+	else
+		echo "FAIL!"
+		echo "    want: |$F2|" | head -n4
+		echo "    got:  |$F1|" | head -n4
+		# diff sim* golden/endstate.txt
 		FAILURES="FAIL" 
 	fi
 }
@@ -69,6 +87,7 @@ function memcheck_test {
 
 echo -e "\n### Running PLISCuda tests ###\n"
 
+sg=`date +%s%N`
 for D in *; do
     if [ -d "${D}" ]; then
 		s=`date +%s%N`
@@ -77,13 +96,15 @@ for D in *; do
 		echo -e "  Done ("$( echo -e "scale=4; ($e - $s)/1000000000" | bc -l ) "s)\n"
     fi
 done
+eg=`date +%s%N`
 
-
-echo -e "========================\n"
+echo -e "================================\n"
 if [[ -z $FAILURES ]]; then
-	echo -e "    ALL TESTS PASSED\n"
+	echo -n "    ALL TESTS PASSED "
 else
-	echo -e "    FUCK! SOME TEST FAILED!\n"
+	echo -n "    FUCK! SOME TEST FAILED! "
 fi
+
+echo -e "("$( echo -e "scale=4; ($eg - $sg)/1000000000" | bc -l ) "s)\n"
 
 

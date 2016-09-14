@@ -87,8 +87,10 @@ __global__ void ssa_step(int * state, int * reactants, int * products, unsigned 
 			
 		// fire reaction and update the state of the system
 		// if sbi = min_sbi then it should be guaranteed that ri != -1
-		for (int i = 0; i < SPC; i++)
-			state[GET_SPI(i, sbi)] += products[GET_COEFF(i, ri)] - reactants[GET_COEFF(i, ri)];
+		for (int spi = 0; spi < SPC; spi++) {
+			int delta = products[GET_COEFF(spi, ri)] - reactants[GET_COEFF(spi, ri)];
+			atomicAdd(&state[GET_SPI(spi, sbi)], delta);
+		}
 
 		// set our own OP to SSA (we can't fast-forward if we fired a reaction)
 		leap[sbi] = SSA;
