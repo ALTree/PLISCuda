@@ -176,7 +176,7 @@ __device__ float compute_tau_ncr(int * state, reactions reactions,
 	return min_tau;
 }
 
-__device__ float compute_tau_cr(int * state, reactions reactions, bool crit_r[MAXREACTIONS],
+__device__ float compute_tau_cr(int * state, bool crit_r[MAXREACTIONS],
 								int sbi, rates rates, curandStateMRG32k3a * s)
 {
 	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
@@ -229,7 +229,7 @@ __global__ void fill_tau_array_leap(int * state, reactions reactions, int * hors
 	}
 
 	float tau_ncr = compute_tau_ncr(state, reactions, hors, crit_r, topology, sbi, rates);
-	float tau_cr = compute_tau_cr(state, reactions, crit_r, sbi, rates, s);
+	float tau_cr = compute_tau_cr(state, crit_r, sbi, rates, s);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we
 	// can't leap.  Also prevent leap if tau_ncr is too small.
