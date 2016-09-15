@@ -1,0 +1,4 @@
+reactions: 1
+species: 2
+
+1 0 -> 0 1

@@ -7,9 +7,11 @@ function run_benchmark {
 	echo -e "==== bench" $1 "====\n"
 
 	cd $1
-	rm -f sim* # cleanup 
+	# cleanup 
+	rm -f sim* 
+	rm -f ./results/out*
 
-	NUM=8
+	NUM=2
 
 	echo -n "  Running benchmark.. "
 	s=`date +%s%N`
@@ -19,10 +21,12 @@ function run_benchmark {
 	e=`date +%s%N`
  	echo -e "done ("$( echo -e "scale=4; ($e - $s)/1000000000" | bc -l ) "s).\n"
 
+	AWKP='{s += $2; sq += ($2)^2} END {printf s/NR " steps/s (σ = " sqrt(sq - s^2/NR) ")"}'
+
 	echo "  Average of $NUM runs:"
 	
-	STEPS=$(cat ./results/out* | grep "steps/" | awk '{sum += $2} END {printf sum/NR "\n"}')
-	echo -e "   " $STEPS "steps/s"
+ 	STEPS=$(cat ./results/out* | grep "steps/" | awk "$AWKP")
+	echo -e "   " $STEPS
 
 	TIMEO=$(cat ./results/out* | grep "elapsed")
 	TIMEH=$(echo "$TIMEO" | awk '{sum += $3} END {printf sum/NR "h"}')
@@ -42,12 +46,23 @@ function run_benchmark {
 echo -e "\n### Running PLISCuda benchmarks ###\n"
 
 sg=`date +%s%N`
-for D in *; do
-	if [ -d "${D}" ]; then
-		run_benchmark ${D}
+if [ -z "$1" ]; then
+	# no argument
+	for D in *; do
+		if [ -d "${D}" ]; then
+			run_benchmark ${D}
+		fi
+	done	
+else
+	# only run named benchmark
+	if [ ! -d "$1" ]; then
+		echo -e "  There's no $1 benchmark\n"
+	else
+		run_benchmark "$1"
 	fi
-done
+fi
 eg=`date +%s%N`
+
 
 echo -e "=======================\n"
 echo -n "    DONE "
