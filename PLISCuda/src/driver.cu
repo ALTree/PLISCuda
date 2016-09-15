@@ -116,7 +116,9 @@ namespace PLISCuda {
 
 		// ----- allocate leap array
 		char * d_leap;
-		gpuErrchk(cudaMalloc(&d_leap, sbc * sizeof(char)));
+		// Initcheck does not like odd-aligned loads, so if sbc is
+		// odd, allocate up to 3-byte more.
+		gpuErrchk(cudaMalloc(&d_leap, (sbc % 4 ? sbc+(4-sbc%4) : sbc) * sizeof(char)));
 
 		// ----- allocate and initialize HORs array ------
 		int * d_hors;
@@ -134,7 +136,7 @@ namespace PLISCuda {
 		gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
 		gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 		gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
-		gpuErrchk(cudaMemset(d_leap, 0, sbc * sizeof(char)));
+		gpuErrchk(cudaMemset(d_leap, SSA_FF,  (sbc % 4 ? sbc+(4-sbc%4) : sbc) * sizeof(char)));
 
 		std::cout.precision(5);
 
@@ -385,9 +387,9 @@ namespace PLISCuda {
 	void print_leap_array(char * d_leap, int sbc)
 	{
 		std::cout << "--- [leap array] ---\n";
-		char * h_leap = new char[sbc];
+		char * h_leap = new char[(sbc % 4 ? sbc+(4-sbc%4) : sbc)];
 		std::vector<std::string> to_print = {"LEAP_CR", "LEAP_NOCR", "SSA", "SSA_FF"};
-		gpuErrchk(cudaMemcpy(h_leap, d_leap, sbc * sizeof(char), cudaMemcpyDeviceToHost));
+		gpuErrchk(cudaMemcpy(h_leap, d_leap, (sbc % 4 ? sbc+(4-sbc%4) : sbc) * sizeof(char), cudaMemcpyDeviceToHost));
 		for (int i = 0; i < sbc; i++) {
 			std::cout << "sbi " << i << "] " << "leap: " <<
 				to_print[h_leap[i] - LEAP_CR] << "\n";		
