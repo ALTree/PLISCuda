@@ -21,7 +21,7 @@ function run_tests {
 	endstate_test
 
 	echo -n "  == memcheck test.. "
-	# memcheck_test
+	memcheck_test
 
 	# cleanup
 	echo -e ""

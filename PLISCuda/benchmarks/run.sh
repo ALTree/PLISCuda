@@ -11,7 +11,7 @@ function run_benchmark {
 	rm -f sim* 
 	rm -f ./results/out*
 
-	NUM=2
+	NUM=10
 
 	echo -n "  Running benchmark.. "
 	s=`date +%s%N`
@@ -47,14 +47,14 @@ echo -e "\n### Running PLISCuda benchmarks ###\n"
 
 sg=`date +%s%N`
 if [ -z "$1" ]; then
-	# no argument
+	# no argument, run all benchmarks
 	for D in *; do
 		if [ -d "${D}" ]; then
 			run_benchmark ${D}
 		fi
 	done	
 else
-	# only run named benchmark
+	# only run the named benchmark
 	if [ ! -d "$1" ]; then
 		echo -e "  There's no $1 benchmark\n"
 	else

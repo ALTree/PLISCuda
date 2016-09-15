@@ -21,7 +21,7 @@ __device__ float react_rate(int * state, reactions reactions, int sbi, int ri, r
 	if (spi1 != SPC - 1) {
 		int j = i + RC; // start from the next specie
 		int spi2 = spi1 + 1;
-		while (reactions.r[j] == 0 && spi2 < SPC) {
+		while (spi2+1 < SPC && reactions.r[j] == 0) {
 			j += RC;
 			spi2++;
 		}
