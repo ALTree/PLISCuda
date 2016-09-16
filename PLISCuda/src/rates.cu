@@ -99,8 +99,9 @@ __global__ void compute_rates(int * state, reactions reactions, unsigned int * t
 
 	// find the position of the constants set we
 	// have to use (bc compartimentation support)
-	rates.rc = &rates.rc[d_subv_consts[sbi]*RC];
-	rates.dc = &rates.dc[d_subv_consts[sbi]*SPC];
+	int dsc = d_subv_consts[sbi];
+	rates.rc = &rates.rc[dsc*RC];
+	rates.dc = &rates.dc[dsc*SPC];
 
 	react_rates(state, reactions, rates);
 	diff_rates(state, rates);

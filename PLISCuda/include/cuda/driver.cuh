@@ -30,12 +30,9 @@ namespace PLISCuda {
 	void run_simulation(Topology t, State s, Reactions r, float * h_rrc, float * h_drc, float endTime,
 						int constants_files_count, int * subv_constants, float logFreq);
 
-	// get index of min value in tau array
-	int h_get_min_tau(thrust::device_vector<float> &tau);
-
-	void print_eltime(float secs);
 	
 	// Print utils for logging
+	void print_eltime(float secs);
 	void print_state(int * h_state, int spc, int sbc, float current_time);
 	void print_rate_matrix(float * h_rate_matrix, int sbc);
 	void print_tau(thrust::device_vector<float>, int sbc);

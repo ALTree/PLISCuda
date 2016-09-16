@@ -22,7 +22,7 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 						  rates rates, float min_tau, float * current_time, 
 						  char * leap, curandStateMRG32k3a * prngstate);
 
-__global__ void check_state(int * state, bool * revert);
+__global__ void check_state(int * state, int * revert);
 
 
 // returns HOR(spi). Well, actually it returns

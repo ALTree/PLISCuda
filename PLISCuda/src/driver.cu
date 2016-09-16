@@ -16,6 +16,9 @@ namespace PLISCuda {
 		int spc = s.getS();
 		int rc = r.getR();
 
+		// sbc rounded up to the nearest multiple of 4
+		unsigned int sbc4 = (sbc % 4 ? sbc+(4-sbc%4) : sbc);
+
 		std::cout << "\n-- Starting Simulation -- \n\n";
 	
 		int threads = 512;
@@ -45,11 +48,11 @@ namespace PLISCuda {
 		int * h_state = s.getState();
 
 		int * d_state;
-		gpuErrchk(cudaMalloc(&d_state, sbc * spc * sizeof(int)));
+		gpuErrchk(cudaMalloc(&d_state, sbc4 * spc * sizeof(int)));
 		gpuErrchk(cudaMemcpy(d_state, h_state, sbc * spc * sizeof(int), cudaMemcpyHostToDevice));
 
 		int * d_state2;
-		gpuErrchk(cudaMalloc(&d_state2, sbc * spc * sizeof(int)));
+		gpuErrchk(cudaMalloc(&d_state2, sbc4 * spc * sizeof(int)));
 
 		std::cout << "    system state requires     " << (2*sbc*spc*sizeof(int)) / (1024.0 * 1024.0) << " MB\n";
 
@@ -90,7 +93,7 @@ namespace PLISCuda {
 
 		// ----- allocate and memcpy subv_constants array -----
 		int * d_subv_consts;
-		gpuErrchk(cudaMalloc(&d_subv_consts, sbc * sizeof(int)));
+		gpuErrchk(cudaMalloc(&d_subv_consts, sbc4 * sizeof(int)));
 		gpuErrchk(cudaMemcpy(d_subv_consts, subv_constants, sbc * sizeof(int), cudaMemcpyHostToDevice));
 
 		// ----- allocate react_rates and diff_rates array
@@ -102,7 +105,8 @@ namespace PLISCuda {
 		std::cout << "    rates arrays require      " << (sbc*(3+rc+spc)*sizeof(float)) / (1024.0 * 1024.0) << " MB\n";
 
 		// ----- allocate tau thrust vector
-		thrust::device_vector<float> tau(sbc);
+		thrust::device_vector<float> tau(sbc4, INFINITY);
+
 		float * d_current_time;
 		float h_current_time = 0.0;
 		gpuErrchk(cudaMalloc(&d_current_time, sizeof(float)));
@@ -116,13 +120,11 @@ namespace PLISCuda {
 
 		// ----- allocate leap array
 		char * d_leap;
-		// Initcheck does not like odd-aligned loads, so if sbc is
-		// odd, allocate up to 3-byte more.
-		gpuErrchk(cudaMalloc(&d_leap, (sbc % 4 ? sbc+(4-sbc%4) : sbc) * sizeof(char)));
+		gpuErrchk(cudaMalloc(&d_leap, sbc4 * sizeof(char)));
 
 		// ----- allocate and initialize HORs array ------
 		int * d_hors;
-		gpuErrchk(cudaMalloc(&d_hors, spc*sizeof(int)));
+		gpuErrchk(cudaMalloc(&d_hors, spc * sizeof(int)));
 
 		reactions reactions = {
 			d_reactants,
@@ -131,12 +133,14 @@ namespace PLISCuda {
 
 		initialize_hors_array<<<1, 1>>>(d_hors, reactions, spc);
 
+		thrust::device_vector<int> revert(sbc4, 0);
+
 		// zero GPU memory, just to be sure
 		// TODO: remove(?) or check that we are zeroing everything
 		gpuErrchk(cudaMemset(d_rate_matrix, 0, 3 * sbc * sizeof(float)));
 		gpuErrchk(cudaMemset(d_react_rates_array, 0, sbc * rc * sizeof(float)));
 		gpuErrchk(cudaMemset(d_diff_rates_array, 0, sbc * spc * sizeof(float)));
-		gpuErrchk(cudaMemset(d_leap, SSA_FF,  (sbc % 4 ? sbc+(4-sbc%4) : sbc) * sizeof(char)));
+		gpuErrchk(cudaMemset(d_leap, SSA_FF, sbc4 * sizeof(char)));
 
 		std::cout.precision(5);
 
@@ -173,7 +177,7 @@ namespace PLISCuda {
 		float last_log_time = 0.0;
 		std::time_t tstamp = std::time(0); // get timestamp to use in filename
 #endif
-
+		
 		std::cout << "-- Begin Iterations -- \n\n";
 
 		std::clock_t sim_start = std::clock();
@@ -191,7 +195,9 @@ namespace PLISCuda {
 			gpuErrchk(cudaMemcpy(d_state2, d_state, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
 
 			// get min tau from device
-			int min_tau_sbi = h_get_min_tau(tau);
+			thrust::device_vector<float>::iterator iter = thrust::min_element(tau.begin(), tau.end());
+			int min_tau_sbi = iter - tau.begin();
+			
 			if (isinf(tau[min_tau_sbi]) || tau[min_tau_sbi] < 0.0) {
 				printf("\n -- WARNING: min(tau) = +Inf or < 0 - abort simulation --\n");
 				break;
@@ -216,9 +222,8 @@ namespace PLISCuda {
 										  min_tau_sbi, d_current_time, d_leap, d_prngstate);
 
 			// check if we need to revert this step
-			thrust::device_vector<bool> revert(sbc);
 			check_state<<<blocks, threads>>>(d_state, thrust::raw_pointer_cast(revert.data()));
-			bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<bool>());
+			bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<int>());
 
 			if(revert_state) {
 #ifdef LOG
@@ -321,12 +326,6 @@ namespace PLISCuda {
 	
 	// ----- utils functions for printing and other stuff -----
   
-	int h_get_min_tau(thrust::device_vector<float> &tau)
-	{
-		thrust::device_vector<float>::iterator iter = thrust::min_element(tau.begin(), tau.end());
-		return iter - tau.begin();
-	}
-
 	void print_eltime(float secs)
 	{
 		std::cout << "  elapsed time:           ";

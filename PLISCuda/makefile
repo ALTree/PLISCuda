@@ -19,7 +19,7 @@ log: NVCCFLAGS += -O2 -DLOG
 log: all
 
 # debugs logs everything and prints all the internal data
-debug: NVCCFLAGS += -O0 -G -lineinfo --compiler-options -Wall -DLOG -DDEBUG
+debug: NVCCFLAGS += -O0 -g -G -lineinfo --compiler-options -Wall -DLOG -DDEBUG
 debug: all
 
 # profile is the same as release but with a few profile flags

@@ -198,7 +198,7 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 
 }
 
-__global__ void check_state(int * state, bool * revert)
+__global__ void check_state(int * state, int * revert)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -208,7 +208,7 @@ __global__ void check_state(int * state, bool * revert)
 	for (int spi = 0; spi < SPC; spi++)
 		_revert = _revert || (state[GET_SPI(spi, sbi)] < 0);
 
-	revert[sbi] = _revert;
+	revert[sbi] = _revert ? 1 : 0;
 }
 
 __device__ int HOR(reactions reactions, int spi)
