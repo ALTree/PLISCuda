@@ -23,6 +23,9 @@ function run_tests {
 	echo -n "  == memcheck test.. "
 	memcheck_test
 
+	echo -n "  == initcheck test.. "
+	initcheck_test
+
 	# cleanup
 	echo -e ""
 	rm -f sim*
@@ -85,8 +88,29 @@ function memcheck_test {
 		echo "PASS.";
 	else
 		echo "FAIL!"
-		echo "     cuda-memcheck output was written to mcheck-fail.txt"
-		echo "$MCHECKOUT" > mcheck-fail.txt
+		echo "     cuda-memcheck output was written to mcheck.out"
+		echo "$MCHECKOUT" > mcheck.out
+		FAILURES="FAIL" 
+	fi
+
+	rm -f conf_t.txt
+}
+
+# run simulation with cuda-memcheck --initcheck
+function initcheck_test {
+	# change entTime to 0.01 or it will take ages
+	cat conf.txt | sed 's/endTime=.*/endTime=0.01/' > conf_t.txt
+
+	# run memcheck and capture output
+	ICHECKOUT=`CUDA_VISIBLE_DEVICES="1" cuda-memcheck --tool initcheck $PLISCUDA conf_t.txt`
+
+	if [[ ! $ICHECKOUT == *"Uninitialized __global__ memory read"* ]]
+	then
+		echo "PASS.";
+	else
+		echo "FAIL!"
+		echo "     cuda-memcheck output was written to icheck.out"
+		echo "$ICHECKOUT" > icheck.out
 		FAILURES="FAIL" 
 	fi
 
