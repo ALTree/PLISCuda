@@ -104,6 +104,8 @@ function initcheck_test {
 	# run memcheck and capture output
 	ICHECKOUT=`CUDA_VISIBLE_DEVICES="1" cuda-memcheck --tool initcheck $PLISCUDA conf_t.txt`
 
+	# ignore "Host API memory access error at host access to XX of
+	# size XX bytes", they're caused by thrust calls 
 	if [[ ! $ICHECKOUT == *"Uninitialized __global__ memory read"* ]]
 	then
 		echo "PASS.";
