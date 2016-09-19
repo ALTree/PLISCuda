@@ -1,0 +1,10 @@
+topology=topology.txt
+reactions=reactions.txt
+initialState=state.txt
+endTime=10
+logFreq=0
+compartments=2
+compartmentsFile=subvc.txt
+constants=constants1.txt
+constants=constants2.txt
+
