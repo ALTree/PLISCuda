@@ -30,7 +30,7 @@ __device__ int choose_rand_specie(unsigned int * topology, rates rates, float ra
 // The kernel either fire a reaction or performs a diffusion.
 // It updates the state of the neighbours, if necessary.
 // It does NOT update tau or the current time.
-__global__ void ssa_step(int * state, reactions reactions, unsigned int * topology, rates rates,
+__global__ void ssa_step(state state, reactions reactions, unsigned int * topology, rates rates,
 						 int min_sbi, float * current_time, char * leap,
 						 curandStateMRG32k3a * s);
 

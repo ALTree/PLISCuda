@@ -1,6 +1,6 @@
 #include "../include/cuda/leap.cuh"
 
-__global__ void leap_step(int * state, reactions reactions, unsigned int * topology,
+__global__ void leap_step(state state, reactions reactions, unsigned int * topology,
 						  rates rates, float min_tau,
 						  float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
@@ -31,8 +31,10 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 		
 		// update state
 		for (int spi = 0; spi < SPC; spi++) {
+			// TODO: if we copy curr to next before the leap_step
+			// call, we can avoid reading from the old state (?)
 			int new_state = k * (reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)]);
-			atomicAdd(&state[GET_SPI(spi, sbi)], new_state);
+			atomicAdd(&state.next[GET_SPI(spi, sbi)], new_state);
 		}
 
 	}
@@ -49,8 +51,8 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 		// diffuse to each neighbour
 		for (unsigned int ngb = 0; ngb < neigh_count; ngb++) {
 			unsigned int k = curand_poisson(&prngstate[sbi], min_tau * rates.diffusion[GET_DR(spi, sbi)]);
-			atomicAdd(&state[GET_SPI(spi, topology[sbi*6 + ngb])], k);
-			atomicSub(&state[GET_SPI(spi, sbi)], k);
+			atomicAdd(&state.next[GET_SPI(spi, topology[sbi*6 + ngb])], k);
+			atomicSub(&state.next[GET_SPI(spi, sbi)], k);
 			if (leap[topology[sbi * 6 + ngb]] == SSA_FF) {
 				leap[topology[sbi * 6 + ngb]] = SSA;    // set the OP of the receiver to SSA
 			}
@@ -129,7 +131,7 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 		// comment above).
 		bool fire = true;
 		for (int spi = 0; spi < SPC; spi++) {
-			fire = fire && (state[GET_SPI(spi, sbi)] >= reactions.r[GET_COEFF(spi, ri)]);
+			fire = fire && (state.curr[GET_SPI(spi, sbi)] >= reactions.r[GET_COEFF(spi, ri)]);
 		}
 
 		if (!fire)
@@ -137,7 +139,7 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 
 		for (int spi = 0; spi < SPC; spi++) {
 			int delta = reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)];
-			atomicAdd(&state[GET_SPI(spi, sbi)], delta);
+			atomicAdd(&state.next[GET_SPI(spi, sbi)], delta);
 		}
 
 #ifdef LOG
@@ -166,7 +168,7 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 
 		// Check if the current state lets us diffuse specie spi (see
 		// comment above).
-		bool fire = state[GET_SPI(spi, sbi)] > 0;
+		bool fire = state.curr[GET_SPI(spi, sbi)] > 0;
 
 		if (!fire)
 			return;
@@ -185,8 +187,8 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
 		if (rdi != sbi) {
-			atomicSub(&state[GET_SPI(spi, sbi)], 1);
-			atomicAdd(&state[GET_SPI(spi, rdi)], 1);
+			atomicSub(&state.next[GET_SPI(spi, sbi)], 1);
+			atomicAdd(&state.next[GET_SPI(spi, rdi)], 1);
 			if (leap[topology[rdi]] == SSA_FF) // TODO: atomic?
 				leap[topology[rdi]] = SSA;    // set the OP of the receiver to SSA
 		}
@@ -198,7 +200,7 @@ __global__ void leap_step(int * state, reactions reactions, unsigned int * topol
 
 }
 
-__global__ void check_state(int * state, int * revert)
+__global__ void check_state(state state, int * revert)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -206,7 +208,7 @@ __global__ void check_state(int * state, int * revert)
 
 	bool _revert = false;
 	for (int spi = 0; spi < SPC; spi++)
-		_revert = _revert || (state[GET_SPI(spi, sbi)] < 0);
+		_revert = _revert || (state.next[GET_SPI(spi, sbi)] < 0);
 
 	revert[sbi] = _revert ? 1 : 0;
 }

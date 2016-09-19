@@ -1,6 +1,6 @@
 #include "../include/cuda/rates.cuh"
 
-__device__ float react_rate(int * state, reactions reactions, int sbi, int ri, rates rates)
+__device__ float react_rate(state state, reactions reactions, int sbi, int ri, rates rates)
 {
 	// search for the first specie in the reactions array that
 	// does have a positive coefficent
@@ -12,7 +12,7 @@ __device__ float react_rate(int * state, reactions reactions, int sbi, int ri, r
 	}
 
 	if (reactions.r[i] == 2) {    // bi_same reaction type
-		int sp_count = state[GET_SPI(spi1, sbi)];
+		int sp_count = state.curr[GET_SPI(spi1, sbi)];
 		return 0.5 * (rates.rc[ri] *  sp_count) * (sp_count - 1); // careful with overflow
 	}
 
@@ -27,18 +27,18 @@ __device__ float react_rate(int * state, reactions reactions, int sbi, int ri, r
 		}
 
 		if (reactions.r[j] != 0) {    // bi_diff reaction type
-			int sp1_count = state[GET_SPI(spi1, sbi)];
-			int sp2_count = state[GET_SPI(spi2, sbi)];
+			int sp1_count = state.curr[GET_SPI(spi1, sbi)];
+			int sp2_count = state.curr[GET_SPI(spi2, sbi)];
 			return (rates.rc[ri] * sp1_count) * sp2_count; // careful with overflow
 		}
 	}
 	// uni reaction type
 
-	int sp_count = state[GET_SPI(spi1, sbi)];
+	int sp_count = state.curr[GET_SPI(spi1, sbi)];
 	return sp_count * rates.rc[ri];
 }
 
-__device__ void react_rates(int * state, reactions reactions, rates rates)
+__device__ void react_rates(state state, reactions reactions, rates rates)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -49,14 +49,14 @@ __device__ void react_rates(int * state, reactions reactions, rates rates)
 	}
 }
 
-__device__ void diff_rates(int * state, rates rates)
+__device__ void diff_rates(state state, rates rates)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
 		return;
 
 	for (int spi = 0; spi < SPC; spi++) {
-		rates.diffusion[GET_DR(spi, sbi)] = rates.dc[spi] * state[GET_SPI(spi, sbi)];
+		rates.diffusion[GET_DR(spi, sbi)] = rates.dc[spi] * state.curr[GET_SPI(spi, sbi)];
 	}
 }
 
@@ -90,7 +90,7 @@ __device__ void update_rate_matrix(unsigned int * topology, rates rates)
 	rates.matrix[GET_RATE(2, sbi)] = react_sum + diff_sum;
 }
 
-__global__ void compute_rates(int * state, reactions reactions, unsigned int * topology, rates rates,
+__global__ void compute_rates(state state, reactions reactions, unsigned int * topology, rates rates,
 							  int * d_subv_consts)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;

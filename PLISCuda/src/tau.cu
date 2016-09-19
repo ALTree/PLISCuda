@@ -1,12 +1,12 @@
 #include "../include/cuda/tau.cuh"
 
-__device__ bool is_critical_reaction(int * state, reactions reactions, int sbi, int ri)
+__device__ bool is_critical_reaction(state state, reactions reactions, int sbi, int ri)
 {
 	bool crit = false;
 	for (int spi = 0; spi < SPC; spi++) {
 		// if state == 0 and the reactions requires specie spi, it's
 		// obviously critical
-		if(reactions.r[GET_COEFF(spi, ri)] > 0 && state[GET_SPI(spi, sbi)] == 0){
+		if(reactions.r[GET_COEFF(spi, ri)] > 0 && state.curr[GET_SPI(spi, sbi)] == 0){
 			return true;
 		}
 
@@ -23,18 +23,18 @@ __device__ bool is_critical_reaction(int * state, reactions reactions, int sbi, 
 		// Now delta < 0 and abs(delta) is the decrease in specie spi
 		// population caused by the reaction. 
 		// If abs(delta) > population, the reaction is critical.
-		crit = crit || (abs(delta) > state[GET_SPI(spi, sbi)]);
+		crit = crit || (abs(delta) > state.curr[GET_SPI(spi, sbi)]);
 	}
 
 	return crit;
 }
 
-__device__ bool is_critical_diffusion(int * state, int sbi, int spi)
+__device__ bool is_critical_diffusion(state state, int sbi, int spi)
 {
-	return state[GET_SPI(spi, sbi)] < NC;
+	return state.curr[GET_SPI(spi, sbi)] < NC;
 }
 
-__device__ float compute_g(int * state, reactions reactions, int * hors, int sbi, int spi)
+__device__ float compute_g(state state, reactions reactions, int * hors, int sbi, int spi)
 {
 	int hor = hors[spi];
 
@@ -45,7 +45,7 @@ __device__ float compute_g(int * state, reactions reactions, int * hors, int sbi
 	case 2:
 		return 2;
 	case 3:
-		x = state[GET_SPI(spi, sbi)];
+		x = state.curr[GET_SPI(spi, sbi)];
 		if (x == 1) {    // TODO: is 1.0 / +Inf == 0? can we use this to avoid the check?
 			return 2.0;
 		}
@@ -58,12 +58,12 @@ __device__ float compute_g(int * state, reactions reactions, int * hors, int sbi
 	}
 }
 
-__device__ float compute_tau_sp(int * state, reactions reactions, int * hors, 
+__device__ float compute_tau_sp(state state, reactions reactions, int * hors, 
 								bool crit_r[MAXREACTIONS], unsigned int * topology,
 								int sbi, int spi, rates rates) 
 {
 	float g = compute_g(state, reactions, hors, sbi, spi);
-	int x = state[GET_SPI(spi, sbi)];
+	int x = state.curr[GET_SPI(spi, sbi)];
 
 	// compute mu and sigma2
 
@@ -141,7 +141,7 @@ __device__ float compute_tau_sp(int * state, reactions reactions, int * hors,
 	return min(t1, t2);
 }
 
-__device__ float compute_tau_ncr(int * state, reactions reactions, 
+__device__ float compute_tau_ncr(state state, reactions reactions, 
 								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
 								 int sbi, rates rates)
 {
@@ -176,7 +176,7 @@ __device__ float compute_tau_ncr(int * state, reactions reactions,
 	return min_tau;
 }
 
-__device__ float compute_tau_cr(int * state, bool crit_r[MAXREACTIONS],
+__device__ float compute_tau_cr(state state, bool crit_r[MAXREACTIONS],
 								int sbi, rates rates, curandStateMRG32k3a * s)
 {
 	float react_rates_sum_cr = 0.0;    // sum of the react rates of critical reactions
@@ -197,7 +197,7 @@ __device__ float compute_tau_cr(int * state, bool crit_r[MAXREACTIONS],
 	return -logf(rand) / (react_rates_sum_cr + diff_rates_sum_cr);
 }
 
-__global__ void compute_taus(int * state, reactions reactions, int * hors, unsigned int * topology,
+__global__ void compute_taus(state state, reactions reactions, int * hors, unsigned int * topology,
 							 rates rates, float * tau, float min_tau, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;

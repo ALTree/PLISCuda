@@ -55,22 +55,22 @@ function pop_test {
 }
 
 # check if the end state is equal to the expected one in
-# golden/endstate.txt
+# golden/endstate.dat
 function endstate_test {
-	if [ ! -e golden/endstate.txt ]; then
+	if [ ! -e golden/endstate.dat ]; then
 		echo "SKIPPED."
 		return
 	fi
 
 	F1=$(cat sim*)
-	F2=$(cat golden/endstate.txt)
+	F2=$(cat golden/endstate.dat)
 	
 	if [ "$F1" == "$F2" ]; then
 		echo "PASS."
 	else
 		echo "FAIL!"
-		echo "    want: |$F2|" | head -n4
-		echo "    got:  |$F1|" | head -n4
+		echo "    want: |$F2|" | head -n10
+		echo "    got:  |$F1|" | head -n10
 		FAILURES="FAIL" 
 	fi
 }
@@ -125,14 +125,27 @@ function initcheck_test {
 echo -e "\n### Running PLISCuda tests ###\n"
 
 sg=`date +%s%N`
-for D in *; do
-    if [ -d "${D}" ]; then
+if [ -z "$1" ]; then
+	# no argument, run all tests
+	for D in *; do
+		if [ -d "${D}" ]; then
+			s=`date +%s%N`
+			run_tests ${D}
+			e=`date +%s%N`
+			echo -e "  Done ("$( echo -e "scale=4; ($e - $s)/1000000000" | bc -l ) "s)\n"
+		fi
+	done
+else
+ 	# only run the named test
+	if [ ! -d "$1" ]; then
+		echo -e "  There's no $1 test\n"
+	else
 		s=`date +%s%N`
-		run_tests ${D}
+		run_tests "$1"
 		e=`date +%s%N`
 		echo -e "  Done ("$( echo -e "scale=4; ($e - $s)/1000000000" | bc -l ) "s)\n"
-    fi
-done
+	fi
+fi
 eg=`date +%s%N`
 
 echo -e "================================\n"

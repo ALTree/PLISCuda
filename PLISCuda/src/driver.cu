@@ -47,12 +47,12 @@ namespace PLISCuda {
 		// ----- allocate and memcpy state arrays -----
 		int * h_state = s.getState();
 
-		int * d_state;
-		gpuErrchk(cudaMalloc(&d_state, sbc4 * spc * sizeof(int)));
-		gpuErrchk(cudaMemcpy(d_state, h_state, sbc * spc * sizeof(int), cudaMemcpyHostToDevice));
-
-		int * d_state2;
-		gpuErrchk(cudaMalloc(&d_state2, sbc4 * spc * sizeof(int)));
+		int * d_state_curr;
+		int * d_state_next;
+		gpuErrchk(cudaMalloc(&d_state_curr, sbc4 * spc * sizeof(int)));
+		gpuErrchk(cudaMalloc(&d_state_next, sbc4 * spc * sizeof(int)));
+		gpuErrchk(cudaMemcpy(d_state_curr, h_state, sbc * spc * sizeof(int), cudaMemcpyHostToDevice));
+		gpuErrchk(cudaMemcpy(d_state_next, d_state_curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToDevice));
 
 		std::cout << "    system state requires     " << (2*sbc*spc*sizeof(int)) / (1024.0 * 1024.0) << " MB\n";
 
@@ -153,7 +153,12 @@ namespace PLISCuda {
 			d_rrc, d_drc
 		};
 
-		compute_rates<<<blocks, threads>>>(d_state, reactions, d_topology, rates, d_subv_consts);
+		state state = {
+			d_state_curr,
+			d_state_next
+		};
+
+		compute_rates<<<blocks, threads>>>(state, reactions, d_topology, rates, d_subv_consts);
 
 #ifdef DEBUG
 		float * h_rate_matrix;
@@ -164,7 +169,7 @@ namespace PLISCuda {
 
 		std::cout << "  computing initial taus...\n\n";
 
-		compute_taus<<<blocks, threads>>>(d_state, reactions, d_hors, d_topology, rates, 
+		compute_taus<<<blocks, threads>>>(state, reactions, d_hors, d_topology, rates, 
 										  thrust::raw_pointer_cast(tau.data()), 0.0, 
 										  d_leap, d_prngstate);
 
@@ -191,9 +196,6 @@ namespace PLISCuda {
 			std::cout << "  -- [step " << step << "] -- \n\n";
 #endif
 
-			// copy current state to d_state2
-			gpuErrchk(cudaMemcpy(d_state2, d_state, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
-
 			// get min tau from device
 			thrust::device_vector<float>::iterator iter = thrust::min_element(tau.begin(), tau.end());
 			int min_tau_sbi = iter - tau.begin();
@@ -214,15 +216,15 @@ namespace PLISCuda {
 
 		REPEAT:
 			// first we leap, with tau = min_tau, in every subvolume that has leap enabled
-			leap_step<<<blocks, threads>>>(d_state, reactions, d_topology, rates,
+			leap_step<<<blocks, threads>>>(state, reactions, d_topology, rates,
 										   tau[min_tau_sbi], d_current_time, d_leap, d_prngstate);
 
 			// now we do a single ssa step, if min_tau was in a subvolume with leap not enabled
-			ssa_step<<<blocks, threads>>>(d_state, reactions, d_topology, rates,
+			ssa_step<<<blocks, threads>>>(state, reactions, d_topology, rates,
 										  min_tau_sbi, d_current_time, d_leap, d_prngstate);
 
 			// check if we need to revert this step
-			check_state<<<blocks, threads>>>(d_state, thrust::raw_pointer_cast(revert.data()));
+			check_state<<<blocks, threads>>>(state, thrust::raw_pointer_cast(revert.data()));
 			bool revert_state = !thrust::none_of(revert.begin(), revert.end(), thrust::identity<int>());
 
 			if(revert_state) {
@@ -232,10 +234,8 @@ namespace PLISCuda {
 				std::cout << "\t new tau = " << min_tau / 2.0 << ", ";
 #endif
 				
-				// restore state from the copy
-				gpuErrchk(cudaMemcpy(d_state, d_state2, spc * sbc * sizeof(int), cudaMemcpyDeviceToDevice));
-
-				// halven tau and update current time 
+				// reset state.next from curr, halven tau, and retry
+				gpuErrchk(cudaMemcpy(state.next, state.curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToDevice));
 				h_current_time = h_current_time - min_tau + min_tau / 2.0;
 				min_tau = min_tau / 2.0;
 
@@ -249,17 +249,25 @@ namespace PLISCuda {
 				goto REPEAT;
 			} // end if(revert_state)
 
+			// If we're good (i.e. state.next has passed the
+			// check_state call), swap state.next with state.curr, 
+			// and then copy state.curr to next
+			int * temp = state.curr;
+			state.curr = state.next;
+			state.next = temp;
+			gpuErrchk(cudaMemcpy(state.next, state.curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToDevice));
+
 			// update rates
 			// TODO: the computed values are not used if the subvolume
 			// is tagged as SSA_FF, so we should avoid doing the
 			// computation
-			compute_rates<<<blocks, threads>>>(d_state, reactions, d_topology, rates, d_subv_consts);
+			compute_rates<<<blocks, threads>>>(state, reactions, d_topology, rates, d_subv_consts);
 
 			// update tau array
 #ifdef PROFILE
 			cudaProfilerStart();
 #endif
-			compute_taus<<<blocks, threads>>>(d_state, reactions, d_hors, d_topology, rates, 
+			compute_taus<<<blocks, threads>>>(state, reactions, d_hors, d_topology, rates, 
 											  thrust::raw_pointer_cast(tau.data()), min_tau, 
 											  d_leap, d_prngstate);
 
@@ -268,7 +276,7 @@ namespace PLISCuda {
 #endif
 
 #ifdef LOG
-			gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+			gpuErrchk(cudaMemcpy(h_state, state.curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 			print_state(h_state, spc, sbc, h_current_time);
 #endif
 		
@@ -285,7 +293,7 @@ namespace PLISCuda {
 			if(log_freq > 0 && (h_current_time - last_log_time) >= log_freq) {
 				// get system state from the GPU
 				last_log_time = h_current_time;
-				gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+				gpuErrchk(cudaMemcpy(h_state, state.curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 				
 				// create a new file, named sim<timestamp>_<snapshot_time>.dat,
 				// and write the system state in it
@@ -305,7 +313,7 @@ namespace PLISCuda {
 		std::cout << "-- Simulation Complete -- \n\n";
 
 #ifndef LOG // when logging to file, remember to print the final state
-		gpuErrchk(cudaMemcpy(h_state, d_state, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
+		gpuErrchk(cudaMemcpy(h_state, state.curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
 
 		std::ofstream log_file;
 		log_file.open("sim" + std::to_string(tstamp) + "_" + std::to_string(h_current_time) +".dat");

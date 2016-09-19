@@ -54,6 +54,11 @@ enum op: char {
 		};
 
 
+typedef struct s_state {
+	int * curr;   // current (previous step) system state
+	int * next;   // next state (to be computed)
+} state;
+
 typedef struct s_rates {
 	float * reaction;  // reaction  rates (rr)
 	float * diffusion; // diffusion rates (dr)

@@ -68,7 +68,7 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 
 }
 
-__global__ void ssa_step(int * state, reactions reactions, unsigned int * topology, rates rates,
+__global__ void ssa_step(state state, reactions reactions, unsigned int * topology, rates rates,
 						 int min_sbi, float * current_time, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -88,7 +88,7 @@ __global__ void ssa_step(int * state, reactions reactions, unsigned int * topolo
 		// if sbi = min_sbi then it should be guaranteed that ri != -1
 		for (int spi = 0; spi < SPC; spi++) {
 			int delta = reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)];
-			atomicAdd(&state[GET_SPI(spi, sbi)], delta);
+			atomicAdd(&state.next[GET_SPI(spi, sbi)], delta);
 		}
 
 		// set our own OP to SSA (we can't fast-forward if we fired a reaction)
@@ -113,8 +113,8 @@ __global__ void ssa_step(int * state, reactions reactions, unsigned int * topolo
 			
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
 		if (rdi != sbi) {
-			atomicSub(&state[GET_SPI(spi, sbi)], 1);
-			atomicAdd(&state[GET_SPI(spi, rdi)], 1);
+			atomicSub(&state.next[GET_SPI(spi, sbi)], 1);
+			atomicAdd(&state.next[GET_SPI(spi, rdi)], 1);
 			if (leap[rdi] == SSA_FF)
 				leap[rdi] = SSA;    // set the OP of the receiver to SSA
 		}
