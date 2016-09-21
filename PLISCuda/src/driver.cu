@@ -187,6 +187,14 @@ namespace PLISCuda {
 
 		std::clock_t sim_start = std::clock();
 
+
+
+#ifdef PROFILE
+		cudaProfilerStart();
+#endif
+
+
+
 		int step = 0;
 		while(h_current_time < endTime) {
 
@@ -264,16 +272,12 @@ namespace PLISCuda {
 			compute_rates<<<blocks, threads>>>(state, reactions, d_topology, rates, d_subv_consts);
 
 			// update tau array
-#ifdef PROFILE
-			cudaProfilerStart();
-#endif
+
 			compute_taus<<<blocks, threads>>>(state, reactions, d_hors, d_topology, rates, 
 											  thrust::raw_pointer_cast(tau.data()), min_tau, 
 											  d_leap, d_prngstate);
 
-#ifdef PROFILE
-			cudaProfilerStop();
-#endif
+
 
 #ifdef LOG
 			gpuErrchk(cudaMemcpy(h_state, state.curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
@@ -305,6 +309,11 @@ namespace PLISCuda {
 #endif
 		
 		} // end while(h_current_time < endTime)
+
+
+#ifdef PROFILE
+		cudaProfilerStop();
+#endif
 
 		gpuErrchk(cudaDeviceSynchronize());
 

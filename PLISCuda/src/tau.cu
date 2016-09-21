@@ -155,10 +155,8 @@ __device__ float compute_tau_ncr(state state, reactions reactions,
 
 		// check for critical reaction events
 		for (int ri = 0; ri < RC; ri++) {
-			if (crit_r[ri]) {
-				// skip if the specie spi is involved in the reaction
-				skip_r = skip_r || (reactions.r[GET_COEFF(spi, ri)] > 0);
-			}
+			// skip if reaction is critical and the specie is involved
+			skip_r = skip_r || (crit_r[ri] && (reactions.r[GET_COEFF(spi, ri)] > 0));
 		}
 
 		// check for critical diffusion events
