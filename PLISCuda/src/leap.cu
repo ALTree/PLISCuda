@@ -10,12 +10,17 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 
 	int neigh_count = neigh.count[sbi];
 
+	// precompute is_critical_reaction
+	bool crit_r[MAXREACTIONS];
+
+	for (int ri = 0; ri < RC; ri++)
+		crit_r[ri] = is_critical_reaction(state, reactions, sbi, ri);
+
 	// fire all the non-critical reaction events
 	for (int ri = 0; ri < RC; ri++) {
 
-		if (is_critical_reaction(state, reactions, sbi, ri)) {
+		if (crit_r[ri])
 			continue;
-		}
 
 		unsigned int k;    // how many times it fires
 		k = curand_poisson(&prngstate[sbi], min_tau * rates.reaction[GET_RR(ri, sbi)]);
@@ -90,7 +95,7 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 	// sum the reaction rates of critical reactions
 	float rr_sum = 0.0;
 	for (int ri = 0; ri < RC; ri++)
-		rr_sum += rates.reaction[GET_RR(ri, sbi)] * is_critical_reaction(state, reactions, sbi, ri);
+		rr_sum += rates.reaction[GET_RR(ri, sbi)] * crit_r[ri];
 
 	// sum the diffusion rates of critical diffusion events
 	float dr_sum = 0.0;
@@ -109,17 +114,15 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 
 		int ric = 0;
 		while (partial_sum <= scaled_sum) {
-			partial_sum += rates.reaction[GET_RR(ric, sbi)]
-				* is_critical_reaction(state, reactions, sbi, ric);
+			partial_sum += rates.reaction[GET_RR(ric, sbi)] * crit_r[ric];
 			ric++;
 		}
 		// We'll fire the ric-nth critical reactions.
 
 		int ri;
 		for (ri = 0; ri < RC && ric > 0; ri++) {
-			if (is_critical_reaction(state, reactions, sbi, ri)) {
+			if (crit_r[ri])
 				ric--;
-			}
 		}
 		ri = ri - 1;
 
