@@ -18,7 +18,7 @@
 // species, and then it fires ONE critical reaction (if it is enabled
 // in the current state, after the leaping. If not, it does not fire
 // any reaction).  It does NOT update tau or the current time.
-__global__ void leap_step(state state, reactions reactions, unsigned int * topology,
+__global__ void leap_step(state state, reactions reactions, neigh neigh,
 						  rates rates, float min_tau, float * current_time, 
 						  char * leap, curandStateMRG32k3a * prngstate);
 

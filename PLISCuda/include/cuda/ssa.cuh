@@ -20,7 +20,7 @@ __device__ int choose_rand_reaction(rates rates, float rand);
 // returns the index of a random specie to diffuse in the associated subvolume.
 // The chance that we choose specie S is given by the diffusion rate of S over
 // the sum of the diffusion rates of all the species.
-__device__ int choose_rand_specie(unsigned int * topology, rates rates, float rand);
+__device__ int choose_rand_specie(neigh neigh, rates rates, float rand);
 
 // Performs a single SSA step.
 // Returns immediately if:
@@ -30,7 +30,7 @@ __device__ int choose_rand_specie(unsigned int * topology, rates rates, float ra
 // The kernel either fire a reaction or performs a diffusion.
 // It updates the state of the neighbours, if necessary.
 // It does NOT update tau or the current time.
-__global__ void ssa_step(state state, reactions reactions, unsigned int * topology, rates rates,
+__global__ void ssa_step(state state, reactions reactions, neigh neigh, rates rates,
 						 int min_sbi, float * current_time, char * leap,
 						 curandStateMRG32k3a * s);
 

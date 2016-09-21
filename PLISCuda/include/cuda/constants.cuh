@@ -72,6 +72,11 @@ typedef struct s_reactions {
 	int * p;   // products
 } reactions;
 
+typedef struct s_neigh {
+	unsigned int * index;   // neighboours indices 
+	int * count;            // neighboours count
+} neigh;
+
 
 struct ToLog {
 	unsigned int * subv;

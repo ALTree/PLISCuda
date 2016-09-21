@@ -20,10 +20,10 @@ __device__ void react_rates(state state, reactions reactions, rates rates);
 __device__ void diff_rates(state state, rates rates);
 
 // updates the whole rate matrix
-__device__ void update_rate_matrix(unsigned int * topology, rates rates);
+__device__ void update_rate_matrix(neigh neigh, rates rates);
 
 // call react_rates, diff_rates and update_rate_matrix
-__global__ void compute_rates(state state, reactions reactions, unsigned int * topology, 
+__global__ void compute_rates(state state, reactions reactions, neigh neigh, 
 							  rates rates, int * d_subv_consts);
 
 #endif /* RATES_CUH_ */

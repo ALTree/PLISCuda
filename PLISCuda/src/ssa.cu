@@ -24,7 +24,7 @@ __device__ int choose_rand_reaction(rates rates, float rand)
 	return ri - 1;
 }
 
-__device__ int choose_rand_specie(unsigned int * topology, rates rates, float rand)
+__device__ int choose_rand_specie(neigh neigh, rates rates, float rand)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -37,7 +37,7 @@ __device__ int choose_rand_specie(unsigned int * topology, rates rates, float ra
 
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
-		neigh_count += (topology[sbi * 6 + i] != sbi);
+		neigh_count += (neigh.index[sbi * 6 + i] != sbi);
 
 	// we need to scale back rate_matrix[2][sbi] before performing
 	// the linear scaling
@@ -68,7 +68,7 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 
 }
 
-__global__ void ssa_step(state state, reactions reactions, unsigned int * topology, rates rates,
+__global__ void ssa_step(state state, reactions reactions, neigh neigh, rates rates,
 						 int min_sbi, float * current_time, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -96,7 +96,7 @@ __global__ void ssa_step(state state, reactions reactions, unsigned int * topolo
 
 	} else {    // diffusion
 
-		int spi = choose_rand_specie(topology, rates, rand);
+		int spi = choose_rand_specie(neigh, rates, rand);
 
 		// choose a random destination
 		int rdi;
@@ -105,7 +105,7 @@ __global__ void ssa_step(state state, reactions reactions, unsigned int * topolo
 		} while (rdi > 5);
 
 		// get index of neighbour #rdi (overwrite rdi, whatever)
-		rdi = topology[sbi * 6 + rdi];
+		rdi = neigh.index[sbi * 6 + rdi];
 
 #ifdef LOG
 		printf("(%f) [subv %d] diffuse specie %d in subvolume %d  [SSA]\n", *current_time, sbi, spi, rdi);

@@ -60,7 +60,7 @@ __device__ void diff_rates(state state, rates rates)
 	}
 }
 
-__device__ void update_rate_matrix(unsigned int * topology, rates rates)
+__device__ void update_rate_matrix(neigh neigh, rates rates)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi >= SBC)
@@ -81,7 +81,7 @@ __device__ void update_rate_matrix(unsigned int * topology, rates rates)
 	//       topology parameter
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
-		neigh_count += (topology[sbi * 6 + i] != sbi);
+		neigh_count += (neigh.index[sbi * 6 + i] != sbi);
 
 	diff_sum *= neigh_count;
 
@@ -90,7 +90,7 @@ __device__ void update_rate_matrix(unsigned int * topology, rates rates)
 	rates.matrix[GET_RATE(2, sbi)] = react_sum + diff_sum;
 }
 
-__global__ void compute_rates(state state, reactions reactions, unsigned int * topology, rates rates,
+__global__ void compute_rates(state state, reactions reactions, neigh neigh, rates rates,
 							  int * d_subv_consts)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -105,5 +105,5 @@ __global__ void compute_rates(state state, reactions reactions, unsigned int * t
 
 	react_rates(state, reactions, rates);
 	diff_rates(state, rates);
-	update_rate_matrix(topology, rates);
+	update_rate_matrix(neigh, rates);
 }

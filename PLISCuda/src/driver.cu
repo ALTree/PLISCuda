@@ -78,14 +78,24 @@ namespace PLISCuda {
 		std::cout << "    reactions require         " <<
 			(2*spc*rc*sizeof(int) + (rc+spc)*sizeof(float) + (spc*sizeof(int))) / (1024.0 * 1024.0) << " MB\n";
 	
-		// ----- allocate and memcpy topology array -----
+		// ----- allocate and memcpy topology arrays -----
 		unsigned int * h_topology = t.getNeighboursArray();
 
 		unsigned int * d_topology;
 		gpuErrchk(cudaMalloc(&d_topology, 6 * sbc * sizeof(unsigned int)));
 		gpuErrchk(cudaMemcpy(d_topology, h_topology, 6 * sbc * sizeof(unsigned int), cudaMemcpyHostToDevice));
 
-		std::cout << "    system topology requires  " << (6*sbc*sizeof(unsigned int)) / (1024.0 * 1024.0) << " MB\n";
+		int * d_neighcount;
+		gpuErrchk(cudaMalloc(&d_neighcount, sbc * sizeof(int)));
+
+		std::cout << "    system topology requires  " << (sbc*sizeof(int) + 
+														  6*sbc*sizeof(unsigned int)) / (1024.0 * 1024.0) 
+				  << " MB\n";
+
+		neigh neigh = {
+			d_topology,
+			d_neighcount
+		};
 	
 		// ----- allocate rate matrix -----
 		float * d_rate_matrix;
@@ -158,7 +168,7 @@ namespace PLISCuda {
 			d_state_next
 		};
 
-		compute_rates<<<blocks, threads>>>(state, reactions, d_topology, rates, d_subv_consts);
+		compute_rates<<<blocks, threads>>>(state, reactions, neigh, rates, d_subv_consts);
 
 #ifdef DEBUG
 		float * h_rate_matrix;
@@ -169,7 +179,7 @@ namespace PLISCuda {
 
 		std::cout << "  computing initial taus...\n\n";
 
-		compute_taus<<<blocks, threads>>>(state, reactions, d_hors, d_topology, rates, 
+		compute_taus<<<blocks, threads>>>(state, reactions, d_hors, neigh, rates, 
 										  thrust::raw_pointer_cast(tau.data()), 0.0, 
 										  d_leap, d_prngstate);
 
@@ -224,11 +234,11 @@ namespace PLISCuda {
 
 		REPEAT:
 			// first we leap, with tau = min_tau, in every subvolume that has leap enabled
-			leap_step<<<blocks, threads>>>(state, reactions, d_topology, rates,
+			leap_step<<<blocks, threads>>>(state, reactions, neigh, rates,
 										   tau[min_tau_sbi], d_current_time, d_leap, d_prngstate);
 
 			// now we do a single ssa step, if min_tau was in a subvolume with leap not enabled
-			ssa_step<<<blocks, threads>>>(state, reactions, d_topology, rates,
+			ssa_step<<<blocks, threads>>>(state, reactions, neigh, rates,
 										  min_tau_sbi, d_current_time, d_leap, d_prngstate);
 
 			// check if we need to revert this step
@@ -269,11 +279,11 @@ namespace PLISCuda {
 			// TODO: the computed values are not used if the subvolume
 			// is tagged as SSA_FF, so we should avoid doing the
 			// computation
-			compute_rates<<<blocks, threads>>>(state, reactions, d_topology, rates, d_subv_consts);
+			compute_rates<<<blocks, threads>>>(state, reactions, neigh, rates, d_subv_consts);
 
 			// update tau array
 
-			compute_taus<<<blocks, threads>>>(state, reactions, d_hors, d_topology, rates, 
+			compute_taus<<<blocks, threads>>>(state, reactions, d_hors, neigh, rates, 
 											  thrust::raw_pointer_cast(tau.data()), min_tau, 
 											  d_leap, d_prngstate);
 

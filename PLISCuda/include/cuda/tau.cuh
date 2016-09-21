@@ -29,7 +29,7 @@ __device__ float compute_g(state state, int * hors, int sbi, int spi);
 // Diffusion events are taken into account (so it's not really [Tao06],
 // it's the modified version found in [Harris10]
 __device__ float compute_tau_sp(state state, reactions reactions, int * hors, 
-								bool crit_r[MAXREACTIONS], unsigned int * topology,
+								bool crit_r[MAXREACTIONS], neigh neigh,
 								int sbi, int spi, rates rates);
 	
 // Compute the subvolume tau time (i.e. the min of the tau_sp over all
@@ -37,7 +37,7 @@ __device__ float compute_tau_sp(state state, reactions reactions, int * hors,
 // reactant species NOT involved in critical reactions.  If every
 // reaction is critical, returns +Inf.
 __device__ float compute_tau_ncr(state state, reactions reactions, 
-								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
+								 int * hors, bool crit_r[MAXREACTIONS], neigh neigh, 
 								 int sbi, rates rates);
 
 // Compute the subvolume tau_cr time (i.e. the tau for the critical
@@ -47,7 +47,7 @@ __device__ float compute_tau_cr(state state, bool crit_r[MAXREACTIONS],
 
 // Fill the tau array with taus computed as [Cao06]
 __global__ void compute_taus(state state, reactions reactions, int * hors, 
-							 unsigned int * topology, rates rates, float * tau, 
+							 neigh neigh, rates rates, float * tau, 
 							 float min_tau, char * leap, curandStateMRG32k3a * s);
 
 

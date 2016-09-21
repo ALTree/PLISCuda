@@ -59,7 +59,7 @@ __device__ float compute_g(state state, reactions reactions, int * hors, int sbi
 }
 
 __device__ float compute_tau_sp(state state, reactions reactions, int * hors, 
-								bool crit_r[MAXREACTIONS], unsigned int * topology,
+								bool crit_r[MAXREACTIONS], neigh neigh,
 								int sbi, int spi, rates rates) 
 {
 	float g = compute_g(state, reactions, hors, sbi, spi);
@@ -111,7 +111,7 @@ __device__ float compute_tau_sp(state state, reactions reactions, int * hors,
 
 	// add propensities of incoming diffusions for specie spi
 	for (int i = 0; i < 6; i++) {    // loop over the neighbours
-		unsigned int ni = topology[sbi * 6 + i];    // neighbour index
+		unsigned int ni = neigh.index[sbi * 6 + i];    // neighbour index
 		if(ni == sbi) {
 			continue;
 		}
@@ -119,7 +119,7 @@ __device__ float compute_tau_sp(state state, reactions reactions, int * hors,
 		// first we need to compute how many neighbours ni has
 		int nni = 0;
 		for (int j = 0; j < 6; j++) {
-			if (topology[ni * 6 + j] != ni) {
+			if (neigh.index[ni * 6 + j] != ni) {
 				nni++;
 			}
 		}
@@ -142,7 +142,7 @@ __device__ float compute_tau_sp(state state, reactions reactions, int * hors,
 }
 
 __device__ float compute_tau_ncr(state state, reactions reactions, 
-								 int * hors, bool crit_r[MAXREACTIONS], unsigned int * topology, 
+								 int * hors, bool crit_r[MAXREACTIONS], neigh neigh,
 								 int sbi, rates rates)
 {
 	float min_tau = INFINITY;
@@ -167,7 +167,7 @@ __device__ float compute_tau_ncr(state state, reactions reactions,
 		}
 		// spi is not involved in any critical event.
 
-		float tau = compute_tau_sp(state, reactions, hors, crit_r, topology, sbi, spi, rates);
+		float tau = compute_tau_sp(state, reactions, hors, crit_r, neigh, sbi, spi, rates);
 		min_tau = min(min_tau, tau);
 	}
 
@@ -195,7 +195,7 @@ __device__ float compute_tau_cr(state state, bool crit_r[MAXREACTIONS],
 	return -logf(rand) / (react_rates_sum_cr + diff_rates_sum_cr);
 }
 
-__global__ void compute_taus(state state, reactions reactions, int * hors, unsigned int * topology,
+__global__ void compute_taus(state state, reactions reactions, int * hors, neigh neigh,
 							 rates rates, float * tau, float min_tau, char * leap, curandStateMRG32k3a * s)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
@@ -225,7 +225,7 @@ __global__ void compute_taus(state state, reactions reactions, int * hors, unsig
 		crit_r[ri] = is_critical_reaction(state, reactions, sbi, ri);
 	}
 
-	float tau_ncr = compute_tau_ncr(state, reactions, hors, crit_r, topology, sbi, rates);
+	float tau_ncr = compute_tau_ncr(state, reactions, hors, crit_r, neigh, sbi, rates);
 	float tau_cr = compute_tau_cr(state, crit_r, sbi, rates, s);
 
 	// If tau_ncr is +Inf then every reaction is critical, and we

@@ -1,6 +1,6 @@
 #include "../include/cuda/leap.cuh"
 
-__global__ void leap_step(state state, reactions reactions, unsigned int * topology,
+__global__ void leap_step(state state, reactions reactions, neigh neigh,
 						  rates rates, float min_tau,
 						  float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
@@ -12,7 +12,7 @@ __global__ void leap_step(state state, reactions reactions, unsigned int * topol
 	// value later.  TODO: remove when issue #26 is fixed
 	int neigh_count = 0;
 	for (int i = 0; i < 6; i++)
-		neigh_count += (topology[sbi * 6 + i] != sbi);
+		neigh_count += (neigh.index[sbi * 6 + i] != sbi);
 
 	// fire all the non-critical reaction events
 	for (int ri = 0; ri < RC; ri++) {
@@ -51,16 +51,16 @@ __global__ void leap_step(state state, reactions reactions, unsigned int * topol
 		// diffuse to each neighbour
 		for (unsigned int ngb = 0; ngb < neigh_count; ngb++) {
 			unsigned int k = curand_poisson(&prngstate[sbi], min_tau * rates.diffusion[GET_DR(spi, sbi)]);
-			atomicAdd(&state.next[GET_SPI(spi, topology[sbi*6 + ngb])], k);
+			atomicAdd(&state.next[GET_SPI(spi, neigh.index[sbi*6 + ngb])], k);
 			atomicSub(&state.next[GET_SPI(spi, sbi)], k);
-			if (leap[topology[sbi * 6 + ngb]] == SSA_FF) {
-				leap[topology[sbi * 6 + ngb]] = SSA;    // set the OP of the receiver to SSA
+			if (leap[neigh.index[sbi * 6 + ngb]] == SSA_FF) {
+				leap[neigh.index[sbi * 6 + ngb]] = SSA;    // set the OP of the receiver to SSA
 			}
 
 #ifdef LOG
 			if (k > 0)
 				printf("(%f) [subv %d] diffuse %d molecules of specie %d to subv %d\n",
-					   *current_time, sbi, k, spi, topology[sbi * 6 + ngb]);
+					   *current_time, sbi, k, spi, neigh.index[sbi * 6 + ngb]);
 #endif
 		}
 
@@ -183,14 +183,14 @@ __global__ void leap_step(state state, reactions reactions, unsigned int * topol
 		} while (rdi > 5);
 
 		// get index of neighbour #rdi (overwrite rdi, whatever)
-		rdi = topology[sbi * 6 + rdi];
+		rdi = neigh.index[sbi * 6 + rdi];
 
 		// If rdi == sbi (i.e. diffuse to myself) don't do anything
 		if (rdi != sbi) {
 			atomicSub(&state.next[GET_SPI(spi, sbi)], 1);
 			atomicAdd(&state.next[GET_SPI(spi, rdi)], 1);
-			if (leap[topology[rdi]] == SSA_FF) // TODO: atomic?
-				leap[topology[rdi]] = SSA;    // set the OP of the receiver to SSA
+			if (leap[neigh.index[rdi]] == SSA_FF) // TODO: atomic?
+				leap[neigh.index[rdi]] = SSA;    // set the OP of the receiver to SSA
 		}
 
 #ifdef LOG
