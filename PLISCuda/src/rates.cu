@@ -76,12 +76,8 @@ __device__ void update_rate_matrix(neigh neigh, rates rates)
 	for (int spi = 0; spi < SPC; spi++)
 		diff_sum += rates.diffusion[GET_DR(spi, sbi)];
 
-	// count subvolume neighbours (since diff_rate = #neighbours x diff_sum)
-	// TODO: write # of neighbours somewhere and use it so we can remove the
-	//       topology parameter
-	int neigh_count = 0;
-	for (int i = 0; i < 6; i++)
-		neigh_count += (neigh.index[sbi * 6 + i] != sbi);
+	// we need neighbours count (since diff_rate = #neighbours x diff_sum)
+	int neigh_count = neigh.count[sbi];
 
 	diff_sum *= neigh_count;
 

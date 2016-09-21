@@ -116,13 +116,7 @@ __device__ float compute_tau_sp(state state, reactions reactions, int * hors,
 			continue;
 		}
 
-		// first we need to compute how many neighbours ni has
-		int nni = 0;
-		for (int j = 0; j < 6; j++) {
-			if (neigh.index[ni * 6 + j] != ni) {
-				nni++;
-			}
-		}
+		int nni = neigh.count[ni];
 
 		// Subtract from mu the propensity of specie spi in subvolume
 		// ni divided by nni (i.e. we sum a negative value).

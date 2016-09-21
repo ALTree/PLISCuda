@@ -8,11 +8,7 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 	if (sbi >= SBC || leap[sbi] == SSA || leap[sbi] == SSA_FF)
 		return;
 
-	// Count the neighbours of the current subvolume. We'll need the
-	// value later.  TODO: remove when issue #26 is fixed
-	int neigh_count = 0;
-	for (int i = 0; i < 6; i++)
-		neigh_count += (neigh.index[sbi * 6 + i] != sbi);
+	int neigh_count = neigh.count[sbi];
 
 	// fire all the non-critical reaction events
 	for (int ri = 0; ri < RC; ri++) {
@@ -211,6 +207,21 @@ __global__ void check_state(state state, int * revert)
 		_revert = _revert || (state.next[GET_SPI(spi, sbi)] < 0);
 
 	revert[sbi] = _revert ? 1 : 0;
+}
+
+
+__global__ void init_neigh_count(neigh neigh)
+{
+	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
+	if (sbi >= SBC)
+		return;
+
+	int nc = 0;
+	for (int i = 0; i < 6; i++)
+		nc += (neigh.index[sbi * 6 + i] != sbi);
+	
+	neigh.count[sbi] = nc;
+
 }
 
 __device__ int HOR(reactions reactions, int spi)

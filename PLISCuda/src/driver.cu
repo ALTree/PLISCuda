@@ -88,14 +88,18 @@ namespace PLISCuda {
 		int * d_neighcount;
 		gpuErrchk(cudaMalloc(&d_neighcount, sbc * sizeof(int)));
 
-		std::cout << "    system topology requires  " << (sbc*sizeof(int) + 
-														  6*sbc*sizeof(unsigned int)) / (1024.0 * 1024.0) 
-				  << " MB\n";
-
 		neigh neigh = {
 			d_topology,
 			d_neighcount
 		};
+
+
+		init_neigh_count<<<blocks, threads>>>(neigh);
+
+		std::cout << "    system topology requires  " << (sbc*sizeof(int) + 
+														  6*sbc*sizeof(unsigned int)) / (1024.0 * 1024.0) 
+				  << " MB\n";
+
 	
 		// ----- allocate rate matrix -----
 		float * d_rate_matrix;

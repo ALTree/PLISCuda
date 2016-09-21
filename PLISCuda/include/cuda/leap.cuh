@@ -24,6 +24,7 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 
 __global__ void check_state(state state, int * revert);
 
+__global__ void init_neigh_count(neigh neigh);
 
 // returns HOR(spi). Well, actually it returns
 // 1 for HOR(spi) = 1

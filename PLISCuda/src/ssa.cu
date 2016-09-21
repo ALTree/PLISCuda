@@ -35,9 +35,7 @@ __device__ int choose_rand_specie(neigh neigh, rates rates, float rand)
 	if (rates.matrix[GET_RATE(1, sbi)] == 0)
 		return -1;
 
-	int neigh_count = 0;
-	for (int i = 0; i < 6; i++)
-		neigh_count += (neigh.index[sbi * 6 + i] != sbi);
+	int neigh_count = neigh.count[sbi];
 
 	// we need to scale back rate_matrix[2][sbi] before performing
 	// the linear scaling
