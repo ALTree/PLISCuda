@@ -3,10 +3,20 @@
 __device__ bool is_critical_reaction(state state, reactions reactions, int sbi, int ri)
 {
 	bool crit = false;
-	for (int spi = 0; spi < SPC; spi++) {
-		// if state == 0 and the reactions requires specie spi, it's
-		// obviously critical
-		if(reactions.r[GET_COEFF(spi, ri)] > 0 && state.curr[GET_SPI(spi, sbi)] == 0){
+	int sf = 0; // reactants found
+
+	// Instead of looping on every specie, we stop early if we already
+	// found 2 reactants (since we don't support reactions with 3 or
+	// more).
+	for (int spi = 0; sf < 2 && spi < SPC; spi++) {
+		// get reactant coeff. for specie spi
+		int rt = reactions.r[GET_COEFF(spi, ri)];
+		// if rt > 0, we found another reactant of reaction ri
+		sf += (rt > 0);
+
+		// if rt > 0 then specie spi is required. If the current
+		// subvolume has 0 mols of spi, the reaction is critical.
+		if(rt > 0 && state.curr[GET_SPI(spi, sbi)] == 0){
 			return true;
 		}
 
