@@ -94,7 +94,7 @@ namespace PLISCuda {
 		};
 
 
-		init_neigh_count<<<blocks, threads>>>(neigh);
+		init_ncount<<<blocks, threads>>>(neigh);
 
 		std::cout << "    system topology requires  " << (sbc*sizeof(int) + 
 														  6*sbc*sizeof(unsigned int)) / (1024.0 * 1024.0) 
@@ -128,7 +128,7 @@ namespace PLISCuda {
 		// ----- allocate and initialize prng array
 		curandStateMRG32k3a * d_prngstate;
 		gpuErrchk(cudaMalloc(&d_prngstate, sbc * sizeof(curandStateMRG32k3a)));
-		initialize_prngstate_array<<<blocks, threads>>>(d_prngstate);
+		init_prng<<<blocks, threads>>>(d_prngstate);
 
 		std::cout << "    prng array require        " << (sbc*sizeof(curandStateMRG32k3a)) / (1024.0 * 1024.0) << " MB\n";
 
@@ -145,7 +145,7 @@ namespace PLISCuda {
 			d_products,
 		};
 
-		initialize_hors_array<<<1, 1>>>(d_hors, reactions, spc);
+		init_hors<<<1, 1>>>(d_hors, reactions, spc);
 
 		thrust::device_vector<int> revert(sbc4, 0);
 

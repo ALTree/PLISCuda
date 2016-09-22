@@ -1,18 +1,18 @@
 #include "../include/cuda/init.cuh"
 
-__global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
+__global__ void init_prng(curandStateMRG32k3a * prngstate)
 {
 	INDCHECK()
 
 #ifndef TEST
 	curand_init(clock64() * sbi, 0, 0, &prngstate[sbi]);
-#else 
+#else // fixed seeds for a deterministic simulation
 	curand_init(sbi, 0, 0, &prngstate[sbi]);
 #endif
 
 }
 
-__global__ void init_neigh_count(neigh neigh)
+__global__ void init_ncount(neigh neigh)
 {
 	INDCHECK()
 
@@ -57,7 +57,7 @@ __device__ int HOR(reactions reactions, int spi)
 }
 
 
-__global__ void initialize_hors_array(int * hors, reactions reactions, int spc)
+__global__ void init_hors(int * hors, reactions reactions, int spc)
 {
 	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
 	if (sbi != 0)
