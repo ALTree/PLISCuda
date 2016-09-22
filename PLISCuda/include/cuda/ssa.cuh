@@ -1,10 +1,7 @@
 #ifndef NSM_CUH_
 #define NSM_CUH_
 
-#include <cuda_runtime.h>
 #include <curand_kernel.h>
-#include <thrust/device_vector.h>
-#include <thrust/extrema.h>
 
 #include "rates.cuh"
 #include "constants.cuh"

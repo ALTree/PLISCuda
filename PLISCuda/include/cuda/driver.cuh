@@ -3,11 +3,12 @@
 
 #include <ctime>
 #include <fstream>
-#include <cuda_runtime.h>
-#include <thrust/device_vector.h>
-#include <thrust/logical.h>
-#include <curand_kernel.h>
 #include <iomanip>
+
+#include <thrust/device_vector.h>
+#include <thrust/extrema.h>
+#include <thrust/logical.h>
+
 
 #include "../cpp/State.hpp"
 #include "../cpp/Reactions.hpp"
@@ -15,13 +16,13 @@
 
 #include "../cpp/cpp_utils.hpp"
 
+#include "constants.cuh"
+#include "init.cuh"
+#include "leap.cuh"
+#include "log.cuh"
 #include "rates.cuh"
 #include "ssa.cuh"
 #include "tau.cuh"
-#include "leap.cuh"
-#include "constants.cuh"
-#include "log.cuh"
-#include "init.cuh"
 
 namespace PLISCuda {
 
