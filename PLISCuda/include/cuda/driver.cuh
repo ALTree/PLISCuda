@@ -21,6 +21,7 @@
 #include "leap.cuh"
 #include "constants.cuh"
 #include "log.cuh"
+#include "init.cuh"
 
 namespace PLISCuda {
 

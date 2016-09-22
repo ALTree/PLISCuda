@@ -52,17 +52,6 @@ __device__ int choose_rand_specie(neigh neigh, rates rates, float rand)
 	return spi - 1;
 }
 
-__global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
-{
-	INDCHECK()
-
-#ifndef TEST
-	curand_init(clock64() * sbi, 0, 0, &prngstate[sbi]);
-#else 
-	curand_init(sbi, 0, 0, &prngstate[sbi]);
-#endif
-
-}
 
 __global__ void ssa_step(state state, reactions reactions, neigh neigh, rates rates,
 						 int min_sbi, float * current_time, char * leap, curandStateMRG32k3a * s)

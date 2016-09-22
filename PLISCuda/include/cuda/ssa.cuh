@@ -9,9 +9,6 @@
 #include "rates.cuh"
 #include "constants.cuh"
 
-// initialize prngstate array (one prng for each thread).
-__global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate);
-
 // returns the index of a random reaction to fire in the associated subvolume.
 // The chance that we choose reaction R is given by the react rate of R over
 // the sum of the reaction rates of all the reactions.
