@@ -47,6 +47,7 @@ __device__ bool is_critical_diffusion(state state, int sbi, int spi)
 __device__ float compute_g(state state, reactions reactions, int * hors, int sbi, int spi)
 {
 	int hor = hors[spi];
+	int x; // to shut up compiler warning
 
 	switch (hor) {
 	case 1:
@@ -54,7 +55,7 @@ __device__ float compute_g(state state, reactions reactions, int * hors, int sbi
 	case 2:
 		return 2;
 	case 3:
-		int x = state.curr[GET_SPI(spi, sbi)];
+		x = state.curr[GET_SPI(spi, sbi)];
 		return 2.0 + 1.0 / (x - 1);
 	default:
 		// HOR(spi) == 0 if spi does not appear as reactant in any

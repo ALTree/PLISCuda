@@ -67,7 +67,6 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 	if (leap[sbi] != LEAP_CR)
 		return;
 
-	// TODO: this comment is outdated
 	// Problem: in the following we use the old react_rates_array
 	// (we'll update it later, in another kernel call), but it can
 	// happen that a reaction has rate > 0 even if we can't fire it
@@ -77,10 +76,12 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 	// 
 	// To avoid negative population, we choose the random reaction as
 	// usual, but we only fire it if we have enough molecules in the
-	// subvolume.  Note that it's possibile that something has entered
-	// from a neighbour during the leap phase, so checking the state
-	// is a good pragmatic way to ensure that we'll fire everytime is
-	// possibile.
+	// subvolume *and* we could already fire the reaction in the
+	// previous state. 
+	// 
+	// The second part of the condition is necessary because otherwise
+	// it could happen that we fire -or not- depending on the order
+	// given from the CUDA scheduler to the threads.  
 
 	__syncthreads();
 
@@ -129,6 +130,7 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 		bool fire = true;
 		for (int spi = 0; spi < SPC; spi++) {
 			fire = fire && (state.curr[GET_SPI(spi, sbi)] >= reactions.r[GET_COEFF(spi, ri)]);
+			fire = fire && (state.next[GET_SPI(spi, sbi)] >= reactions.r[GET_COEFF(spi, ri)]);
 		}
 
 		if (!fire)
@@ -166,6 +168,7 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 		// Check if the current state lets us diffuse specie spi (see
 		// comment above).
 		bool fire = state.curr[GET_SPI(spi, sbi)] > 0;
+		fire = fire && (state.next[GET_SPI(spi, sbi)] > 0);
 
 		if (!fire)
 			return;
