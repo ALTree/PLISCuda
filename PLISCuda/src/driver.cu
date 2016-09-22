@@ -241,8 +241,9 @@ namespace PLISCuda {
 #ifndef LOG // log to file only when in RELEASE mode 
 		float last_log_time = 0.0;
 		std::time_t tstamp = std::time(0); // get timestamp to use in filename
+		std::clock_t last_progress_report = std::clock();
 #endif
-		
+
 		std::cout << "-- Begin Iterations -- \n\n";
 
 		std::clock_t sim_start = std::clock();
@@ -346,6 +347,18 @@ namespace PLISCuda {
 			print_leap_array(d_leap, sbc);
 #endif
 
+#ifndef LOG			
+			std::clock_t curr_time = std::clock();
+			if (curr_time - last_progress_report > 30*CLOCKS_PER_SEC) {
+				std::cout << "  [";
+				print_eltime((curr_time - sim_start)/CLOCKS_PER_SEC);
+				std::cout << "]  simulation time = ";
+				printf("%6.3fs\n", h_current_time);
+				last_progress_report = curr_time;
+			} 
+#endif
+
+
 #ifndef LOG // log to file only when in RELEASE mode
 			if(log_freq > 0 && (h_current_time - last_log_time) >= log_freq) {
 				// get system state from the GPU
@@ -372,7 +385,7 @@ namespace PLISCuda {
 
 		std::clock_t sim_end = std::clock();
 
-		std::cout << "-- Simulation Complete -- \n\n";
+		std::cout << "\n-- Simulation Complete -- \n\n";
 
 #ifndef LOG // when logging to file, remember to print the final state
 		gpuErrchk(cudaMemcpy(h_state, state.curr, sbc * spc * sizeof(int), cudaMemcpyDeviceToHost));
@@ -386,8 +399,9 @@ namespace PLISCuda {
 		// print some final info to stdout
 		std::cout << "  final simulation time:  " << h_current_time << "s\n";
 		float eltime = float(sim_end - sim_start) / CLOCKS_PER_SEC;
+		std::cout << "  elapsed time:           ";
 		print_eltime(eltime);
-		std::cout << "  simulation steps:       " << step << "\n";
+		std::cout << "\n  simulation steps:       " << step << "\n";
 		std::cout << "  steps/second:           " << step/eltime << "\n";
 
 		std::cout << "\n";
@@ -398,13 +412,12 @@ namespace PLISCuda {
   
 	void print_eltime(float secs)
 	{
-		std::cout << "  elapsed time:           ";
 		int hrs = secs / 3600;
 		int mts = (secs - hrs*3600)/60;
 		float scs = secs - (hrs*3600 + mts*60);
 		std::cout << hrs << "h ";
 		std::cout << mts << "m ";
-		std::cout << scs << "s " << "\n";
+		printf("%5.2fs", scs);
 	}
 	
 	void print_state(int * h_state, int spc, int sbc, float current_time)
