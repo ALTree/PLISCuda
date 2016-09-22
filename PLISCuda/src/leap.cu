@@ -33,8 +33,6 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 		
 		// update state
 		for (int spi = 0; spi < SPC; spi++) {
-			// TODO: if we copy curr to next before the leap_step
-			// call, we can avoid reading from the old state (?)
 			int new_state = k * (reactions.p[GET_COEFF(spi, ri)] - reactions.r[GET_COEFF(spi, ri)]);
 			atomicAdd(&state.next[GET_SPI(spi, sbi)], new_state);
 		}
@@ -45,10 +43,8 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 
 	// fire non-critical outgoing diffusion events
 	for (int spi = 0; spi < SPC; spi++) {
-
-		if (is_critical_diffusion(state, sbi, spi)) {
+		if (is_critical_diffusion(state, sbi, spi))
 			continue;
-		}
 
 		// diffuse to each neighbour
 		for (unsigned int ngb = 0; ngb < neigh_count; ngb++) {
@@ -71,6 +67,7 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 	if (leap[sbi] != LEAP_CR)
 		return;
 
+	// TODO: this comment is outdated
 	// Problem: in the following we use the old react_rates_array
 	// (we'll update it later, in another kernel call), but it can
 	// happen that a reaction has rate > 0 even if we can't fire it
