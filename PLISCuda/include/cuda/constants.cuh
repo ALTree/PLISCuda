@@ -1,6 +1,10 @@
 #ifndef CONSTANTS_CUH_
 #define CONSTANTS_CUH_
 
+#define INDCHECK() \
+		unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x; \
+		if (sbi >= SBC) return; 
+
 // ---- model limitations ----
 #define MAXREACTIONS 64
 

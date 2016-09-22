@@ -4,8 +4,9 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 						  rates rates, float min_tau,
 						  float * current_time, char * leap, curandStateMRG32k3a * prngstate)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || leap[sbi] == SSA || leap[sbi] == SSA_FF)
+	INDCHECK()
+
+	if (leap[sbi] == SSA || leap[sbi] == SSA_FF)
 		return;
 
 	int neigh_count = neigh.count[sbi];
@@ -201,9 +202,7 @@ __global__ void leap_step(state state, reactions reactions, neigh neigh,
 
 __global__ void check_state(state state, int * revert)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
+	INDCHECK()
 
 	bool _revert = false;
 	for (int spi = 0; spi < SPC; spi++)
@@ -215,9 +214,7 @@ __global__ void check_state(state state, int * revert)
 
 __global__ void init_neigh_count(neigh neigh)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
+	INDCHECK()
 
 	int nc = 0;
 	for (int i = 0; i < 6; i++)

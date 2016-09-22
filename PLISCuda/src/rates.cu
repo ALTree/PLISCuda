@@ -40,31 +40,24 @@ __device__ float react_rate(state state, reactions reactions, int sbi, int ri, r
 
 __device__ void react_rates(state state, reactions reactions, rates rates)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
+	INDCHECK()
 
-	for (int ri = 0; ri < RC; ri++) {
+	for (int ri = 0; ri < RC; ri++)
 		rates.reaction[GET_RR(ri, sbi)] = react_rate(state, reactions, sbi, ri, rates);
-	}
 }
 
 __device__ void diff_rates(state state, rates rates)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
 
-	for (int spi = 0; spi < SPC; spi++) {
+	INDCHECK()
+
+	for (int spi = 0; spi < SPC; spi++) 
 		rates.diffusion[GET_DR(spi, sbi)] = rates.dc[spi] * state.curr[GET_SPI(spi, sbi)];
-	}
 }
 
 __device__ void update_rate_matrix(neigh neigh, rates rates)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
+	INDCHECK()
 
 	// sum reaction rates
 	float react_sum = 0.0;
@@ -89,12 +82,10 @@ __device__ void update_rate_matrix(neigh neigh, rates rates)
 __global__ void compute_rates(state state, reactions reactions, neigh neigh, rates rates,
 							  int * d_subv_consts)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
+	INDCHECK()
 
-	// find the position of the constants set we
-	// have to use (bc compartimentation support)
+	// Find the position of the constants set we have to use (because
+	// of compartimentation support).
 	int dsc = d_subv_consts[sbi];
 	rates.rc = &rates.rc[dsc*RC];
 	rates.dc = &rates.dc[dsc*SPC];

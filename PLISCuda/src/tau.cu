@@ -202,9 +202,7 @@ __device__ float compute_tau_cr(state state, bool crit_r[MAXREACTIONS],
 __global__ void compute_taus(state state, reactions reactions, int * hors, neigh neigh,
 							 rates rates, float * tau, float min_tau, char * leap, curandStateMRG32k3a * s)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
+	INDCHECK()
 
 	// If on the previous step nobody changed our state from SSA_FF to
 	// SSA, it means that no molecule entered here and we can

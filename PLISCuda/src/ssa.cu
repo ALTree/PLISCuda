@@ -54,9 +54,7 @@ __device__ int choose_rand_specie(neigh neigh, rates rates, float rand)
 
 __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC)
-		return;
+	INDCHECK()
 
 #ifndef TEST
 	curand_init(clock64() * sbi, 0, 0, &prngstate[sbi]);
@@ -69,8 +67,9 @@ __global__ void initialize_prngstate_array(curandStateMRG32k3a * prngstate)
 __global__ void ssa_step(state state, reactions reactions, neigh neigh, rates rates,
 						 int min_sbi, float * current_time, char * leap, curandStateMRG32k3a * s)
 {
-	unsigned int sbi = blockIdx.x * blockDim.x + threadIdx.x;
-	if (sbi >= SBC || leap[sbi] == LEAP_CR || leap[sbi] == LEAP_NOCR || min_sbi != sbi)
+	INDCHECK()
+
+	if (leap[sbi] == LEAP_CR || leap[sbi] == LEAP_NOCR || min_sbi != sbi)
 		return;
 
 	float rand = curand_uniform(&s[sbi]);
