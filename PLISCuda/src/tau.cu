@@ -41,7 +41,8 @@ __device__ bool is_critical_reaction(state state, reactions reactions, int sbi, 
 
 __device__ bool is_critical_diffusion(state state, int sbi, int spi)
 {
-	return state.curr[GET_SPI(spi, sbi)] < NC;
+	int s = state.curr[GET_SPI(spi, sbi)]; 
+	return s < NC;
 }
 
 __device__ float compute_g(state state, reactions reactions, int * hors, int sbi, int spi)
@@ -155,14 +156,17 @@ __device__ float compute_tau_ncr(state state, reactions reactions,
 
 		// check for critical reaction events
 		for (int ri = 0; ri < RC; ri++) {
-			// skip if reaction is critical and the specie is involved
+			// Skip if reaction is critical and the specie is involved.
 			skip_r = skip_r || (crit_r[ri] && (reactions.r[GET_COEFF(spi, ri)] > 0));
 		}
 
 		// check for critical diffusion events
 		bool skip_d = is_critical_diffusion(state, sbi, spi);
 
-		if (skip_r && skip_d) // ??? should be ||
+		// if a specie 1) is only involved in critical reactions and
+		// 2) cannot diffuse non-critically, we skip it because it
+		// can't contribute to the noncritical tau.
+		if (skip_r && skip_d)
 			continue;
 
 		// spi is not involved in any critical event.
@@ -225,7 +229,7 @@ __global__ void compute_taus(state state, reactions reactions, int * hors, neigh
 	float tau_ncr = compute_tau_ncr(state, reactions, hors, crit_r, neigh, sbi, rates);
 	float tau_cr = compute_tau_cr(state, crit_r, sbi, rates, s);
 
-	// If tau_ncr is +Inf then every reaction is critical, and we
+	// If tau_ncr is +Inf then every event is critical, and we
 	// can't leap.  Also prevent leap if tau_ncr is too small.
 	bool leap_here = true;
 	if (isinf(tau_ncr) /*|| (tau_ncr < 10.0 / rates.matrix[GET_RATE(2, sbi)])*/) {
