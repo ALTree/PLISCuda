@@ -2,8 +2,8 @@ import sys
 
 def add_neighs(sub):
     """
-    add_neighs addd neighbours to the subvolume sub. 
-    Ignores borders issues, we'll filter out invalid 
+    add_neighs add neighbours to the subvolume sub. 
+    Ignore borders issues, we'll filter out invalid 
     neighbours later.
     """
     global topology
@@ -35,7 +35,15 @@ def linearize(sub):
 
     x, y, z = sub
     return x + y*xdim + z*xdim*ydim
-        
+
+
+
+# -------------------- #
+#                      #
+#   main script code   #
+#                      #
+# -------------------- #
+
 if len(sys.argv) < 5:
     print("usage: python3 $genTopology.py x y z filename.txt")
     sys.exit()

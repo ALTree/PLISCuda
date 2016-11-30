@@ -12,6 +12,7 @@ for i = 1:length(datfiles)
   times(i) = t;
 end
 
+
 step = floor(min(times));  # this is also the smallest time
 maxt = floor(max(times));  # biggest time
 
