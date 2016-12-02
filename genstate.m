@@ -1,17 +1,4 @@
-## Copyright (C) 2016 Alberto Donizetti
-## 
-## This program is free software; you can redistribute it and/or modify it
-## under the terms of the GNU General Public License as published by
-## the Free Software Foundation; either version 3 of the License, or
-## (at your option) any later version.
-## 
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
-## 
-## You should have received a copy of the GNU General Public License
-## along with this program.  If not, see <http://www.gnu.org/licenses/>.
+## genstate.m
 
 ## usage: genstate(dims, mols, low, high)
 ##
@@ -22,13 +9,12 @@
 ##   high = [xh, yh, zh]
 ## (extremes included) sets the state to mols = [specie1 specie2 ...].
 ## Every other subvolume gets a [0 0 ...] state.
+## Indices are 0-based.
 
 ## Author: Alberto Donizetti <adonizetti@nadonizet230119>
 ## Created: 2016-11-29
 
 function [] = genstate (dims, mols, low, high)
-
-# extract singular dimension from input arrays
 
 [xdim, ydim, zdim] = num2cell(dims){:};
 [xl, yl, zl] = num2cell(low){:};
@@ -39,7 +25,7 @@ subvc = xdim*ydim*zdim;
 
 # prepare fprintf format strings
 
-fmtstr = "%d:";  # fmtstr for subv where we'll write 'mols'
+fmtstr = "%d:";  # fmtstr for subv where we'll actually write 'mols'
 for i = 1:length(mols)
   fmtstr = strcat(fmtstr, " %d");
 end
@@ -56,14 +42,14 @@ end
 zstr = strcat(zstr, "\n");
 
 
-# generate file header
+# write file header
 
 fid = fopen("state.txt", "w");
 fprintf(fid, "subvolumes: %d\n", subvc);
 fprintf(fid, "species: %d\n\n", length(mols));
 
 
-# generate subvolumes state lines
+# write subvolumes state lines
 
 for i = 0:subvc-1
   [x, y, z] = ind2sub(dims, i+1);
@@ -74,7 +60,7 @@ for i = 0:subvc-1
     (z >= zl && z <= zh))
     fprintf(fid, fmtstr, i, mols);
     else
-      fprintf(fid, zstr, i, 2);
+      fprintf(fid, zstr, i, 25);
     end
 end
 
