@@ -14,7 +14,7 @@
 ## plot(times, data(42,:)) can be used to plot the number of mols of specie
 ## 'specie' in subvolume 42 over time.
 
-function [data, times] = parseserie (dirpath, specie, sbc)
+function [data, times] = parseseriegrp (dirpath, specie, sbc, dims, gp)
 
 datfiles = glob(strcat(dirpath, "/sim*"));
 times = zeros(1, length(datfiles));
@@ -37,10 +37,22 @@ maxt = floor(max(times));  # biggest time
 
 # preallocate data matrix and fill it
 
-data = zeros(sbc, floor(maxt/step));
+data = zeros(dims(1)/gp, floor(maxt/step));
+counter = 0;
+
 for i = 1:length(datfiles)
+  counter = counter + 1;
+  
   [state, t] = parsestate(datfiles{i});
-  data(:, floor(t/step)) = state(:,specie);
+  
+  for j = 0:gp:(dims(1)-1)
+    mols = countmols(state, dims, [j 0 0], [j + gp - 1, dims(2), dims(3)]);
+    data((j/gp)+1, floor(t/step)) = mols(specie);
+  end
+  
+  printf("Processed %d/%d\n", counter, length(datfiles));
+  fflush(stdout);
+  
 end
 
 # sort times or plot(times, ..) won't work
