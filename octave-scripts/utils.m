@@ -18,6 +18,9 @@ function [mols] = countmols (state, dims, low, high)
 [xl, yl, zl] = num2cell(low){:};
 [xh, yh, zh] = num2cell(high){:};
 
+xl++; yl++; zl++;
+xh++; yh++; zh++;
+
 spc = length(state(1,:));  # species count
 sbc = length(state(:,1));  # subvolumes count
 
@@ -25,7 +28,7 @@ mols = zeros(1, spc);
 
 for i = 1:sbc
   [x, y, z] = ind2sub(dims, i);
-  x = x-1; y = y-1; z = z-1;
+  # x = x-1; y = y-1; z = z-1;
   if (
     (x >= xl && x <= xh) &&
     (y >= yl && y <= yh) &&
