@@ -16,7 +16,7 @@
 
 function [data, times] = parseseriegrp (dirpath, specie, sbc, dims, gp)
 
-source("~/repositories/PLISCuda/octave-scripts/utils.m");  # <-- bad
+source("~/repositories/PLISCuda/octave-scripts/utils.m");  # <-- bad idea
 
 datfiles = glob(strcat(dirpath, "/sim*"));
 times = zeros(1, length(datfiles));
@@ -48,7 +48,7 @@ for i = 1:length(datfiles)
   [state, t] = parsestate(datfiles{i});
   
   for j = 0:gp:(dims(1)-1)
-    mols = countmols(state, dims, [j 0 0], [j + gp - 1, dims(2), dims(3)]);
+    mols = countmols(state, dims, [j 0 0], [j + gp - 1, dims(2)-1, dims(3)-1]);
     data((j/gp)+1, floor(t/step)) = mols(specie);
   end
   
