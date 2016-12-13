@@ -16,8 +16,6 @@
 
 function [data, times] = parseseriegrp (dirpath, specie, sbc, dims, gp)
 
-source("~/repositories/PLISCuda/octave-scripts/utils.m");  # <-- bad idea
-
 datfiles = glob(strcat(dirpath, "/sim*"));
 times = zeros(1, length(datfiles));
 
